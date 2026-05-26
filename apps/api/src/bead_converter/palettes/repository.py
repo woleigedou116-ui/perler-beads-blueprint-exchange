@@ -1,0 +1,54 @@
+from dataclasses import dataclass
+import json
+from pathlib import Path
+
+
+@dataclass(frozen=True)
+class ConversionResult:
+    source_code: str
+    source_rgb: tuple[int, int, int] | None
+    target_code: str | None
+    target_rgb: tuple[int, int, int] | None
+    requires_review: bool
+
+
+class PaletteRepository:
+    def __init__(self, mappings: dict[str, ConversionResult], version: str) -> None:
+        self._mappings = mappings
+        self.version = version
+
+    @classmethod
+    def load_default(cls) -> "PaletteRepository":
+        root = Path(__file__).resolve().parents[5]
+        payload = json.loads(
+            (root / "data" / "palettes" / "mard-coco.v1.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        mappings = {
+            row["sourceCode"]: ConversionResult(
+                source_code=row["sourceCode"],
+                source_rgb=tuple(row["sourceRgb"]),
+                target_code=row["targetCode"],
+                target_rgb=tuple(row["targetRgb"]),
+                requires_review=not row["verified"],
+            )
+            for row in payload["mappings"]
+        }
+        return cls(mappings=mappings, version=payload["version"])
+
+    def convert(
+        self,
+        code: str,
+        source_standard: str,
+        target_standard: str,
+    ) -> ConversionResult:
+        if source_standard != "MARD" or target_standard != "COCO":
+            return ConversionResult(code, None, None, None, True)
+        return self._mappings.get(
+            code,
+            ConversionResult(code, None, None, None, True),
+        )
+
+    def known_source_codes(self) -> set[str]:
+        return set(self._mappings)

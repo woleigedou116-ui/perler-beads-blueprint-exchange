@@ -1,0 +1,81 @@
+{
+  "version": "mard-coco.v1",
+  "sourceStandard": "MARD",
+  "targetStandard": "COCO",
+  "reviewedFrom": [
+    "标准对应转换/mard和coco/拼豆色卡对照_1（本地参考，不入库）",
+    "标准对应转换/mard和coco/拼豆色卡对照_2（本地参考，不入库）"
+  ],
+  "mappings": [
+    {
+      "sourceCode": "B7",
+      "sourceRgb": [24, 142, 127],
+      "targetCode": "G05",
+      "targetRgb": [26, 144, 125],
+      "verified": true
+    },
+    {
+      "sourceCode": "C15",
+      "sourceRgb": [62, 189, 183],
+      "targetCode": "H11",
+      "targetRgb": [63, 187, 181],
+      "verified": true
+    },
+    {
+      "sourceCode": "E1",
+      "sourceRgb": [251, 219, 210],
+      "targetCode": "K03",
+      "targetRgb": [251, 218, 209],
+      "verified": true
+    },
+    {
+      "sourceCode": "E20",
+      "sourceRgb": [239, 225, 233],
+      "targetCode": "K26",
+      "targetRgb": [239, 224, 232],
+      "verified": true
+    },
+    {
+      "sourceCode": "F9",
+      "sourceRgb": [228, 101, 126],
+      "targetCode": "K20",
+      "targetRgb": [227, 101, 125],
+      "verified": true
+    },
+    {
+      "sourceCode": "F14",
+      "sourceRgb": [247, 152, 158],
+      "targetCode": "K07",
+      "targetRgb": [247, 150, 157],
+      "verified": true
+    },
+    {
+      "sourceCode": "F19",
+      "sourceRgb": [192, 82, 95],
+      "targetCode": "K33",
+      "targetRgb": [191, 82, 94],
+      "verified": true
+    },
+    {
+      "sourceCode": "H2",
+      "sourceRgb": [246, 245, 239],
+      "targetCode": "A01",
+      "targetRgb": [246, 245, 239],
+      "verified": true
+    },
+    {
+      "sourceCode": "H7",
+      "sourceRgb": [14, 14, 14],
+      "targetCode": "B09",
+      "targetRgb": [14, 14, 14],
+      "verified": true
+    },
+    {
+      "sourceCode": "H16",
+      "sourceRgb": [47, 42, 34],
+      "targetCode": "B08",
+      "targetRgb": [36, 28, 28],
+      "verified": true
+    }
+  ]
+}
