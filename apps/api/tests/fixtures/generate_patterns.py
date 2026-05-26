@@ -68,3 +68,15 @@ def make_grid_with_missing_inner_line(
         width=1,
     )
     return image
+
+
+def make_colored_cell_with_dark_code(
+    fill: tuple[int, int, int],
+    code: str,
+    size: int = 48,
+) -> Image.Image:
+    image = Image.new("RGB", (size, size), fill)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((0, 0, size - 1, size - 1), outline=(20, 20, 20), width=2)
+    draw.text((size // 4, size // 3), code, fill=(12, 12, 12))
+    return image
