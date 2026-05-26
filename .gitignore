@@ -1,0 +1,10 @@
+.worktrees/
+.venv/
+__pycache__/
+.pytest_cache/
+.coverage
+.data/
+apps/web/node_modules/
+apps/web/dist/
+/拼豆样例图/
+/标准对应转换/
