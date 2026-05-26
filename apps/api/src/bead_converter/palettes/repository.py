@@ -52,3 +52,6 @@ class PaletteRepository:
 
     def known_source_codes(self) -> set[str]:
         return set(self._mappings)
+
+    def all_mappings(self) -> list[ConversionResult]:
+        return list(self._mappings.values())

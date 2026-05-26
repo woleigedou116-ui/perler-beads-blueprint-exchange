@@ -80,3 +80,28 @@ def make_colored_cell_with_dark_code(
     draw.rectangle((0, 0, size - 1, size - 1), outline=(20, 20, 20), width=2)
     draw.text((size // 4, size // 3), code, fill=(12, 12, 12))
     return image
+
+
+def make_grid_with_cell_fill(
+    fill: tuple[int, int, int],
+    rows: int = 3,
+    columns: int = 3,
+    cell_size: int = 32,
+    filled_cells: list[tuple[int, int]] | None = None,
+) -> Image.Image:
+    image = make_grid_pattern(rows=rows, columns=columns, cell_size=cell_size)
+    margin = 8
+    draw = ImageDraw.Draw(image)
+    for row, column in filled_cells or [(0, 0)]:
+        draw.rectangle(
+            (
+                margin + column * cell_size + 1,
+                margin + row * cell_size + 1,
+                margin + (column + 1) * cell_size - 1,
+                margin + (row + 1) * cell_size - 1,
+            ),
+            fill=fill,
+        )
+    draw.line((margin, margin, margin + columns * cell_size, margin), fill=(25, 25, 25))
+    draw.line((margin, margin, margin, margin + rows * cell_size), fill=(25, 25, 25))
+    return image
