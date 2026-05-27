@@ -21,18 +21,19 @@ Last updated: 2026-05-27
 | Task 6 | `1fd6330` | OCR adapter and probe |
 | Task 7 | `214877a` | Combined recognition pipeline |
 | Task 8 | `b4e53e0` | Local project conversion API |
-| Task 9 | `feat: export corrected pattern projects` | CSV, image and project archive exports |
+| Task 9 | `8080ddc` | CSV, image and project archive exports |
+| Task 10 | `feat: add conversion review workbench` | Upload, review, correction and export UI |
 
 ## Active Checkpoint
 
-- Task 10 is next: the React upload and review workbench.
-- Task 9 GREEN verified on 2026-05-27:
-  `.venv\Scripts\python -m pytest apps/api/tests/test_exports.py apps/api/tests/test_projects_api.py -q`
-  passes with 13 tests.
+- Task 11 is next: static frontend serving and local sample acceptance.
+- Task 10 GREEN verified on 2026-05-27:
+  `node node_modules/vitest/vitest.mjs run` passes with 4 frontend tests;
+  `node node_modules/typescript/bin/tsc --noEmit` and
+  `node node_modules/vite/bin/vite.js build` both pass.
 
 ## Remaining Checkpoints
 
-- Task 10: implement the React review workbench.
 - Task 11: serve built frontend and record local sample acceptance.
 - Task 12: run the full quality gate and scope review.
 
