@@ -1,10 +1,13 @@
 from io import BytesIO
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
+from fastapi.responses import Response
 from pydantic import BaseModel
 from PIL import Image, UnidentifiedImageError
 
 from bead_converter.domain.models import BeadProject, CellStatus, MappingDecision
+from bead_converter.exports.csv_export import export_mapping_csv
+from bead_converter.exports.image_export import render_clean_pattern, render_overlay_pattern
 from bead_converter.vision.grid import GridNotFoundError
 from bead_converter.vision.ocr import RapidOcrProvider
 from bead_converter.vision.recognizer import recognize_pattern
@@ -31,6 +34,28 @@ def _project(request: Request, project_id: str) -> BeadProject:
         return request.app.state.store.load(project_id)
     except FileNotFoundError as exc:
         raise HTTPException(status_code=404, detail="项目不存在") from exc
+
+
+def _export_response(
+    request: Request,
+    project: BeadProject,
+    content: bytes,
+    media_type: str,
+    filename: str,
+) -> Response:
+    unresolved = sum(
+        cell.status == CellStatus.review_required for cell in project.cells
+    )
+    project.export_history.append(filename)
+    request.app.state.store.save(project)
+    return Response(
+        content,
+        media_type=media_type,
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "X-Bead-Warnings": str(unresolved),
+        },
+    )
 
 
 @router.post("/import", response_model=BeadProject, status_code=status.HTTP_201_CREATED)
@@ -67,6 +92,14 @@ async def import_project(
     request.app.state.store.save_source_image(project.id, image.filename or "source.png", data)
     request.app.state.store.save(project)
     return project
+
+
+@router.post("/open", response_model=BeadProject, status_code=status.HTTP_201_CREATED)
+async def open_project(request: Request, archive: UploadFile = File(...)) -> BeadProject:
+    try:
+        return request.app.state.store.import_archive(await archive.read())
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="无法打开项目文件") from exc
 
 
 @router.get("/{project_id}", response_model=BeadProject)
@@ -138,3 +171,63 @@ def set_source_attribution(
     project.source_attribution = update.source_attribution
     request.app.state.store.save(project)
     return project
+
+
+@router.get("/{project_id}/exports/mapping.csv")
+def export_csv(request: Request, project_id: str) -> Response:
+    project = _project(request, project_id)
+    return _export_response(
+        request,
+        project,
+        export_mapping_csv(project),
+        "text/csv; charset=utf-8",
+        "mapping.csv",
+    )
+
+
+@router.get("/{project_id}/exports/clean.png")
+def export_clean_image(request: Request, project_id: str) -> Response:
+    project = _project(request, project_id)
+    output = BytesIO()
+    render_clean_pattern(project, request.app.state.palette).save(output, format="PNG")
+    return _export_response(
+        request,
+        project,
+        output.getvalue(),
+        "image/png",
+        "clean.png",
+    )
+
+
+@router.get("/{project_id}/exports/overlay.png")
+def export_overlay_image(request: Request, project_id: str) -> Response:
+    project = _project(request, project_id)
+    try:
+        source = Image.open(request.app.state.store.source_image_path(project_id))
+    except (FileNotFoundError, UnidentifiedImageError) as exc:
+        raise HTTPException(status_code=404, detail="原始图片不存在") from exc
+    output = BytesIO()
+    render_overlay_pattern(project, source).save(output, format="PNG")
+    return _export_response(
+        request,
+        project,
+        output.getvalue(),
+        "image/png",
+        "overlay.png",
+    )
+
+
+@router.get("/{project_id}/exports/project.beadproject")
+def export_archive(request: Request, project_id: str) -> Response:
+    project = _project(request, project_id)
+    try:
+        data = request.app.state.store.export_archive(project_id)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="原始图片不存在") from exc
+    return _export_response(
+        request,
+        project,
+        data,
+        "application/zip",
+        "project.beadproject",
+    )
