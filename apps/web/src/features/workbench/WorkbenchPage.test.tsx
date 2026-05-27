@@ -37,6 +37,7 @@ describe("WorkbenchPage", () => {
     cleanup();
     vi.clearAllMocks();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("uploads a MARD pattern and shows review and export actions", async () => {
@@ -47,6 +48,21 @@ describe("WorkbenchPage", () => {
     expect(screen.getByText("MARD H7")).toBeInTheDocument();
     expect(screen.getByText("COCO B09")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "导出图纸" })).toBeEnabled();
+  });
+
+  it("uses the uploaded image behind the recognition overlay", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:source-pattern"),
+      revokeObjectURL: vi.fn(),
+    });
+
+    await importPattern();
+
+    expect(await screen.findByAltText("上传原图")).toHaveAttribute(
+      "src",
+      "blob:source-pattern",
+    );
   });
 
   it("confirms a recommended mapping for matching cells", async () => {

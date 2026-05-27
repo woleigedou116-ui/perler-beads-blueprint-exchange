@@ -155,6 +155,7 @@ export function WorkbenchPage() {
             <div className="preview-row">
               <GridPreview
                 project={project}
+                sourceImageUrl={previewUrl}
                 target={false}
                 title="识别叠加视图"
                 onSelectCell={setSelectedCell}

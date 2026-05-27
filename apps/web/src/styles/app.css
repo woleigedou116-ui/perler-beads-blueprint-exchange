@@ -246,6 +246,36 @@ p {
   width: 100%;
 }
 
+.source-overlay-preview {
+  margin-top: 0.65rem;
+  max-width: 100%;
+  position: relative;
+  width: fit-content;
+}
+
+.source-overlay-image {
+  border-radius: 8px;
+  display: block;
+  height: auto;
+  max-height: 475px;
+  max-width: 100%;
+  width: auto;
+}
+
+.source-review-overlay {
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.source-review-overlay .review-overlay-cell {
+  cursor: pointer;
+  fill: rgba(226, 151, 32, 0.2);
+  stroke: #e29720;
+  stroke-width: 3;
+}
+
 .grid-preview rect {
   stroke: #ccd5d1;
 }
