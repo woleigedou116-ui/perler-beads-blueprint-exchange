@@ -22,19 +22,23 @@ Last updated: 2026-05-27
 | Task 7 | `214877a` | Combined recognition pipeline |
 | Task 8 | `b4e53e0` | Local project conversion API |
 | Task 9 | `8080ddc` | CSV, image and project archive exports |
-| Task 10 | `feat: add conversion review workbench` | Upload, review, correction and export UI |
+| Task 10 | `8d14629` | Upload, review, correction and export UI |
+| Task 11 | `feat: deliver local mard to coco conversion mvp` | Hosting and real-sample acceptance |
 
 ## Active Checkpoint
 
-- Task 11 is next: static frontend serving and local sample acceptance.
-- Task 10 GREEN verified on 2026-05-27:
-  `node node_modules/vitest/vitest.mjs run` passes with 4 frontend tests;
-  `node node_modules/typescript/bin/tsc --noEmit` and
-  `node node_modules/vite/bin/vite.js build` both pass.
+- Task 12 is next: the final full quality gate and scope review.
+- Task 11 verification on 2026-05-27:
+  backend tests pass with 37 tests; frontend tests pass with 5 tests;
+  TypeScript/Vite build passes; the hosted UI was inspected locally.
+- The four scoped images upload through the API, export all four artifacts,
+  and reopen `.beadproject` archives. Results are recorded in
+  `docs/acceptance/mvp-sample-checklist.md`.
+- The local ignored sample directory now also contains two additional files;
+  the acceptance record lists their probe results without expanding MVP scope.
 
 ## Remaining Checkpoints
 
-- Task 11: serve built frontend and record local sample acceptance.
 - Task 12: run the full quality gate and scope review.
 
 ## Recovery Procedure

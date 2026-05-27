@@ -46,18 +46,31 @@ def _recover_periodic_lines(lines: list[int]) -> list[int]:
     spacing = float(median(nearby))
     if spacing <= 2:
         return lines
-    count = round((lines[-1] - lines[0]) / spacing)
-    reconstructed = [
-        round(value)
-        for value in np.linspace(lines[0], lines[-1], count + 1)
-    ]
     tolerance = max(2, spacing * 0.15)
-    supported = sum(
-        any(abs(candidate - expected) <= tolerance for candidate in lines)
-        for expected in reconstructed
-    )
-    if supported < max(3, len(reconstructed) * 0.55):
+    candidates: list[tuple[float, int, int, list[int]]] = []
+    for start_index in range(len(lines) - 2):
+        for end_index in range(start_index + 2, len(lines)):
+            span = lines[end_index] - lines[start_index]
+            base_count = round(span / spacing)
+            for count in range(max(2, base_count - 2), base_count + 3):
+                actual_spacing = span / count
+                if abs(actual_spacing - spacing) / spacing > 0.15:
+                    continue
+                reconstructed = [
+                    round(value)
+                    for value in np.linspace(lines[start_index], lines[end_index], count + 1)
+                ]
+                supported = sum(
+                    any(abs(candidate - expected) <= tolerance for candidate in lines)
+                    for expected in reconstructed
+                )
+                if supported < max(3, len(reconstructed) * 0.50):
+                    continue
+                score = supported * supported / len(reconstructed)
+                candidates.append((score, supported, len(reconstructed), reconstructed))
+    if not candidates:
         return lines
+    _score, _supported, _length, reconstructed = max(candidates)
     return reconstructed
 
 

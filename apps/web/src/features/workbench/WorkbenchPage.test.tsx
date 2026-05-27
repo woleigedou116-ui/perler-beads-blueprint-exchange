@@ -6,6 +6,7 @@ import {
   confirmMapping,
   exportUrl,
   importImage,
+  openProject,
 } from "../../api/client";
 import { WorkbenchPage } from "./WorkbenchPage";
 import {
@@ -18,6 +19,7 @@ vi.mock("../../api/client", () => ({
   correctCell: vi.fn(),
   exportUrl: vi.fn(() => "/download"),
   importImage: vi.fn(),
+  openProject: vi.fn(),
   saveAttribution: vi.fn(),
 }));
 
@@ -71,5 +73,16 @@ describe("WorkbenchPage", () => {
       "当前仍有 1 个待确认格子，导出结果可能使用推荐颜色。仍要导出吗？",
     );
     expect(exportUrl).not.toHaveBeenCalled();
+  });
+
+  it("reopens a saved project file for further review", async () => {
+    vi.mocked(openProject).mockResolvedValue(projectWithOneReviewCell);
+    render(<WorkbenchPage />);
+    const projectFile = new File(["saved"], "pattern.beadproject");
+
+    await userEvent.upload(screen.getByLabelText("打开项目"), projectFile);
+
+    expect(openProject).toHaveBeenCalledWith(projectFile);
+    expect(await screen.findByText("待确认 1 项")).toBeInTheDocument();
   });
 });

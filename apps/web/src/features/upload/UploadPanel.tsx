@@ -8,6 +8,7 @@ interface UploadPanelProps {
   project: BeadProject | null;
   onAttributionChange: (value: string) => void;
   onImport: () => void;
+  onOpenProject: (file: File) => void;
   onSaveAttribution: () => void;
   onSelectFile: (file: File | null) => void;
 }
@@ -20,6 +21,7 @@ export function UploadPanel({
   project,
   onAttributionChange,
   onImport,
+  onOpenProject,
   onSaveAttribution,
   onSelectFile,
 }: UploadPanelProps) {
@@ -57,6 +59,20 @@ export function UploadPanel({
       <button className="primary-button" disabled={!file || processing} onClick={onImport}>
         {processing ? "识别中..." : "开始识别"}
       </button>
+      <label className="project-file-field">
+        <span>打开项目</span>
+        <input
+          aria-label="打开项目"
+          accept=".beadproject"
+          type="file"
+          onChange={(event) => {
+            const selected = event.target.files?.[0];
+            if (selected) {
+              onOpenProject(selected);
+            }
+          }}
+        />
+      </label>
       {project ? (
         <>
           <p className="grid-status">网格 {project.grid.rows} x {project.grid.columns}</p>

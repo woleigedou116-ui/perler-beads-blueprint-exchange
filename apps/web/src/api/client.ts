@@ -19,6 +19,14 @@ export async function importImage(file: File): Promise<BeadProject> {
   );
 }
 
+export async function openProject(file: File): Promise<BeadProject> {
+  const form = new FormData();
+  form.append("archive", file);
+  return projectResponse(
+    await fetch("/api/projects/open", { method: "POST", body: form }),
+  );
+}
+
 export async function confirmMapping(
   projectId: string,
   sourceCode: string,

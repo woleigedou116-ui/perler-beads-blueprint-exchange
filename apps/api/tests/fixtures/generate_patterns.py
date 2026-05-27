@@ -70,6 +70,47 @@ def make_grid_with_missing_inner_line(
     return image
 
 
+def make_sparse_vertical_grid(
+    rows: int,
+    columns: int,
+    x_lines: list[int],
+    y_spacing: int,
+    retained_vertical_indices: set[int],
+) -> Image.Image:
+    margin = 8
+    y_lines = [margin + row * y_spacing for row in range(rows + 1)]
+    image = Image.new("RGB", (x_lines[-1] + margin + 1, y_lines[-1] + margin + 1), "white")
+    draw = ImageDraw.Draw(image)
+    for index in retained_vertical_indices:
+        draw.line((x_lines[index], y_lines[0], x_lines[index], y_lines[-1]), fill=(25, 25, 25))
+    for y in y_lines:
+        draw.line((x_lines[0], y, x_lines[-1], y), fill=(25, 25, 25))
+    return image
+
+
+def make_rectangular_grid_with_trailing_legend_lines(
+    rows: int,
+    columns: int,
+    cell_size: int,
+) -> Image.Image:
+    margin = 8
+    width = columns * cell_size + 2 * margin + 1
+    height = (rows + 11) * cell_size + 2 * margin + 1
+    image = Image.new("RGB", (width, height), "white")
+    draw = ImageDraw.Draw(image)
+    bottom = margin + rows * cell_size
+    for column in range(columns + 1):
+        x = margin + column * cell_size
+        draw.line((x, margin, x, bottom), fill=(25, 25, 25))
+    for row in range(rows + 1):
+        y = margin + row * cell_size
+        draw.line((margin, y, width - margin - 1, y), fill=(25, 25, 25))
+    for row in (rows + 4, rows + 10):
+        y = margin + row * cell_size
+        draw.line((margin, y, width - margin - 1, y), fill=(25, 25, 25))
+    return image
+
+
 def make_colored_cell_with_dark_code(
     fill: tuple[int, int, int],
     code: str,

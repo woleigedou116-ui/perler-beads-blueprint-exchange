@@ -1,10 +1,16 @@
 import argparse
 from pathlib import Path
+import sys
 
 from PIL import Image, ImageStat
 
 from bead_converter.vision.grid import GridNotFoundError, detect_grid
 from bead_converter.vision.ocr import RapidOcrProvider
+
+
+def safe_display_name(name: str, encoding: str | None = None) -> str:
+    console_encoding = encoding or sys.stdout.encoding or "utf-8"
+    return name.encode(console_encoding, errors="replace").decode(console_encoding)
 
 
 def candidate_codes() -> set[str]:
@@ -41,11 +47,12 @@ def likely_has_code(cell: Image.Image) -> bool:
 
 
 def probe(path: Path, sample_limit: int) -> str:
+    display_name = safe_display_name(path.name)
     image = Image.open(path)
     try:
         grid = detect_grid(image)
     except GridNotFoundError:
-        return f"{path.name} | grid-not-found"
+        return f"{display_name} | grid-not-found"
     cells: list[Image.Image] = []
     for row in range(grid.rows):
         for column in range(grid.columns):
@@ -65,7 +72,7 @@ def probe(path: Path, sample_limit: int) -> str:
     recognized = RapidOcrProvider().recognize_cells(cells, candidate_codes())
     hits = sum(any(item.normalized_code for item in candidates) for candidates in recognized)
     return (
-        f"{path.name} | {grid.rows}x{grid.columns} | "
+        f"{display_name} | {grid.rows}x{grid.columns} | "
         f"sampled={len(cells)} | normalized-hits={hits}"
     )
 

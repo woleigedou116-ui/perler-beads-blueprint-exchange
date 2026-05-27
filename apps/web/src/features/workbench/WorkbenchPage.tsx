@@ -5,6 +5,7 @@ import {
   correctCell,
   exportUrl,
   importImage,
+  openProject,
   saveAttribution,
 } from "../../api/client";
 import type { BeadProject, Cell } from "../../domain/types";
@@ -47,15 +48,31 @@ export function WorkbenchPage() {
     setError(null);
     try {
       const imported = await importImage(file);
-      setProject(imported);
-      setAttribution(imported.source_attribution ?? "");
-      setSelectedCell(
-        imported.cells.find((cell) => cell.status === "review-required") ??
-          imported.cells[0] ??
-          null,
-      );
+      loadProject(imported);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "识别失败");
+    } finally {
+      setProcessing(false);
+    }
+  }
+
+  function loadProject(opened: BeadProject) {
+    setProject(opened);
+    setAttribution(opened.source_attribution ?? "");
+    setSelectedCell(
+      opened.cells.find((cell) => cell.status === "review-required") ??
+        opened.cells[0] ??
+        null,
+    );
+  }
+
+  async function handleOpenProject(archive: File) {
+    setProcessing(true);
+    setError(null);
+    try {
+      loadProject(await openProject(archive));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "项目打开失败");
     } finally {
       setProcessing(false);
     }
@@ -127,6 +144,7 @@ export function WorkbenchPage() {
         project={project}
         onAttributionChange={setAttribution}
         onImport={handleImport}
+        onOpenProject={handleOpenProject}
         onSaveAttribution={handleSaveAttribution}
         onSelectFile={setFile}
       />
