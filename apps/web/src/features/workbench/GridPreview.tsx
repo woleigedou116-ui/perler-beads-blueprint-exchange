@@ -34,6 +34,7 @@ interface GridPreviewProps {
   pannable?: boolean;
   target: boolean;
   title: string;
+  viewportRef?: Ref<HTMLDivElement>;
   onSelectCell: (cell: Cell) => void;
   onViewportPointerCancel?: PointerEventHandler<HTMLDivElement>;
   onViewportPointerDown?: PointerEventHandler<HTMLDivElement>;
@@ -57,6 +58,7 @@ export function GridPreview({
   pannable = false,
   target,
   title,
+  viewportRef = null,
   onSelectCell,
   onViewportPointerCancel,
   onViewportPointerDown,
@@ -104,6 +106,7 @@ export function GridPreview({
           pannable ? "is-pannable" : "",
           dragging ? "is-dragging" : "",
         ].filter(Boolean).join(" ")}
+        ref={viewportRef}
         onPointerCancel={onViewportPointerCancel}
         onPointerDown={onViewportPointerDown}
         onPointerMove={onViewportPointerMove}

@@ -49,14 +49,29 @@ function setReadOnlyNumberProperty(element: Element, name: string, value: number
   });
 }
 
+function setPreviewSize(
+  container: HTMLElement,
+  index: number,
+  size: { width: number; height: number },
+) {
+  const viewport = container.querySelectorAll(".preview-viewport")[index];
+  const transform = container.querySelectorAll(".preview-transform")[index];
+  setReadOnlyNumberProperty(viewport, "clientWidth", size.width);
+  setReadOnlyNumberProperty(viewport, "clientHeight", size.height);
+  setReadOnlyNumberProperty(transform, "clientWidth", size.width);
+  setReadOnlyNumberProperty(transform, "clientHeight", size.height);
+}
+
 it("applies zoom and panning independently for each blueprint preview", async () => {
   const { container } = renderPreview();
+  setPreviewSize(container, 0, { width: 400, height: 200 });
+  setPreviewSize(container, 1, { width: 400, height: 200 });
 
   await userEvent.click(screen.getByRole("button", { name: "识别叠加视图 放大" }));
 
   expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("125%");
   expect(transforms(container)).toEqual([
-    "translate(0px, 0px) scale(1.25)",
+    "translate(-50px, -25px) scale(1.25)",
     "translate(0px, 0px) scale(1)",
   ]);
 
@@ -66,8 +81,8 @@ it("applies zoom and panning independently for each blueprint preview", async ()
 
   expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("125%");
   expect(transforms(container)).toEqual([
-    "translate(0px, 0px) scale(1.25)",
-    "translate(0px, 0px) scale(1.25)",
+    "translate(-50px, -25px) scale(1.25)",
+    "translate(-50px, -25px) scale(1.25)",
   ]);
 
   const secondViewport = container.querySelectorAll(".preview-viewport")[1];
@@ -76,14 +91,14 @@ it("applies zoom and panning independently for each blueprint preview", async ()
   firePointer(secondViewport, "pointerup", { pointerId: 1 });
 
   expect(transforms(container)).toEqual([
-    "translate(0px, 0px) scale(1.25)",
-    "translate(24px, 16px) scale(1.25)",
+    "translate(-50px, -25px) scale(1.25)",
+    "translate(-26px, -9px) scale(1.25)",
   ]);
 
   await userEvent.click(screen.getByRole("button", { name: "COCO 重绘预览 重置" }));
 
   expect(transforms(container)).toEqual([
-    "translate(0px, 0px) scale(1.25)",
+    "translate(-50px, -25px) scale(1.25)",
     "translate(0px, 0px) scale(1)",
   ]);
   expect(screen.getByRole("button", { name: "识别叠加视图 重置" })).toHaveTextContent(

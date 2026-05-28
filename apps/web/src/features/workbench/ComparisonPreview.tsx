@@ -66,6 +66,20 @@ function measuredContentSize(
   };
 }
 
+function measuredElementSize(
+  element: HTMLDivElement | null,
+  fallback: { width: number; height: number },
+) {
+  if (!element) {
+    return fallback;
+  }
+  const rect = element.getBoundingClientRect();
+  return {
+    width: element.clientWidth || rect.width || fallback.width,
+    height: element.clientHeight || rect.height || fallback.height,
+  };
+}
+
 function sourceCellCenter(project: BeadProject, cell: Cell) {
   return {
     x: (project.grid.x_lines[cell.column] + project.grid.x_lines[cell.column + 1]) / 2,
@@ -135,6 +149,10 @@ export function ComparisonPreview({
     source: null,
     target: null,
   });
+  const viewportRefs = useRef<Record<PreviewSide, HTMLDivElement | null>>({
+    source: null,
+    target: null,
+  });
 
   useEffect(() => {
     setViews(initialViews());
@@ -167,16 +185,45 @@ export function ComparisonPreview({
     });
   }, [focusRequest, project, sourceImageSize]);
 
+  function zoomAroundViewportCenter(
+    side: PreviewSide,
+    current: PreviewTransform,
+    nextZoom: number,
+  ): PreviewTransform {
+    if (nextZoom === MIN_ZOOM) {
+      return INITIAL_VIEW;
+    }
+    if (nextZoom === current.zoom) {
+      return current;
+    }
+
+    const content = contentRefs.current[side];
+    const viewport = viewportRefs.current[side];
+    const fallbackSize = measuredContentSize(content, { width: 1, height: 1 });
+    const viewportSize = measuredElementSize(viewport, fallbackSize);
+    const contentSize = measuredContentSize(content, viewportSize);
+    const layoutOffsetX = (viewportSize.width - contentSize.width) / 2;
+    const layoutOffsetY = (viewportSize.height - contentSize.height) / 2;
+    const viewportCenterX = viewportSize.width / 2;
+    const viewportCenterY = viewportSize.height / 2;
+    const anchoredContentX =
+      (viewportCenterX - layoutOffsetX - current.panX) / current.zoom;
+    const anchoredContentY =
+      (viewportCenterY - layoutOffsetY - current.panY) / current.zoom;
+
+    return {
+      zoom: nextZoom,
+      panX: Math.round(viewportCenterX - layoutOffsetX - anchoredContentX * nextZoom),
+      panY: Math.round(viewportCenterY - layoutOffsetY - anchoredContentY * nextZoom),
+    };
+  }
+
   function changeZoom(side: PreviewSide, delta: number) {
     setViews((current) => {
       const nextZoom = clampZoom(current[side].zoom + delta);
       return {
         ...current,
-        [side]: {
-          zoom: nextZoom,
-          panX: nextZoom === MIN_ZOOM ? 0 : current[side].panX,
-          panY: nextZoom === MIN_ZOOM ? 0 : current[side].panY,
-        },
+        [side]: zoomAroundViewportCenter(side, current[side], nextZoom),
       };
     });
   }
@@ -314,6 +361,9 @@ export function ComparisonPreview({
           sourceImageUrl={sourceImageUrl}
           target={false}
           title="识别叠加视图"
+          viewportRef={(node) => {
+            viewportRefs.current.source = node;
+          }}
           onSelectCell={onSelectCell}
         />
         <GridPreview
@@ -326,6 +376,9 @@ export function ComparisonPreview({
           project={project}
           target
           title="COCO 重绘预览"
+          viewportRef={(node) => {
+            viewportRefs.current.target = node;
+          }}
           onSelectCell={onSelectCell}
         />
       </div>
