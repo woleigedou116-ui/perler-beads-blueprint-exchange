@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -47,7 +47,7 @@ it("applies zoom and panning independently for each blueprint preview", async ()
 
   await userEvent.click(screen.getByRole("button", { name: "识别叠加视图 放大" }));
 
-  expect(screen.getByText("识别叠加视图 125%")).toBeInTheDocument();
+  expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("125%");
   expect(transforms(container)).toEqual([
     "translate(0px, 0px) scale(1.25)",
     "translate(0px, 0px) scale(1)",
@@ -57,7 +57,7 @@ it("applies zoom and panning independently for each blueprint preview", async ()
     deltaY: -100,
   });
 
-  expect(screen.getByText("COCO 重绘预览 125%")).toBeInTheDocument();
+  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("125%");
   expect(transforms(container)).toEqual([
     "translate(0px, 0px) scale(1.25)",
     "translate(0px, 0px) scale(1.25)",
@@ -79,13 +79,32 @@ it("applies zoom and panning independently for each blueprint preview", async ()
     "translate(0px, 0px) scale(1.25)",
     "translate(0px, 0px) scale(1)",
   ]);
+  expect(screen.getByRole("button", { name: "识别叠加视图 适应窗口" })).toHaveTextContent(
+    /^适应窗口$/,
+  );
+  expect(screen.getByRole("button", { name: "COCO 重绘预览 适应窗口" })).toHaveTextContent(
+    /^适应窗口$/,
+  );
 });
 
 it("toggles source review overlays without hiding the uploaded image", async () => {
-  renderPreview();
+  const { container } = renderPreview();
 
   expect(screen.getByAltText("上传原图")).toHaveAttribute("src", "blob:source-pattern");
   expect(screen.getByLabelText("待复核标记叠加层")).toBeInTheDocument();
+  expect(
+    within(screen.getByLabelText("预览工具栏")).queryByRole("button", {
+      name: "隐藏叠加",
+    }),
+  ).not.toBeInTheDocument();
+  expect(
+    within(container.querySelectorAll(".preview-card-actions")[0] as HTMLElement).getByRole(
+      "button",
+      {
+        name: "隐藏叠加",
+      },
+    ),
+  ).toBeInTheDocument();
 
   await userEvent.click(screen.getByRole("button", { name: "隐藏叠加" }));
 

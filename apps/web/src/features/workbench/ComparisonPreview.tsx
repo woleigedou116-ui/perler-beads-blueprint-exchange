@@ -184,7 +184,9 @@ export function ComparisonPreview({
         >
           -
         </button>
-        <strong>{title} {Math.round(views[side].zoom * 100)}%</strong>
+        <strong aria-label={`${title} 缩放比例`}>
+          {Math.round(views[side].zoom * 100)}%
+        </strong>
         <button
           type="button"
           aria-label={`${title} 放大`}
@@ -192,9 +194,22 @@ export function ComparisonPreview({
         >
           +
         </button>
-        <button type="button" onClick={() => fitToWindow(side)}>
-          {title} 适应窗口
+        <button
+          type="button"
+          aria-label={`${title} 适应窗口`}
+          onClick={() => fitToWindow(side)}
+        >
+          适应窗口
         </button>
+        {side === "source" ? (
+          <button
+            type="button"
+            aria-label={showReviewOverlay ? "隐藏叠加" : "显示叠加"}
+            onClick={() => setShowReviewOverlay((current) => !current)}
+          >
+            {showReviewOverlay ? "隐藏叠加" : "显示叠加"}
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -219,13 +234,6 @@ export function ComparisonPreview({
   return (
     <section className="comparison-preview" aria-label="同步图纸预览">
       <div className="comparison-toolbar" aria-label="预览工具栏">
-        <button
-          className="quiet-button"
-          type="button"
-          onClick={() => setShowReviewOverlay((current) => !current)}
-        >
-          {showReviewOverlay ? "隐藏叠加" : "显示叠加"}
-        </button>
         <button
           className="quiet-button"
           type="button"
