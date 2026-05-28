@@ -17,6 +17,7 @@ import { ReviewPanel } from "./ReviewPanel";
 import { StatisticsPanel } from "./StatisticsPanel";
 
 type ExportKind = "clean.png" | "overlay.png" | "mapping.csv" | "project.beadproject";
+type ExportOptions = { includeColorStats?: boolean };
 type RecognitionProgress = { label: string; value: number };
 
 const RECOGNITION_STAGES: RecognitionProgress[] = [
@@ -176,7 +177,7 @@ export function WorkbenchPage() {
     }
   }
 
-  function handleExport(kind: ExportKind) {
+  function handleExport(kind: ExportKind, options: ExportOptions = {}) {
     if (!project) {
       return;
     }
@@ -189,7 +190,7 @@ export function WorkbenchPage() {
       return;
     }
     const link = document.createElement("a");
-    link.href = exportUrl(project.id, kind);
+    link.href = exportUrl(project.id, kind, options);
     link.download = kind;
     link.click();
   }
@@ -219,12 +220,17 @@ export function WorkbenchPage() {
             <ComparisonPreview
               focusRequest={focusRequest}
               fullscreen={isReviewFullscreen}
+              paletteMappings={paletteMappings}
               project={project}
               sourceImageUrl={previewUrl}
               onFullscreenChange={setIsReviewFullscreen}
               onSelectCell={setSelectedCell}
             />
-            <StatisticsPanel project={project} onExport={handleExport} />
+            <StatisticsPanel
+              paletteMappings={paletteMappings}
+              project={project}
+              onExport={handleExport}
+            />
             <PaletteReference paletteMappings={paletteMappings} project={project} />
           </>
         ) : (

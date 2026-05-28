@@ -49,6 +49,9 @@ Last updated: 2026-05-29
   hidden; locate centers both previews while preserving each side's current
   zoom; preview and clean-export labels use automatic contrast with a light/dark
   stroke.
+- The COCO redraw now uses larger on-screen bead labels and can show or hide a
+  target-color statistics strip. Clean and overlay PNG exports can include or
+  omit the same color-count statistics.
 - Preview sizing follow-up fixes make the source-image overlay share the
   uploaded image's intrinsic size, give regenerated SVG previews explicit
   dimensions, and center located cells against the same visually constrained
@@ -57,6 +60,8 @@ Last updated: 2026-05-29
   additional user-provided images now also complete import, all exports, and
   `.beadproject` reopen checks. Details are recorded in
   `docs/acceptance/mvp-sample-checklist.md`.
+- Latest full verification on 2026-05-29: backend tests pass with 40 tests;
+  frontend tests pass with 30 tests; TypeScript/Vite production build passes.
 
 ## Remaining Checkpoints
 

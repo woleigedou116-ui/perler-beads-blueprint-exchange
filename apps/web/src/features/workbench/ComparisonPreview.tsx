@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 
-import type { BeadProject, Cell } from "../../domain/types";
+import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
+import { buildTargetColorStats } from "./colorStats";
 import {
   GridPreview,
   type PreviewContentSize,
@@ -17,6 +18,7 @@ interface ComparisonPreviewProps {
   focusRequest?: FocusRequest | null;
   fullscreen: boolean;
   project: BeadProject;
+  paletteMappings?: PaletteMapping[];
   sourceImageUrl: string | null;
   onFullscreenChange: (next: boolean) => void;
   onSelectCell: (cell: Cell) => void;
@@ -164,6 +166,7 @@ function sideTitle(side: PreviewSide) {
 export function ComparisonPreview({
   focusRequest = null,
   fullscreen,
+  paletteMappings = [],
   project,
   sourceImageUrl,
   onFullscreenChange,
@@ -172,6 +175,7 @@ export function ComparisonPreview({
   const [views, setViews] = useState<Record<PreviewSide, PreviewTransform>>(initialViews);
   const [draggingSide, setDraggingSide] = useState<PreviewSide | null>(null);
   const [showReviewOverlay, setShowReviewOverlay] = useState(true);
+  const [showColorStats, setShowColorStats] = useState(true);
   const [focusedCell, setFocusedCell] = useState<Cell | null>(null);
   const [sourceImageSize, setSourceImageSize] = useState<SourceImageSize | null>(null);
   const [contentSizes, setContentSizes] = useState<Record<PreviewSide, PreviewContentSize | null>>({
@@ -192,6 +196,7 @@ export function ComparisonPreview({
     setViews(initialViews());
     setDraggingSide(null);
     setFocusedCell(null);
+    setShowColorStats(true);
     setSourceImageSize(null);
     setContentSizes({ source: null, target: null });
     dragStart.current = null;
@@ -353,7 +358,15 @@ export function ComparisonPreview({
           >
             {showReviewOverlay ? "隐藏叠加" : "显示叠加"}
           </button>
-        ) : null}
+        ) : (
+          <button
+            type="button"
+            aria-label={showColorStats ? "隐藏色块统计" : "显示色块统计"}
+            onClick={() => setShowColorStats((current) => !current)}
+          >
+            {showColorStats ? "隐藏色块统计" : "显示色块统计"}
+          </button>
+        )}
       </div>
     );
   }
@@ -411,6 +424,7 @@ export function ComparisonPreview({
         <GridPreview
           {...viewportProps("target")}
           actions={controls("target")}
+          colorStats={buildTargetColorStats(project, paletteMappings)}
           contentRef={(node) => {
             contentRefs.current.target = node;
           }}
@@ -419,6 +433,7 @@ export function ComparisonPreview({
             setContentSizes((current) => ({ ...current, target: size }))
           }
           project={project}
+          showColorStats={showColorStats}
           target
           title="COCO 重绘预览"
           viewportRef={(node) => {

@@ -86,6 +86,15 @@ export async function saveAttribution(
 export function exportUrl(
   projectId: string,
   kind: "clean.png" | "overlay.png" | "mapping.csv" | "project.beadproject",
+  options: { includeColorStats?: boolean } = {},
 ): string {
-  return `/api/projects/${projectId}/exports/${kind}`;
+  const params = new URLSearchParams();
+  if (
+    (kind === "clean.png" || kind === "overlay.png") &&
+    options.includeColorStats !== undefined
+  ) {
+    params.set("include_color_stats", String(options.includeColorStats));
+  }
+  const query = params.toString();
+  return `/api/projects/${projectId}/exports/${kind}${query ? `?${query}` : ""}`;
 }

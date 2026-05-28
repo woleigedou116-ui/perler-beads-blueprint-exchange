@@ -365,7 +365,6 @@ p {
 }
 
 .grid-preview text {
-  font-size: 12px;
   font-weight: 600;
   stroke-width: 3px;
 }
@@ -513,7 +512,16 @@ p {
 
 .export-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.45rem;
+}
+
+.export-option {
+  align-items: center;
+  color: #4d655f;
+  display: flex;
+  font-size: 0.82rem;
+  gap: 0.25rem;
 }
 
 .error-note {
@@ -547,6 +555,42 @@ p {
   background: linear-gradient(90deg, #087f78, #f0af45);
   display: block;
   height: 100%;
+}
+
+.target-color-stats {
+  border-top: 1px solid #edf0ed;
+  display: grid;
+  gap: 0.45rem;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+}
+
+.target-color-stat {
+  align-items: center;
+  background: #fbfcfb;
+  border: 1px solid #edf0ed;
+  border-radius: 10px;
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: 26px 1fr auto;
+  padding: 0.38rem 0.45rem;
+}
+
+.target-color-stat strong {
+  font-size: 0.82rem;
+}
+
+.target-color-stat small {
+  color: #5d706a;
+}
+
+.target-color-swatch {
+  border: 1px solid #cbd8d2;
+  border-radius: 7px;
+  display: inline-block;
+  height: 24px;
+  width: 24px;
 }
 
 .palette-reference {

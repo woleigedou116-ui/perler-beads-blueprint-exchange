@@ -9,6 +9,7 @@ import {
 } from "react";
 
 import type { BeadProject, Cell } from "../../domain/types";
+import type { TargetColorStat } from "./colorStats";
 
 export interface PreviewTransform {
   zoom: number;
@@ -28,12 +29,14 @@ export interface PreviewContentSize {
 
 interface GridPreviewProps {
   actions?: ReactNode;
+  colorStats?: TargetColorStat[];
   contentRef?: Ref<HTMLDivElement>;
   focusedCell?: Cell | null;
   onContentSizeChange?: (size: PreviewContentSize) => void;
   onSourceImageSizeChange?: (size: SourceImageSize) => void;
   project: BeadProject;
   showReviewOverlay?: boolean;
+  showColorStats?: boolean;
   sourceImageUrl?: string | null;
   transform?: PreviewTransform;
   dragging?: boolean;
@@ -67,11 +70,13 @@ function labelStyle(rgb: { r: number; g: number; b: number } | null) {
 
 export function GridPreview({
   actions = null,
+  colorStats = [],
   contentRef = null,
   focusedCell = null,
   onContentSizeChange,
   onSourceImageSizeChange,
   project,
+  showColorStats = false,
   showReviewOverlay = true,
   sourceImageUrl = null,
   transform = { zoom: 1, panX: 0, panY: 0 },
@@ -251,7 +256,10 @@ export function GridPreview({
                         paintOrder="stroke"
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        style={labelStyle(rgb)}
+                        style={{
+                          ...labelStyle(rgb),
+                          fontSize: target ? "16px" : "12px",
+                        }}
                         x={cell.column * CELL_SIZE + CELL_SIZE / 2}
                         y={cell.row * CELL_SIZE + CELL_SIZE / 2 + 4}
                         textAnchor="middle"
@@ -266,6 +274,25 @@ export function GridPreview({
           )}
         </div>
       </div>
+      {target && showColorStats ? (
+        <div className="target-color-stats" aria-label="COCO 色块统计">
+          {colorStats.map((stat) => (
+            <div className="target-color-stat" key={stat.code}>
+              <span
+                aria-label={`${stat.code} 色块`}
+                className="target-color-swatch"
+                style={{
+                  backgroundColor: stat.rgb
+                    ? `rgb(${stat.rgb.r} ${stat.rgb.g} ${stat.rgb.b})`
+                    : "#f5f5f5",
+                }}
+              />
+              <strong>{stat.code}</strong>
+              <small>{stat.count}</small>
+            </div>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }

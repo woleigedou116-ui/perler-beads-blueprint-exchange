@@ -7,7 +7,9 @@ from bead_converter.palettes.repository import PaletteRepository
 
 CELL_SIZE = 44
 PADDING = 24
-LEGEND_WIDTH = 180
+LEGEND_WIDTH = 190
+STAT_SWATCH = 22
+STAT_LINE_HEIGHT = 30
 REVIEW_COLOR = (226, 151, 32)
 DARK_TEXT = (25, 25, 25)
 LIGHT_TEXT = (255, 255, 255)
@@ -55,16 +57,104 @@ def _draw_cell_label(
     )
 
 
-def render_clean_pattern(project: BeadProject, palette: PaletteRepository) -> Image.Image:
+def _target_counts(project: BeadProject) -> Counter[str]:
+    counts: Counter[str] = Counter()
+    for cell in project.cells:
+        if cell.target_code and cell.status != CellStatus.empty:
+            counts[cell.target_code] += 1
+    return counts
+
+
+def _target_rgb(
+    project: BeadProject,
+    palette: PaletteRepository,
+    target_code: str,
+) -> tuple[int, int, int]:
+    for cell in project.cells:
+        if cell.target_code != target_code or cell.status == CellStatus.empty:
+            continue
+        fill = _target_fill(cell, palette)
+        if fill != (245, 245, 245):
+            return fill
+    return (245, 245, 245)
+
+
+def _stats_size(counts: Counter[str]) -> tuple[int, int]:
+    if not counts:
+        return 0, 0
+    return LEGEND_WIDTH, PADDING * 2 + STAT_LINE_HEIGHT * (len(counts) + 1)
+
+
+def _draw_color_stats(
+    draw: ImageDraw.ImageDraw,
+    project: BeadProject,
+    palette: PaletteRepository,
+    origin: tuple[int, int],
+    counts: Counter[str],
+) -> None:
+    if not counts:
+        return
+    left, top = origin
+    draw.text((left, top), "COCO 色块统计", fill=(20, 20, 20))
+    for index, (target_code, count) in enumerate(sorted(counts.items()), start=1):
+        row_top = top + index * STAT_LINE_HEIGHT
+        fill = _target_rgb(project, palette, target_code)
+        draw.rectangle(
+            (left, row_top, left + STAT_SWATCH, row_top + STAT_SWATCH),
+            fill=fill,
+            outline=(120, 120, 120),
+        )
+        draw.text(
+            (left + STAT_SWATCH + 8, row_top + 3),
+            f"{target_code} x {count}",
+            fill=(20, 20, 20),
+        )
+
+
+def _append_color_stats(
+    image: Image.Image,
+    project: BeadProject,
+    palette: PaletteRepository,
+) -> Image.Image:
+    counts = _target_counts(project)
+    stats_width, stats_height = _stats_size(counts)
+    if stats_width == 0:
+        return image
+    output = Image.new(
+        "RGB",
+        (image.width + stats_width, max(image.height, stats_height)),
+        "white",
+    )
+    output.paste(image, (0, 0))
+    _draw_color_stats(
+        ImageDraw.Draw(output),
+        project,
+        palette,
+        (image.width + 16, PADDING),
+        counts,
+    )
+    return output
+
+
+def render_clean_pattern(
+    project: BeadProject,
+    palette: PaletteRepository,
+    include_color_stats: bool = True,
+) -> Image.Image:
     grid_width = project.grid.columns * CELL_SIZE
     grid_height = project.grid.rows * CELL_SIZE
+    counts = _target_counts(project)
+    legend_width = LEGEND_WIDTH if include_color_stats and counts else 0
+    _, stats_height = _stats_size(counts) if include_color_stats else (0, 0)
     image = Image.new(
         "RGB",
-        (PADDING * 2 + grid_width + LEGEND_WIDTH, PADDING * 2 + grid_height),
+        (
+            PADDING * 2 + grid_width + legend_width,
+            max(PADDING * 2 + grid_height, stats_height),
+        ),
         "white",
     )
     draw = ImageDraw.Draw(image)
-    counts: Counter[str] = Counter()
 
     for cell in project.cells:
         left = PADDING + cell.column * CELL_SIZE
@@ -74,21 +164,25 @@ def render_clean_pattern(project: BeadProject, palette: PaletteRepository) -> Im
         fill = "white" if cell.status == CellStatus.empty else _target_fill(cell, palette)
         draw.rectangle((left, top, right, bottom), fill=fill, outline=(155, 155, 155))
         if cell.target_code:
-            counts[cell.target_code] += 1
             _draw_cell_label(draw, (left + 8, top + 16), cell.target_code, fill)
 
-    legend_x = PADDING + grid_width + 22
-    draw.text((legend_x, PADDING), "COCO", fill=(20, 20, 20))
-    for index, (target_code, count) in enumerate(sorted(counts.items()), start=1):
-        draw.text(
-            (legend_x, PADDING + index * 22),
-            f"{target_code}: {count}",
-            fill=(20, 20, 20),
+    if include_color_stats:
+        _draw_color_stats(
+            draw,
+            project,
+            palette,
+            (PADDING + grid_width + 22, PADDING),
+            counts,
         )
     return image
 
 
-def render_overlay_pattern(project: BeadProject, source_image: Image.Image) -> Image.Image:
+def render_overlay_pattern(
+    project: BeadProject,
+    source_image: Image.Image,
+    palette: PaletteRepository | None = None,
+    include_color_stats: bool = False,
+) -> Image.Image:
     image = source_image.convert("RGB").copy()
     overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
@@ -106,4 +200,7 @@ def render_overlay_pattern(project: BeadProject, source_image: Image.Image) -> I
             outline=(*REVIEW_COLOR, 255),
             width=3,
         )
-    return Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
+    result = Image.alpha_composite(image.convert("RGBA"), overlay).convert("RGB")
+    if include_color_stats and palette is not None:
+        return _append_color_stats(result, project, palette)
+    return result

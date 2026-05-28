@@ -156,6 +156,22 @@ describe("WorkbenchPage", () => {
     expect(screen.getByText("F14 -> K07")).toBeInTheDocument();
   });
 
+  it("toggles target color block statistics in the redraw preview", async () => {
+    await importPattern();
+
+    const stats = await screen.findByLabelText("COCO 色块统计");
+    expect(stats).toHaveTextContent("B09");
+    expect(stats).toHaveTextContent("K07");
+    expect(screen.getByLabelText("B09 色块")).toHaveStyle({
+      backgroundColor: "rgb(14, 14, 14)",
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "隐藏色块统计" }));
+
+    expect(screen.queryByLabelText("COCO 色块统计")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "显示色块统计" })).toBeInTheDocument();
+  });
+
   it("requires confirmation before exporting unresolved output", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     await importPattern();
@@ -168,6 +184,24 @@ describe("WorkbenchPage", () => {
       "当前仍有 1 个待确认格子，导出结果可能使用推荐颜色。仍要导出吗？",
     );
     expect(exportUrl).not.toHaveBeenCalled();
+  });
+
+  it("adds the color-statistics export option to image downloads", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    await importPattern();
+
+    await userEvent.click(await screen.findByRole("button", { name: "导出图纸" }));
+    expect(exportUrl).toHaveBeenCalledWith("pattern-1", "clean.png", {
+      includeColorStats: true,
+    });
+
+    await userEvent.click(screen.getByLabelText("导出时附带色块统计"));
+    await userEvent.click(screen.getByRole("button", { name: "导出检查图" }));
+
+    expect(exportUrl).toHaveBeenLastCalledWith("pattern-1", "overlay.png", {
+      includeColorStats: false,
+    });
   });
 
   it("reopens a saved project file for further review", async () => {

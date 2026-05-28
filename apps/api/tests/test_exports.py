@@ -92,6 +92,39 @@ def test_clean_and_overlay_exports_render_images() -> None:
     assert overlay.getpixel((45, 15)) != (255, 255, 255)
 
 
+def test_clean_export_can_hide_color_statistics() -> None:
+    project = confirmed_project()
+    with_stats = render_clean_pattern(
+        project,
+        PaletteRepository.load_default(),
+        include_color_stats=True,
+    )
+    without_stats = render_clean_pattern(
+        project,
+        PaletteRepository.load_default(),
+        include_color_stats=False,
+    )
+
+    assert with_stats.size[0] > without_stats.size[0]
+    assert with_stats.size[1] > without_stats.size[1]
+    assert without_stats.size == (PADDING * 2 + 2 * 44, PADDING * 2 + 44)
+
+
+def test_overlay_export_can_append_color_statistics() -> None:
+    project = confirmed_project()
+    source = Image.new("RGB", (60, 30), "white")
+    plain = render_overlay_pattern(project, source, PaletteRepository.load_default())
+    with_stats = render_overlay_pattern(
+        project,
+        source,
+        PaletteRepository.load_default(),
+        include_color_stats=True,
+    )
+
+    assert with_stats.size[0] > plain.size[0]
+    assert with_stats.size[1] >= plain.size[1]
+
+
 def test_clean_export_uses_contrasting_stroked_labels() -> None:
     project = confirmed_project()
     project.cells[0].sampled_color = None
@@ -165,6 +198,11 @@ def test_export_endpoints_download_results(client, synthetic_png: bytes) -> None
     assert png_response.headers["content-type"] == "image/png"
     assert overlay_response.headers["content-type"] == "image/png"
     assert archive_response.status_code == 200
+
+    png_without_stats = client.get(
+        f"/api/projects/{created['id']}/exports/clean.png?include_color_stats=false"
+    )
+    assert png_without_stats.status_code == 200
 
     reopened_response = client.post(
         "/api/projects/open",

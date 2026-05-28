@@ -186,10 +186,18 @@ def export_csv(request: Request, project_id: str) -> Response:
 
 
 @router.get("/{project_id}/exports/clean.png")
-def export_clean_image(request: Request, project_id: str) -> Response:
+def export_clean_image(
+    request: Request,
+    project_id: str,
+    include_color_stats: bool = True,
+) -> Response:
     project = _project(request, project_id)
     output = BytesIO()
-    render_clean_pattern(project, request.app.state.palette).save(output, format="PNG")
+    render_clean_pattern(
+        project,
+        request.app.state.palette,
+        include_color_stats=include_color_stats,
+    ).save(output, format="PNG")
     return _export_response(
         request,
         project,
@@ -200,14 +208,23 @@ def export_clean_image(request: Request, project_id: str) -> Response:
 
 
 @router.get("/{project_id}/exports/overlay.png")
-def export_overlay_image(request: Request, project_id: str) -> Response:
+def export_overlay_image(
+    request: Request,
+    project_id: str,
+    include_color_stats: bool = True,
+) -> Response:
     project = _project(request, project_id)
     try:
         source = Image.open(request.app.state.store.source_image_path(project_id))
     except (FileNotFoundError, UnidentifiedImageError) as exc:
         raise HTTPException(status_code=404, detail="原始图片不存在") from exc
     output = BytesIO()
-    render_overlay_pattern(project, source).save(output, format="PNG")
+    render_overlay_pattern(
+        project,
+        source,
+        request.app.state.palette,
+        include_color_stats=include_color_stats,
+    ).save(output, format="PNG")
     return _export_response(
         request,
         project,

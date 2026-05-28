@@ -81,6 +81,41 @@ it("uses contrasting stroked label colors for dark and light cells", () => {
   expect(lightCellLabel).toHaveAttribute("paint-order", "stroke");
 });
 
+it("uses larger target labels in the regenerated preview", () => {
+  const { container } = render(
+    <GridPreview
+      project={projectWithOneReviewCell}
+      target
+      title="COCO 重绘预览"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(container.querySelector("text")).toHaveStyle({ fontSize: "16px" });
+});
+
+it("renders target color block statistics when requested", () => {
+  render(
+    <GridPreview
+      colorStats={[
+        { code: "B09", count: 1, rgb: { r: 14, g: 14, b: 14 } },
+        { code: "K07", count: 1, rgb: { r: 247, g: 150, b: 157 } },
+      ]}
+      project={projectWithOneReviewCell}
+      showColorStats
+      target
+      title="COCO 重绘预览"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByLabelText("COCO 色块统计")).toHaveTextContent("B09");
+  expect(screen.getByLabelText("COCO 色块统计")).toHaveTextContent("K07");
+  expect(screen.getByLabelText("B09 色块")).toHaveStyle({
+    backgroundColor: "rgb(14, 14, 14)",
+  });
+});
+
 it("gives regenerated SVG previews explicit dimensions for layout measurement", () => {
   const { container } = render(
     <GridPreview
