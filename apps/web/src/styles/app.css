@@ -292,8 +292,10 @@ p {
 .grid-preview {
   border-radius: 8px;
   display: block;
+  height: auto;
   max-height: 475px;
-  width: 100%;
+  max-width: 100%;
+  width: auto;
 }
 
 .preview-viewport {
@@ -316,6 +318,7 @@ p {
 }
 
 .preview-transform {
+  display: inline-block;
   max-width: 100%;
   transform-origin: top left;
 }

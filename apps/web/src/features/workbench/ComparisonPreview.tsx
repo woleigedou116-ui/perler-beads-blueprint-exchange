@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 
 import type { BeadProject, Cell } from "../../domain/types";
-import { GridPreview, type PreviewTransform, type SourceImageSize } from "./GridPreview";
+import {
+  GridPreview,
+  type PreviewContentSize,
+  type PreviewTransform,
+  type SourceImageSize,
+} from "./GridPreview";
 
 interface FocusRequest {
   cell: Cell;
@@ -31,6 +36,7 @@ interface DragStart {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 const ZOOM_STEP = 0.25;
+const PREVIEW_CONTENT_MAX_HEIGHT = 475;
 const INITIAL_VIEW: PreviewTransform = { zoom: MIN_ZOOM, panX: 0, panY: 0 };
 
 function clampZoom(zoom: number) {
@@ -62,6 +68,25 @@ function measuredContentSize(
   return {
     width: element.clientWidth || rect.width || fallback.width,
     height: element.clientHeight || rect.height || fallback.height,
+  };
+}
+
+function scaledToFit(
+  naturalSize: { width: number; height: number },
+  viewportSize: { width: number; height: number },
+) {
+  if (naturalSize.width <= 0 || naturalSize.height <= 0) {
+    return naturalSize;
+  }
+  const availableHeight = Math.min(viewportSize.height, PREVIEW_CONTENT_MAX_HEIGHT);
+  const scale = Math.min(
+    viewportSize.width / naturalSize.width,
+    availableHeight / naturalSize.height,
+    1,
+  );
+  return {
+    width: naturalSize.width * scale,
+    height: naturalSize.height * scale,
   };
 }
 
@@ -111,8 +136,9 @@ function focusedTransform(
     height: project.grid.bounds[3],
   };
   const naturalSize = side === "source" ? sourceFallbackSize : targetViewSize;
-  const contentSize = measuredContentSize(contentElement, naturalSize);
-  const viewportSize = measuredElementSize(viewportElement, contentSize);
+  const measuredSize = measuredContentSize(contentElement, naturalSize);
+  const viewportSize = measuredElementSize(viewportElement, measuredSize);
+  const contentSize = scaledToFit(naturalSize, viewportSize);
   const layoutOffsetX = (viewportSize.width - contentSize.width) / 2;
   const layoutOffsetY = (viewportSize.height - contentSize.height) / 2;
   const centerX =
@@ -148,6 +174,10 @@ export function ComparisonPreview({
   const [showReviewOverlay, setShowReviewOverlay] = useState(true);
   const [focusedCell, setFocusedCell] = useState<Cell | null>(null);
   const [sourceImageSize, setSourceImageSize] = useState<SourceImageSize | null>(null);
+  const [contentSizes, setContentSizes] = useState<Record<PreviewSide, PreviewContentSize | null>>({
+    source: null,
+    target: null,
+  });
   const dragStart = useRef<DragStart | null>(null);
   const contentRefs = useRef<Record<PreviewSide, HTMLDivElement | null>>({
     source: null,
@@ -163,6 +193,7 @@ export function ComparisonPreview({
     setDraggingSide(null);
     setFocusedCell(null);
     setSourceImageSize(null);
+    setContentSizes({ source: null, target: null });
     dragStart.current = null;
   }, [project.id]);
 
@@ -207,9 +238,9 @@ export function ComparisonPreview({
 
     const content = contentRefs.current[side];
     const viewport = viewportRefs.current[side];
-    const fallbackSize = measuredContentSize(content, { width: 1, height: 1 });
+    const fallbackSize = contentSizes[side] ?? measuredContentSize(content, { width: 1, height: 1 });
     const viewportSize = measuredElementSize(viewport, fallbackSize);
-    const contentSize = measuredContentSize(content, viewportSize);
+    const contentSize = scaledToFit(fallbackSize, viewportSize);
     const layoutOffsetX = (viewportSize.width - contentSize.width) / 2;
     const layoutOffsetY = (viewportSize.height - contentSize.height) / 2;
     const viewportCenterX = viewportSize.width / 2;
@@ -364,6 +395,9 @@ export function ComparisonPreview({
           }}
           focusedCell={focusedCell}
           onSourceImageSizeChange={setSourceImageSize}
+          onContentSizeChange={(size) =>
+            setContentSizes((current) => ({ ...current, source: size }))
+          }
           project={project}
           showReviewOverlay={showReviewOverlay}
           sourceImageUrl={sourceImageUrl}
@@ -381,6 +415,9 @@ export function ComparisonPreview({
             contentRefs.current.target = node;
           }}
           focusedCell={focusedCell}
+          onContentSizeChange={(size) =>
+            setContentSizes((current) => ({ ...current, target: size }))
+          }
           project={project}
           target
           title="COCO 重绘预览"

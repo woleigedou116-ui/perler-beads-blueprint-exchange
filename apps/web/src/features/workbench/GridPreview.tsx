@@ -21,10 +21,16 @@ export interface SourceImageSize {
   height: number;
 }
 
+export interface PreviewContentSize {
+  width: number;
+  height: number;
+}
+
 interface GridPreviewProps {
   actions?: ReactNode;
   contentRef?: Ref<HTMLDivElement>;
   focusedCell?: Cell | null;
+  onContentSizeChange?: (size: PreviewContentSize) => void;
   onSourceImageSizeChange?: (size: SourceImageSize) => void;
   project: BeadProject;
   showReviewOverlay?: boolean;
@@ -63,6 +69,7 @@ export function GridPreview({
   actions = null,
   contentRef = null,
   focusedCell = null,
+  onContentSizeChange,
   onSourceImageSizeChange,
   project,
   showReviewOverlay = true,
@@ -83,6 +90,18 @@ export function GridPreview({
   const sourceImageRef = useRef<HTMLImageElement | null>(null);
   const [sourceSize, setSourceSize] = useState<SourceImageSize | null>(null);
 
+  function setContentNode(node: HTMLDivElement | null) {
+    if (typeof contentRef === "function") {
+      contentRef(node);
+    } else if (contentRef) {
+      contentRef.current = node;
+    }
+  }
+
+  function publishContentSize(size: PreviewContentSize) {
+    onContentSizeChange?.(size);
+  }
+
   function updateSourceSize(image: HTMLImageElement) {
     if (image.naturalWidth <= 0 || image.naturalHeight <= 0) {
       return;
@@ -93,6 +112,7 @@ export function GridPreview({
     };
     setSourceSize(next);
     onSourceImageSizeChange?.(next);
+    publishContentSize(next);
   }
 
   useEffect(() => {
@@ -102,6 +122,15 @@ export function GridPreview({
       updateSourceSize(image);
     }
   }, [sourceImageUrl]);
+
+  useEffect(() => {
+    if (target) {
+      publishContentSize({
+        width: project.grid.columns * CELL_SIZE,
+        height: project.grid.rows * CELL_SIZE,
+      });
+    }
+  }, [project.id, project.grid.columns, project.grid.rows, target]);
 
   const showSourceOverlay = !target && sourceImageUrl;
 
@@ -129,7 +158,7 @@ export function GridPreview({
       >
         <div
           className="preview-transform"
-          ref={contentRef}
+          ref={setContentNode}
           style={{
             transform: `translate(${transform.panX}px, ${transform.panY}px) scale(${transform.zoom})`,
           }}
@@ -140,6 +169,8 @@ export function GridPreview({
                 alt="上传原图"
                 className="source-overlay-image"
                 draggable={false}
+                width={sourceSize?.width}
+                height={sourceSize?.height}
                 ref={sourceImageRef}
                 src={sourceImageUrl}
                 onDragStart={(event) => event.preventDefault()}
@@ -184,6 +215,8 @@ export function GridPreview({
               className="grid-preview"
               role="img"
               aria-label={title}
+              width={project.grid.columns * CELL_SIZE}
+              height={project.grid.rows * CELL_SIZE}
               viewBox={`0 0 ${project.grid.columns * CELL_SIZE} ${project.grid.rows * CELL_SIZE}`}
             >
               {project.cells.map((cell) => {

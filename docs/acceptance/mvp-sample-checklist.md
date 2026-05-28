@@ -13,7 +13,7 @@ ignored local materials and are not committed as application assets.
 ## Verification
 
 - Backend: `.\.venv\Scripts\python -m pytest -q` passed with 38 tests.
-- Frontend: Vitest passed with 23 tests; TypeScript checking and Vite build passed.
+- Frontend: Vitest passed with 26 tests; TypeScript checking and Vite build passed.
 - Hosted UI: the built app was opened at `http://127.0.0.1:8765`; the upload,
   local-processing notice, review area, `.beadproject` open input, and preview
   zoom/full-screen controls are covered by smoke and component checks.
@@ -53,6 +53,9 @@ review cell was not necessary for this acceptance pass.
 - Source-image review markers now wait for the uploaded image dimensions before
   rendering, preventing the grid overlay from stretching into the legend and
   color-count area while the image is still loading or cached.
+- The source-image overlay now shares the uploaded image's intrinsic dimensions,
+  and regenerated SVG previews expose explicit dimensions, so both previews use
+  the same rendered-bounds math for zooming and located-cell centering.
 - Located cells are centered with measured preview dimensions, and detailed
   review zoom can reach 800%.
 - Hiding source overlays no longer lets the browser's native image drag take

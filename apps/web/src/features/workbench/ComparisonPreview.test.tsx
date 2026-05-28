@@ -2,6 +2,7 @@ import { cleanup, fireEvent, render, screen, within } from "@testing-library/rea
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
+import type { BeadProject } from "../../domain/types";
 import { ComparisonPreview } from "./ComparisonPreview";
 import { projectWithOneReviewCell } from "./test-data";
 
@@ -9,7 +10,7 @@ afterEach(() => {
   cleanup();
 });
 
-function renderPreview() {
+function renderPreview(project: BeadProject = projectWithOneReviewCell) {
   const onFullscreenChange = vi.fn();
   return render(
     <ComparisonPreview
@@ -52,14 +53,15 @@ function setReadOnlyNumberProperty(element: Element, name: string, value: number
 function setPreviewSize(
   container: HTMLElement,
   index: number,
-  size: { width: number; height: number },
+  viewportSize: { width: number; height: number },
+  contentSize = viewportSize,
 ) {
   const viewport = container.querySelectorAll(".preview-viewport")[index];
   const transform = container.querySelectorAll(".preview-transform")[index];
-  setReadOnlyNumberProperty(viewport, "clientWidth", size.width);
-  setReadOnlyNumberProperty(viewport, "clientHeight", size.height);
-  setReadOnlyNumberProperty(transform, "clientWidth", size.width);
-  setReadOnlyNumberProperty(transform, "clientHeight", size.height);
+  setReadOnlyNumberProperty(viewport, "clientWidth", viewportSize.width);
+  setReadOnlyNumberProperty(viewport, "clientHeight", viewportSize.height);
+  setReadOnlyNumberProperty(transform, "clientWidth", contentSize.width);
+  setReadOnlyNumberProperty(transform, "clientHeight", contentSize.height);
 }
 
 it("applies zoom and panning independently for each blueprint preview", async () => {
@@ -170,15 +172,49 @@ it("focuses a requested cell in both previews", () => {
     />,
   );
 
-  expect(transforms(container)[0]).toBe("translate(160px, 0px) scale(1)");
-  expect(transforms(container)[1]).toBe("translate(130px, 0px) scale(1)");
+  expect(transforms(container)[0]).toBe("translate(16px, 0px) scale(1)");
+  expect(transforms(container)[1]).toBe("translate(26px, 0px) scale(1)");
   expect(container.querySelectorAll(".focused-cell")).toHaveLength(2);
+});
+
+
+it("centers a located cell against the visually constrained preview height", () => {
+  const tallSourceProject: BeadProject = {
+    ...projectWithOneReviewCell,
+    grid: {
+      ...projectWithOneReviewCell.grid,
+      bounds: [0, 0, 1440, 1499],
+      x_lines: [0, 720, 1440],
+      y_lines: [0, 1499],
+    },
+  };
+  const { container, rerender } = renderPreview(tallSourceProject);
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 1440 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 1499 });
+  fireEvent.load(sourceImage);
+  setPreviewSize(container, 0, { width: 900, height: 900 });
+  setPreviewSize(container, 1, { width: 900, height: 900 });
+
+  rerender(
+    <ComparisonPreview
+      fullscreen={false}
+      focusRequest={{ cell: tallSourceProject.cells[0], nonce: 3 }}
+      project={tallSourceProject}
+      sourceImageUrl="blob:source-pattern"
+      onFullscreenChange={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(transforms(container)[0]).toBe("translate(114px, 0px) scale(1)");
+  expect(transforms(container)[1]).toBe("translate(26px, 0px) scale(1)");
 });
 
 it("keeps each preview zoom while centering the located review cell", async () => {
   const { container, rerender } = renderPreview();
-  setPreviewSize(container, 0, { width: 400, height: 240 });
-  setPreviewSize(container, 1, { width: 500, height: 260 });
+  setPreviewSize(container, 0, { width: 400, height: 240 }, { width: 400, height: 200 });
+  setPreviewSize(container, 1, { width: 500, height: 260 }, { width: 500, height: 250 });
   const sourceImage = screen.getByAltText("上传原图");
   Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
   Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
@@ -203,8 +239,8 @@ it("keeps each preview zoom while centering the located review cell", async () =
 
   expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("175%");
   expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("125%");
-  expect(transforms(container)[0]).toBe("translate(25px, -90px) scale(1.75)");
-  expect(transforms(container)[1]).toBe("translate(94px, -32px) scale(1.25)");
+  expect(transforms(container)[0]).toBe("translate(4px, -12px) scale(1.75)");
+  expect(transforms(container)[1]).toBe("translate(20px, -6px) scale(1.25)");
 });
 
 it("requests entering and exiting full-screen review mode", async () => {

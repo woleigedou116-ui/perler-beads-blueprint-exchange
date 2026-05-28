@@ -81,6 +81,21 @@ it("uses contrasting stroked label colors for dark and light cells", () => {
   expect(lightCellLabel).toHaveAttribute("paint-order", "stroke");
 });
 
+it("gives regenerated SVG previews explicit dimensions for layout measurement", () => {
+  const { container } = render(
+    <GridPreview
+      project={projectWithOneReviewCell}
+      target
+      title="COCO 重绘预览"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const preview = container.querySelector(".grid-preview");
+  expect(preview).toHaveAttribute("width", "104");
+  expect(preview).toHaveAttribute("height", "52");
+});
+
 it("waits for source image dimensions before drawing review overlays", () => {
   render(
     <GridPreview
@@ -94,6 +109,30 @@ it("waits for source image dimensions before drawing review overlays", () => {
 
   expect(screen.getByAltText("上传原图")).toHaveAttribute("src", "blob:source-pattern");
   expect(screen.queryByLabelText("待复核标记叠加层")).not.toBeInTheDocument();
+});
+
+it("sizes source overlays from the loaded image so review cells align with the rendered image", () => {
+  render(
+    <GridPreview
+      project={projectWithOneReviewCell}
+      sourceImageUrl="blob:source-pattern"
+      target={false}
+      title="识别叠加视图"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 1440 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 1499 });
+  fireEvent.load(sourceImage);
+
+  expect(sourceImage).toHaveAttribute("width", "1440");
+  expect(sourceImage).toHaveAttribute("height", "1499");
+  expect(screen.getByLabelText("待复核标记叠加层")).toHaveAttribute(
+    "viewBox",
+    "0 0 1440 1499",
+  );
 });
 
 it("can hide review overlay markers while keeping the source image visible", () => {
