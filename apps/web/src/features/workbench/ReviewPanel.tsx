@@ -29,7 +29,7 @@ export function ReviewPanel({
   }, [selectedCell]);
 
   return (
-    <section className="panel review-panel" aria-label="待确认事项">
+    <aside className="panel review-panel" aria-label="待确认事项">
       <div className="panel-heading">
         <h2>校对</h2>
         <strong>待确认 {reviewCells.length} 项</strong>
@@ -75,6 +75,6 @@ export function ReviewPanel({
           </button>
         </form>
       ) : null}
-    </section>
+    </aside>
   );
 }

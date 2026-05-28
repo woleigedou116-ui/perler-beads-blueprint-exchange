@@ -1,6 +1,6 @@
 # MVP Sample Acceptance Checklist
 
-Date: 2026-05-27
+Date: 2026-05-28
 
 ## Scope
 
@@ -13,9 +13,10 @@ ignored local materials and are not committed as application assets.
 ## Verification
 
 - Backend: `.\.venv\Scripts\python -m pytest -q` passed with 37 tests.
-- Frontend: Vitest passed with 7 tests; TypeScript checking and Vite build passed.
+- Frontend: Vitest passed with 11 tests; TypeScript checking and Vite build passed.
 - Hosted UI: the built app was opened at `http://127.0.0.1:8765`; the upload,
-  local-processing notice, review area, and `.beadproject` open input were visible.
+  local-processing notice, review area, `.beadproject` open input, and preview
+  zoom/full-screen controls are covered by smoke and component checks.
 - OCR probe: `.\.venv\Scripts\python scripts\ocr_probe.py ..\..\拼豆样例图`
   runs safely with Windows console-compatible filenames.
 - Source overlay regression: the uploaded source image is shown under
@@ -45,3 +46,6 @@ review cell was not necessary for this acceptance pass.
   characters do not interrupt local validation.
 - The on-screen recognition view now overlays pending-review rectangles on the
   uploaded source image instead of showing a reconstructed grid in its place.
+- The recognition and COCO redraw previews now zoom and pan together, and a
+  full-screen review mode gives the two preview panels more room while keeping
+  the correction queue visible.

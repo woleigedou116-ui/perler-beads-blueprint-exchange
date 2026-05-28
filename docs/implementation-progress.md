@@ -1,6 +1,6 @@
 # MVP Implementation Progress
 
-Last updated: 2026-05-27
+Last updated: 2026-05-28
 
 ## Resume Location
 
@@ -25,14 +25,18 @@ Last updated: 2026-05-27
 | Task 10 | `8d14629` | Upload, review, correction and export UI |
 | Task 11 | `feat: deliver local mard to coco conversion mvp` | Hosting and real-sample acceptance |
 | Task 12 | `feat: overlay review cells on source image` | Source-image overlay correction and final quality gate |
+| Preview review | `feat: add synchronized blueprint zoom review` | Synchronized zoom, panning, and full-screen review layout |
 
 ## Active Checkpoint
 
-- Task 12 has been implemented and verified on 2026-05-27.
-- The recognition preview now renders the uploaded source image and places
-  review-required markers using the detected source-image grid coordinates.
-- Backend tests pass with 37 tests; frontend tests pass with 7 tests;
+- Preview review has been implemented and verified on 2026-05-28.
+- The recognition preview and COCO redraw now share one zoom/pan state, provide
+  button and wheel zoom controls, reset back to a centered 100% view, and expose
+  a full-screen review layout that keeps the correction panel visible.
+- Backend tests pass with 37 tests; frontend tests pass with 11 tests;
   TypeScript/Vite production build passes; the hosted UI opens locally.
+- The recognition preview still renders the uploaded source image and places
+  review-required markers using the detected source-image grid coordinates.
 - The original four image acceptance results remain recorded, and the two
   additional user-provided images now also complete import, all exports, and
   `.beadproject` reopen checks. Details are recorded in

@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -63,6 +63,22 @@ describe("WorkbenchPage", () => {
       "src",
       "blob:source-pattern",
     );
+  });
+
+  it("expands the preview area for full-screen review and exits with Escape", async () => {
+    await importPattern();
+
+    await userEvent.click(await screen.findByRole("button", { name: "全屏查看" }));
+
+    const workbench = screen.getByLabelText("拼豆转换工作台");
+    expect(workbench).toHaveClass("review-fullscreen");
+    expect(screen.getByRole("button", { name: "退出全屏" })).toBeInTheDocument();
+    expect(screen.getByRole("complementary")).toBeInTheDocument();
+
+    fireEvent.keyDown(window, { key: "Escape" });
+
+    expect(workbench).not.toHaveClass("review-fullscreen");
+    expect(screen.getByRole("button", { name: "全屏查看" })).toBeInTheDocument();
   });
 
   it("confirms a recommended mapping for matching cells", async () => {

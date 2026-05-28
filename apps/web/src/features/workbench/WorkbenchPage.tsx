@@ -10,7 +10,7 @@ import {
 } from "../../api/client";
 import type { BeadProject, Cell } from "../../domain/types";
 import { UploadPanel } from "../upload/UploadPanel";
-import { GridPreview } from "./GridPreview";
+import { ComparisonPreview } from "./ComparisonPreview";
 import { ReviewPanel } from "./ReviewPanel";
 import { StatisticsPanel } from "./StatisticsPanel";
 
@@ -24,6 +24,7 @@ export function WorkbenchPage() {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isReviewFullscreen, setIsReviewFullscreen] = useState(false);
 
   useEffect(() => {
     if (!file || typeof URL.createObjectURL !== "function") {
@@ -34,6 +35,19 @@ export function WorkbenchPage() {
     setPreviewUrl(nextUrl);
     return () => URL.revokeObjectURL(nextUrl);
   }, [file]);
+
+  useEffect(() => {
+    if (!isReviewFullscreen) {
+      return;
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsReviewFullscreen(false);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isReviewFullscreen]);
 
   const reviewCount = useMemo(
     () => project?.cells.filter((cell) => cell.status === "review-required").length ?? 0,
@@ -135,7 +149,10 @@ export function WorkbenchPage() {
   }
 
   return (
-    <div className="workbench">
+    <div
+      aria-label="拼豆转换工作台"
+      className={`workbench${isReviewFullscreen ? " review-fullscreen" : ""}`}
+    >
       <UploadPanel
         attribution={attribution}
         file={file}
@@ -152,21 +169,13 @@ export function WorkbenchPage() {
         {error ? <p className="error-note">{error}</p> : null}
         {project ? (
           <>
-            <div className="preview-row">
-              <GridPreview
-                project={project}
-                sourceImageUrl={previewUrl}
-                target={false}
-                title="识别叠加视图"
-                onSelectCell={setSelectedCell}
-              />
-              <GridPreview
-                project={project}
-                target
-                title="COCO 重绘预览"
-                onSelectCell={setSelectedCell}
-              />
-            </div>
+            <ComparisonPreview
+              fullscreen={isReviewFullscreen}
+              project={project}
+              sourceImageUrl={previewUrl}
+              onFullscreenChange={setIsReviewFullscreen}
+              onSelectCell={setSelectedCell}
+            />
             <StatisticsPanel project={project} onExport={handleExport} />
           </>
         ) : (

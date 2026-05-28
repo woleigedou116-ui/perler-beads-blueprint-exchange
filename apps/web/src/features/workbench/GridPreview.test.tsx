@@ -4,11 +4,12 @@ import { expect, it, vi } from "vitest";
 import { GridPreview } from "./GridPreview";
 import { projectWithOneReviewCell } from "./test-data";
 
-it("overlays review cells on the uploaded source image", () => {
-  render(
+it("overlays review cells on the uploaded source image within a shared transform", () => {
+  const { container } = render(
     <GridPreview
       project={projectWithOneReviewCell}
       sourceImageUrl="blob:source-pattern"
+      transform={{ zoom: 1.25, panX: 8, panY: -4 }}
       target={false}
       title="识别叠加视图"
       onSelectCell={vi.fn()}
@@ -29,4 +30,7 @@ it("overlays review cells on the uploaded source image", () => {
   expect(overlay).toHaveAttribute("viewBox", "0 0 640 320");
   expect(overlay.querySelectorAll("rect")).toHaveLength(1);
   expect(overlay.querySelector("rect")).toHaveAttribute("width", "32");
+  expect(container.querySelector(".preview-transform")).toHaveStyle({
+    transform: "translate(8px, -4px) scale(1.25)",
+  });
 });
