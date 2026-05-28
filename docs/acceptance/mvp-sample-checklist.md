@@ -57,8 +57,8 @@ review cell was not necessary for this acceptance pass.
   review zoom can reach 800%.
 - Hiding source overlays no longer lets the browser's native image drag take
   over preview panning.
-- Locate keeps both previews centered on the same cell and syncs the COCO
-  preview to the current source zoom for that locate action.
+- Locate keeps both previews centered on the same cell while preserving each
+  preview's current zoom.
 - COCO redraw and clean PNG exports render bead labels with automatic
   black/white contrast plus an opposite-color stroke for dark and light cells.
 - The correction queue is height-limited with its own scroll area; each review

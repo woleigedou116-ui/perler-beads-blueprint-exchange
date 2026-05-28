@@ -46,8 +46,9 @@ Last updated: 2026-05-28
   reset action, center located cells using measured preview dimensions, and
   wait for uploaded image dimensions before drawing source-image review markers.
 - The source image no longer starts native browser dragging when overlays are
-  hidden; locate syncs the COCO preview to the current source zoom; preview and
-  clean-export labels use automatic contrast with a light/dark stroke.
+  hidden; locate centers both previews while preserving each side's current
+  zoom; preview and clean-export labels use automatic contrast with a light/dark
+  stroke.
 - The original four image acceptance results remain recorded, and the two
   additional user-provided images now also complete import, all exports, and
   `.beadproject` reopen checks. Details are recorded in

@@ -139,7 +139,7 @@ describe("WorkbenchPage", () => {
     expect(document.querySelectorAll(".focused-cell")).toHaveLength(2);
     expect(
       document.querySelector<HTMLElement>(".preview-transform")?.style.transform,
-    ).toContain("scale(2)");
+    ).toMatch(/^translate\(.+\) scale\(1\)$/);
 
     await userEvent.click(screen.getByRole("button", { name: "修改" }));
     await userEvent.click(screen.getByRole("button", { name: "改为 B09" }));

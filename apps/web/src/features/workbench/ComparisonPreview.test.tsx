@@ -156,11 +156,8 @@ it("focuses a requested cell in both previews", () => {
   Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
   Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
   fireEvent.load(sourceImage);
-  const [sourceTransform, targetTransform] = container.querySelectorAll(".preview-transform");
-  setReadOnlyNumberProperty(sourceTransform, "clientWidth", 640);
-  setReadOnlyNumberProperty(sourceTransform, "clientHeight", 320);
-  setReadOnlyNumberProperty(targetTransform, "clientWidth", 520);
-  setReadOnlyNumberProperty(targetTransform, "clientHeight", 260);
+  setPreviewSize(container, 0, { width: 640, height: 320 });
+  setPreviewSize(container, 1, { width: 520, height: 260 });
 
   rerender(
     <ComparisonPreview
@@ -173,15 +170,15 @@ it("focuses a requested cell in both previews", () => {
     />,
   );
 
-  expect(transforms(container)[0]).toBe("translate(0px, -160px) scale(2)");
-  expect(transforms(container)[1]).toBe("translate(0px, -130px) scale(2)");
+  expect(transforms(container)[0]).toBe("translate(160px, 0px) scale(1)");
+  expect(transforms(container)[1]).toBe("translate(130px, 0px) scale(1)");
   expect(container.querySelectorAll(".focused-cell")).toHaveLength(2);
 });
 
-it("syncs target zoom to the current source zoom when locating a review cell", async () => {
+it("keeps each preview zoom while centering the located review cell", async () => {
   const { container, rerender } = renderPreview();
-  setPreviewSize(container, 0, { width: 400, height: 200 });
-  setPreviewSize(container, 1, { width: 400, height: 200 });
+  setPreviewSize(container, 0, { width: 400, height: 240 });
+  setPreviewSize(container, 1, { width: 500, height: 260 });
   const sourceImage = screen.getByAltText("上传原图");
   Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
   Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
@@ -191,6 +188,7 @@ it("syncs target zoom to the current source zoom when locating a review cell", a
   await userEvent.click(zoomIn);
   await userEvent.click(zoomIn);
   await userEvent.click(zoomIn);
+  await userEvent.click(screen.getByRole("button", { name: "COCO 重绘预览 放大" }));
 
   rerender(
     <ComparisonPreview
@@ -204,8 +202,9 @@ it("syncs target zoom to the current source zoom when locating a review cell", a
   );
 
   expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("175%");
-  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("175%");
-  expect(transforms(container)[1]).toContain("scale(1.75)");
+  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("125%");
+  expect(transforms(container)[0]).toBe("translate(25px, -90px) scale(1.75)");
+  expect(transforms(container)[1]).toBe("translate(94px, -32px) scale(1.25)");
 });
 
 it("requests entering and exiting full-screen review mode", async () => {

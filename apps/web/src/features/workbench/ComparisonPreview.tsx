@@ -31,7 +31,6 @@ interface DragStart {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 const ZOOM_STEP = 0.25;
-const FOCUS_ZOOM = 2;
 const INITIAL_VIEW: PreviewTransform = { zoom: MIN_ZOOM, panX: 0, panY: 0 };
 
 function clampZoom(zoom: number) {
@@ -99,6 +98,7 @@ function focusedTransform(
   cell: Cell,
   side: PreviewSide,
   contentElement: HTMLDivElement | null,
+  viewportElement: HTMLDivElement | null,
   sourceImageSize: SourceImageSize | null,
   zoom: number,
 ): PreviewTransform {
@@ -112,6 +112,9 @@ function focusedTransform(
   };
   const naturalSize = side === "source" ? sourceFallbackSize : targetViewSize;
   const contentSize = measuredContentSize(contentElement, naturalSize);
+  const viewportSize = measuredElementSize(viewportElement, contentSize);
+  const layoutOffsetX = (viewportSize.width - contentSize.width) / 2;
+  const layoutOffsetY = (viewportSize.height - contentSize.height) / 2;
   const centerX =
     side === "source"
       ? sourceCellCenter(project, cell).x * (contentSize.width / naturalSize.width)
@@ -123,8 +126,8 @@ function focusedTransform(
 
   return {
     zoom,
-    panX: Math.round(contentSize.width / 2 - centerX * zoom),
-    panY: Math.round(contentSize.height / 2 - centerY * zoom),
+    panX: Math.round(viewportSize.width / 2 - layoutOffsetX - centerX * zoom),
+    panY: Math.round(viewportSize.height / 2 - layoutOffsetY - centerY * zoom),
   };
 }
 
@@ -167,7 +170,6 @@ export function ComparisonPreview({
     if (!focusRequest) {
       return;
     }
-    const focusZoom = views.source.zoom > MIN_ZOOM ? views.source.zoom : FOCUS_ZOOM;
     setFocusedCell(focusRequest.cell);
     setViews({
       source: focusedTransform(
@@ -175,16 +177,18 @@ export function ComparisonPreview({
         focusRequest.cell,
         "source",
         contentRefs.current.source,
+        viewportRefs.current.source,
         sourceImageSize,
-        focusZoom,
+        views.source.zoom,
       ),
       target: focusedTransform(
         project,
         focusRequest.cell,
         "target",
         contentRefs.current.target,
+        viewportRefs.current.target,
         sourceImageSize,
-        focusZoom,
+        views.target.zoom,
       ),
     });
   }, [focusRequest, project, sourceImageSize]);
@@ -341,7 +345,7 @@ export function ComparisonPreview({
   }
 
   return (
-    <section className="comparison-preview" aria-label="同步图纸预览">
+    <section className="comparison-preview" aria-label="图纸预览">
       <div className="comparison-toolbar" aria-label="预览工具栏">
         <button
           className="quiet-button"
