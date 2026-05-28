@@ -9,6 +9,8 @@ CELL_SIZE = 44
 PADDING = 24
 LEGEND_WIDTH = 180
 REVIEW_COLOR = (226, 151, 32)
+DARK_TEXT = (25, 25, 25)
+LIGHT_TEXT = (255, 255, 255)
 
 
 def _target_fill(cell: Cell, palette: PaletteRepository) -> tuple[int, int, int]:
@@ -20,6 +22,37 @@ def _target_fill(cell: Cell, palette: PaletteRepository) -> tuple[int, int, int]
     if cell.sampled_color:
         return (cell.sampled_color.r, cell.sampled_color.g, cell.sampled_color.b)
     return (245, 245, 245)
+
+
+def _perceived_brightness(rgb: tuple[int, int, int]) -> float:
+    red, green, blue = rgb
+    return (red * 299 + green * 587 + blue * 114) / 1000
+
+
+def _label_colors(fill: tuple[int, int, int] | str) -> tuple[tuple[int, int, int], tuple[int, int, int]]:
+    if fill == "white":
+        return DARK_TEXT, LIGHT_TEXT
+    return (
+        (LIGHT_TEXT, DARK_TEXT)
+        if _perceived_brightness(fill) < 145
+        else (DARK_TEXT, LIGHT_TEXT)
+    )
+
+
+def _draw_cell_label(
+    draw: ImageDraw.ImageDraw,
+    position: tuple[int, int],
+    text: str,
+    fill: tuple[int, int, int] | str,
+) -> None:
+    text_fill, stroke_fill = _label_colors(fill)
+    draw.text(
+        position,
+        text,
+        fill=text_fill,
+        stroke_width=2,
+        stroke_fill=stroke_fill,
+    )
 
 
 def render_clean_pattern(project: BeadProject, palette: PaletteRepository) -> Image.Image:
@@ -42,7 +75,7 @@ def render_clean_pattern(project: BeadProject, palette: PaletteRepository) -> Im
         draw.rectangle((left, top, right, bottom), fill=fill, outline=(155, 155, 155))
         if cell.target_code:
             counts[cell.target_code] += 1
-            draw.text((left + 8, top + 16), cell.target_code, fill=(25, 25, 25))
+            _draw_cell_label(draw, (left + 8, top + 16), cell.target_code, fill)
 
     legend_x = PADDING + grid_width + 22
     draw.text((legend_x, PADDING), "COCO", fill=(20, 20, 20))

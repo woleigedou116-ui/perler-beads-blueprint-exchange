@@ -100,6 +100,7 @@ function focusedTransform(
   side: PreviewSide,
   contentElement: HTMLDivElement | null,
   sourceImageSize: SourceImageSize | null,
+  zoom: number,
 ): PreviewTransform {
   const targetViewSize = {
     width: project.grid.columns * 52,
@@ -121,9 +122,9 @@ function focusedTransform(
       : targetCellCenter(cell).y * (contentSize.height / targetViewSize.height);
 
   return {
-    zoom: FOCUS_ZOOM,
-    panX: Math.round(contentSize.width / 2 - centerX * FOCUS_ZOOM),
-    panY: Math.round(contentSize.height / 2 - centerY * FOCUS_ZOOM),
+    zoom,
+    panX: Math.round(contentSize.width / 2 - centerX * zoom),
+    panY: Math.round(contentSize.height / 2 - centerY * zoom),
   };
 }
 
@@ -166,6 +167,7 @@ export function ComparisonPreview({
     if (!focusRequest) {
       return;
     }
+    const focusZoom = views.source.zoom > MIN_ZOOM ? views.source.zoom : FOCUS_ZOOM;
     setFocusedCell(focusRequest.cell);
     setViews({
       source: focusedTransform(
@@ -174,6 +176,7 @@ export function ComparisonPreview({
         "source",
         contentRefs.current.source,
         sourceImageSize,
+        focusZoom,
       ),
       target: focusedTransform(
         project,
@@ -181,6 +184,7 @@ export function ComparisonPreview({
         "target",
         contentRefs.current.target,
         sourceImageSize,
+        focusZoom,
       ),
     });
   }, [focusRequest, project, sourceImageSize]);

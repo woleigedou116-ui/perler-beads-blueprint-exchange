@@ -12,7 +12,11 @@ from bead_converter.domain.models import (
     MappingDecision,
 )
 from bead_converter.exports.csv_export import export_mapping_csv
-from bead_converter.exports.image_export import render_clean_pattern, render_overlay_pattern
+from bead_converter.exports.image_export import (
+    PADDING,
+    render_clean_pattern,
+    render_overlay_pattern,
+)
 from bead_converter.palettes.repository import PaletteRepository
 from bead_converter.projects.store import ProjectStore
 
@@ -38,7 +42,13 @@ def confirmed_project() -> BeadProject:
                 target_code="B09",
                 origin="verified",
                 confidence=1,
-            )
+            ),
+            MappingDecision(
+                source_code="F14",
+                target_code="K07",
+                origin="verified",
+                confidence=1,
+            ),
         ],
         cells=[
             Cell(
@@ -52,8 +62,8 @@ def confirmed_project() -> BeadProject:
             Cell(
                 row=0,
                 column=1,
-                confirmed_source_code="H7",
-                target_code="B09",
+                confirmed_source_code="F14",
+                target_code="K07",
                 confidence=1,
                 status=CellStatus.confirmed,
             ),
@@ -65,7 +75,8 @@ def test_csv_export_summarizes_target_bead_counts() -> None:
     data = export_mapping_csv(confirmed_project()).decode("utf-8-sig")
 
     assert "来源色号,目标色号,数量,确认状态" in data
-    assert "H7,B09,2,confirmed" in data
+    assert "H7,B09,1,confirmed" in data
+    assert "F14,K07,1,confirmed" in data
 
 
 def test_clean_and_overlay_exports_render_images() -> None:
@@ -79,6 +90,29 @@ def test_clean_and_overlay_exports_render_images() -> None:
 
     assert clean.size[0] > 0
     assert overlay.getpixel((45, 15)) != (255, 255, 255)
+
+
+def test_clean_export_uses_contrasting_stroked_labels() -> None:
+    project = confirmed_project()
+    project.cells[0].sampled_color = None
+    project.cells[1].sampled_color = None
+    clean = render_clean_pattern(project, PaletteRepository.load_default())
+
+    dark_cell_pixels = [
+        clean.getpixel((x, y))
+        for x in range(PADDING, PADDING + 44)
+        for y in range(PADDING, PADDING + 44)
+    ]
+    light_cell_pixels = [
+        clean.getpixel((x, y))
+        for x in range(PADDING + 44, PADDING + 88)
+        for y in range(PADDING, PADDING + 44)
+    ]
+
+    assert any(max(pixel) >= 235 for pixel in dark_cell_pixels)
+    assert any(max(pixel) <= 35 for pixel in dark_cell_pixels)
+    assert any(max(pixel) <= 35 for pixel in light_cell_pixels)
+    assert any(min(pixel) >= 235 for pixel in light_cell_pixels)
 
 
 def test_beadproject_archive_reopens_with_source_image(tmp_path: Path) -> None:

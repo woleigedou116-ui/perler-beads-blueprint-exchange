@@ -178,6 +178,36 @@ it("focuses a requested cell in both previews", () => {
   expect(container.querySelectorAll(".focused-cell")).toHaveLength(2);
 });
 
+it("syncs target zoom to the current source zoom when locating a review cell", async () => {
+  const { container, rerender } = renderPreview();
+  setPreviewSize(container, 0, { width: 400, height: 200 });
+  setPreviewSize(container, 1, { width: 400, height: 200 });
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+  fireEvent.load(sourceImage);
+
+  const zoomIn = screen.getByRole("button", { name: "识别叠加视图 放大" });
+  await userEvent.click(zoomIn);
+  await userEvent.click(zoomIn);
+  await userEvent.click(zoomIn);
+
+  rerender(
+    <ComparisonPreview
+      fullscreen={false}
+      focusRequest={{ cell: projectWithOneReviewCell.cells[0], nonce: 2 }}
+      project={projectWithOneReviewCell}
+      sourceImageUrl="blob:source-pattern"
+      onFullscreenChange={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("175%");
+  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("175%");
+  expect(transforms(container)[1]).toContain("scale(1.75)");
+});
+
 it("requests entering and exiting full-screen review mode", async () => {
   const enter = vi.fn();
   const { rerender } = render(

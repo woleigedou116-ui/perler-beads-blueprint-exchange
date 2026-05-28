@@ -44,6 +44,20 @@ interface GridPreviewProps {
 }
 
 const CELL_SIZE = 52;
+const DARK_TEXT = "rgb(25, 25, 25)";
+const LIGHT_TEXT = "rgb(255, 255, 255)";
+
+function perceivedBrightness(rgb: { r: number; g: number; b: number }) {
+  return (rgb.r * 299 + rgb.g * 587 + rgb.b * 114) / 1000;
+}
+
+function labelStyle(rgb: { r: number; g: number; b: number } | null) {
+  const isDark = rgb ? perceivedBrightness(rgb) < 145 : false;
+  return {
+    fill: isDark ? LIGHT_TEXT : DARK_TEXT,
+    stroke: isDark ? DARK_TEXT : LIGHT_TEXT,
+  };
+}
 
 export function GridPreview({
   actions = null,
@@ -125,8 +139,10 @@ export function GridPreview({
               <img
                 alt="上传原图"
                 className="source-overlay-image"
+                draggable={false}
                 ref={sourceImageRef}
                 src={sourceImageUrl}
+                onDragStart={(event) => event.preventDefault()}
                 onLoad={(event) => updateSourceSize(event.currentTarget)}
               />
               {showReviewOverlay && sourceSize ? (
@@ -199,6 +215,10 @@ export function GridPreview({
                     />
                     {label ? (
                       <text
+                        paintOrder="stroke"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        style={labelStyle(rgb)}
                         x={cell.column * CELL_SIZE + CELL_SIZE / 2}
                         y={cell.row * CELL_SIZE + CELL_SIZE / 2 + 4}
                         textAnchor="middle"

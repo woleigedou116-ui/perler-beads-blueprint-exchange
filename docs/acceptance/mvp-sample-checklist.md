@@ -12,8 +12,8 @@ ignored local materials and are not committed as application assets.
 
 ## Verification
 
-- Backend: `.\.venv\Scripts\python -m pytest -q` passed with 37 tests.
-- Frontend: Vitest passed with 20 tests; TypeScript checking and Vite build passed.
+- Backend: `.\.venv\Scripts\python -m pytest -q` passed with 38 tests.
+- Frontend: Vitest passed with 23 tests; TypeScript checking and Vite build passed.
 - Hosted UI: the built app was opened at `http://127.0.0.1:8765`; the upload,
   local-processing notice, review area, `.beadproject` open input, and preview
   zoom/full-screen controls are covered by smoke and component checks.
@@ -55,6 +55,12 @@ review cell was not necessary for this acceptance pass.
   color-count area while the image is still loading or cached.
 - Located cells are centered with measured preview dimensions, and detailed
   review zoom can reach 800%.
+- Hiding source overlays no longer lets the browser's native image drag take
+  over preview panning.
+- Locate keeps both previews centered on the same cell and syncs the COCO
+  preview to the current source zoom for that locate action.
+- COCO redraw and clean PNG exports render bead labels with automatic
+  black/white contrast plus an opposite-color stroke for dark and light cells.
 - The correction queue is height-limited with its own scroll area; each review
   card can locate the cell, confirm the suggested mapping, or choose from
   nearest target-color candidates.

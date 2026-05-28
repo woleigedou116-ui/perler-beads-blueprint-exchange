@@ -332,6 +332,8 @@ p {
   height: auto;
   max-height: 475px;
   max-width: 100%;
+  pointer-events: none;
+  user-select: none;
   width: auto;
 }
 
@@ -360,9 +362,9 @@ p {
 }
 
 .grid-preview text {
-  fill: #1d292a;
   font-size: 12px;
   font-weight: 600;
+  stroke-width: 3px;
 }
 
 .grid-preview .review-cell rect {

@@ -41,6 +41,46 @@ it("overlays review cells on the uploaded source image within a preview transfor
   });
 });
 
+it("prevents the source image from starting native browser drags", () => {
+  render(
+    <GridPreview
+      project={projectWithOneReviewCell}
+      sourceImageUrl="blob:source-pattern"
+      showReviewOverlay={false}
+      target={false}
+      title="识别叠加视图"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const sourceImage = screen.getByAltText("上传原图");
+  expect(sourceImage).toHaveAttribute("draggable", "false");
+  expect(fireEvent.dragStart(sourceImage)).toBe(false);
+});
+
+it("uses contrasting stroked label colors for dark and light cells", () => {
+  const { container } = render(
+    <GridPreview
+      project={projectWithOneReviewCell}
+      target
+      title="COCO 重绘预览"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const [darkCellLabel, lightCellLabel] = Array.from(container.querySelectorAll("text"));
+  expect(darkCellLabel).toHaveStyle({
+    fill: "rgb(255, 255, 255)",
+    stroke: "rgb(25, 25, 25)",
+  });
+  expect(darkCellLabel).toHaveAttribute("paint-order", "stroke");
+  expect(lightCellLabel).toHaveStyle({
+    fill: "rgb(25, 25, 25)",
+    stroke: "rgb(255, 255, 255)",
+  });
+  expect(lightCellLabel).toHaveAttribute("paint-order", "stroke");
+});
+
 it("waits for source image dimensions before drawing review overlays", () => {
   render(
     <GridPreview

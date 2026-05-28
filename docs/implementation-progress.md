@@ -40,11 +40,14 @@ Last updated: 2026-05-28
 - The import flow shows a staged recognition progress bar, and the workbench
   exposes a floating palette reference that switches between colors used in the
   current pattern and all MARD-to-COCO mappings.
-- Backend tests pass with 37 tests; frontend tests pass with 20 tests;
+- Backend tests pass with 38 tests; frontend tests pass with 23 tests;
   TypeScript/Vite production build passes; the hosted UI opens locally.
 - Preview follow-up fixes raise the zoom ceiling to 800%, rename the per-card
   reset action, center located cells using measured preview dimensions, and
   wait for uploaded image dimensions before drawing source-image review markers.
+- The source image no longer starts native browser dragging when overlays are
+  hidden; locate syncs the COCO preview to the current source zoom; preview and
+  clean-export labels use automatic contrast with a light/dark stroke.
 - The original four image acceptance results remain recorded, and the two
   additional user-provided images now also complete import, all exports, and
   `.beadproject` reopen checks. Details are recorded in
