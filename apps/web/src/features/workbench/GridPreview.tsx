@@ -1,6 +1,7 @@
 import {
   useEffect,
   useState,
+  type ReactNode,
   type PointerEventHandler,
   type WheelEventHandler,
 } from "react";
@@ -14,7 +15,10 @@ export interface PreviewTransform {
 }
 
 interface GridPreviewProps {
+  actions?: ReactNode;
+  focusedCell?: Cell | null;
   project: BeadProject;
+  showReviewOverlay?: boolean;
   sourceImageUrl?: string | null;
   transform?: PreviewTransform;
   dragging?: boolean;
@@ -32,7 +36,10 @@ interface GridPreviewProps {
 const CELL_SIZE = 52;
 
 export function GridPreview({
+  actions = null,
+  focusedCell = null,
   project,
+  showReviewOverlay = true,
   sourceImageUrl = null,
   transform = { zoom: 1, panX: 0, panY: 0 },
   dragging = false,
@@ -63,7 +70,10 @@ export function GridPreview({
     <section className="preview-card">
       <header>
         <h3>{title}</h3>
-        <span>{target ? "COCO" : "MARD"}</span>
+        <div className="preview-card-actions">
+          <span>{target ? "COCO" : "MARD"}</span>
+          {actions}
+        </div>
       </header>
       <div
         className={[
@@ -96,31 +106,39 @@ export function GridPreview({
                   })
                 }
               />
-              <svg
-                aria-label="待复核标记叠加层"
-                className="source-review-overlay"
-                viewBox={sourceViewBox}
-              >
-                {project.cells
-                  .filter((cell) => cell.status === "review-required")
-                  .map((cell) => (
-                    <rect
-                      key={`${cell.row}-${cell.column}`}
-                      className="review-overlay-cell"
-                      x={project.grid.x_lines[cell.column]}
-                      y={project.grid.y_lines[cell.row]}
-                      width={
-                        project.grid.x_lines[cell.column + 1] -
-                        project.grid.x_lines[cell.column]
-                      }
-                      height={
-                        project.grid.y_lines[cell.row + 1] -
-                        project.grid.y_lines[cell.row]
-                      }
-                      onClick={() => onSelectCell(cell)}
-                    />
-                  ))}
-              </svg>
+              {showReviewOverlay ? (
+                <svg
+                  aria-label="待复核标记叠加层"
+                  className="source-review-overlay"
+                  viewBox={sourceViewBox}
+                >
+                  {project.cells
+                    .filter((cell) => cell.status === "review-required")
+                    .map((cell) => (
+                      <rect
+                        key={`${cell.row}-${cell.column}`}
+                        className={[
+                          "review-overlay-cell",
+                          focusedCell?.row === cell.row &&
+                          focusedCell.column === cell.column
+                            ? "focused-cell"
+                            : "",
+                        ].filter(Boolean).join(" ")}
+                        x={project.grid.x_lines[cell.column]}
+                        y={project.grid.y_lines[cell.row]}
+                        width={
+                          project.grid.x_lines[cell.column + 1] -
+                          project.grid.x_lines[cell.column]
+                        }
+                        height={
+                          project.grid.y_lines[cell.row + 1] -
+                          project.grid.y_lines[cell.row]
+                        }
+                        onClick={() => onSelectCell(cell)}
+                      />
+                    ))}
+                </svg>
+              ) : null}
             </div>
           ) : (
             <svg
@@ -137,7 +155,12 @@ export function GridPreview({
                 return (
                   <g
                     key={`${cell.row}-${cell.column}`}
-                    className={cell.status === "review-required" ? "review-cell" : ""}
+                    className={[
+                      cell.status === "review-required" ? "review-cell" : "",
+                      focusedCell?.row === cell.row && focusedCell.column === cell.column
+                        ? "focused-cell"
+                        : "",
+                    ].filter(Boolean).join(" ")}
                     onClick={() => onSelectCell(cell)}
                   >
                     <rect

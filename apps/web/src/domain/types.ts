@@ -6,6 +6,14 @@ export interface RGB {
   b: number;
 }
 
+export interface PaletteMapping {
+  source_code: string;
+  source_rgb: RGB | null;
+  target_code: string | null;
+  target_rgb: RGB | null;
+  requires_review: boolean;
+}
+
 export interface OcrCandidate {
   text: string;
   normalized_code: string | null;

@@ -1,4 +1,9 @@
-import type { BeadProject } from "../domain/types";
+import type { BeadProject, PaletteMapping } from "../domain/types";
+
+export interface PaletteResponse {
+  version: string;
+  mappings: PaletteMapping[];
+}
 
 async function projectResponse(response: Response): Promise<BeadProject> {
   if (!response.ok) {
@@ -17,6 +22,14 @@ export async function importImage(file: File): Promise<BeadProject> {
   return projectResponse(
     await fetch("/api/projects/import", { method: "POST", body: form }),
   );
+}
+
+export async function getPalette(): Promise<PaletteResponse> {
+  const response = await fetch("/api/palettes/mard-coco");
+  if (!response.ok) {
+    throw new Error("色号表加载失败");
+  }
+  return response.json() as Promise<PaletteResponse>;
 }
 
 export async function openProject(file: File): Promise<BeadProject> {

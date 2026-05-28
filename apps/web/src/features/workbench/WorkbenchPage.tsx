@@ -4,17 +4,27 @@ import {
   confirmMapping,
   correctCell,
   exportUrl,
+  getPalette,
   importImage,
   openProject,
   saveAttribution,
 } from "../../api/client";
-import type { BeadProject, Cell } from "../../domain/types";
+import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
 import { UploadPanel } from "../upload/UploadPanel";
 import { ComparisonPreview } from "./ComparisonPreview";
+import { PaletteReference } from "./PaletteReference";
 import { ReviewPanel } from "./ReviewPanel";
 import { StatisticsPanel } from "./StatisticsPanel";
 
 type ExportKind = "clean.png" | "overlay.png" | "mapping.csv" | "project.beadproject";
+type RecognitionProgress = { label: string; value: number };
+
+const RECOGNITION_STAGES: RecognitionProgress[] = [
+  { label: "上传图纸中", value: 12 },
+  { label: "检测网格中", value: 38 },
+  { label: "OCR 与颜色匹配中", value: 68 },
+  { label: "生成项目中", value: 88 },
+];
 
 export function WorkbenchPage() {
   const [file, setFile] = useState<File | null>(null);
@@ -23,7 +33,11 @@ export function WorkbenchPage() {
   const [attribution, setAttribution] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [focusRequest, setFocusRequest] = useState<{ cell: Cell; nonce: number } | null>(null);
+  const [paletteMappings, setPaletteMappings] = useState<PaletteMapping[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [recognitionProgress, setRecognitionProgress] =
+    useState<RecognitionProgress | null>(null);
   const [isReviewFullscreen, setIsReviewFullscreen] = useState(false);
 
   useEffect(() => {
@@ -35,6 +49,37 @@ export function WorkbenchPage() {
     setPreviewUrl(nextUrl);
     return () => URL.revokeObjectURL(nextUrl);
   }, [file]);
+
+  useEffect(() => {
+    let cancelled = false;
+    getPalette()
+      .then((palette) => {
+        if (!cancelled) {
+          setPaletteMappings(palette.mappings);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPaletteMappings([]);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!processing) {
+      return;
+    }
+    let stageIndex = 0;
+    setRecognitionProgress(RECOGNITION_STAGES[stageIndex]);
+    const timer = window.setInterval(() => {
+      stageIndex = Math.min(stageIndex + 1, RECOGNITION_STAGES.length - 1);
+      setRecognitionProgress(RECOGNITION_STAGES[stageIndex]);
+    }, 800);
+    return () => window.clearInterval(timer);
+  }, [processing]);
 
   useEffect(() => {
     if (!isReviewFullscreen) {
@@ -67,6 +112,7 @@ export function WorkbenchPage() {
       setError(caught instanceof Error ? caught.message : "识别失败");
     } finally {
       setProcessing(false);
+      setRecognitionProgress(null);
     }
   }
 
@@ -159,6 +205,7 @@ export function WorkbenchPage() {
         previewUrl={previewUrl}
         processing={processing}
         project={project}
+        recognitionProgress={recognitionProgress}
         onAttributionChange={setAttribution}
         onImport={handleImport}
         onOpenProject={handleOpenProject}
@@ -170,6 +217,7 @@ export function WorkbenchPage() {
         {project ? (
           <>
             <ComparisonPreview
+              focusRequest={focusRequest}
               fullscreen={isReviewFullscreen}
               project={project}
               sourceImageUrl={previewUrl}
@@ -177,6 +225,7 @@ export function WorkbenchPage() {
               onSelectCell={setSelectedCell}
             />
             <StatisticsPanel project={project} onExport={handleExport} />
+            <PaletteReference paletteMappings={paletteMappings} project={project} />
           </>
         ) : (
           <div className="empty-workspace">
@@ -187,10 +236,12 @@ export function WorkbenchPage() {
       </section>
       {project ? (
         <ReviewPanel
+          paletteMappings={paletteMappings}
           project={project}
           selectedCell={selectedCell}
           onConfirmMapping={handleConfirmMapping}
           onCorrectCell={handleCorrectCell}
+          onLocateCell={(cell) => setFocusRequest({ cell, nonce: Date.now() })}
           onSelectCell={setSelectedCell}
         />
       ) : (

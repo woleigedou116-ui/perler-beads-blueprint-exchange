@@ -6,6 +6,10 @@ interface UploadPanelProps {
   previewUrl: string | null;
   processing: boolean;
   project: BeadProject | null;
+  recognitionProgress?: {
+    label: string;
+    value: number;
+  } | null;
   onAttributionChange: (value: string) => void;
   onImport: () => void;
   onOpenProject: (file: File) => void;
@@ -19,6 +23,7 @@ export function UploadPanel({
   previewUrl,
   processing,
   project,
+  recognitionProgress = null,
   onAttributionChange,
   onImport,
   onOpenProject,
@@ -59,6 +64,24 @@ export function UploadPanel({
       <button className="primary-button" disabled={!file || processing} onClick={onImport}>
         {processing ? "识别中..." : "开始识别"}
       </button>
+      {recognitionProgress ? (
+        <div className="recognition-progress">
+          <div className="recognition-progress-heading">
+            <span>{recognitionProgress.label}</span>
+            <strong>{recognitionProgress.value}%</strong>
+          </div>
+          <div
+            aria-label="识别进度"
+            aria-valuemax={100}
+            aria-valuemin={0}
+            aria-valuenow={recognitionProgress.value}
+            className="recognition-progress-bar"
+            role="progressbar"
+          >
+            <span style={{ width: `${recognitionProgress.value}%` }} />
+          </div>
+        </div>
+      ) : null}
       <label className="project-file-field">
         <span>打开项目</span>
         <input
