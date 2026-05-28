@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 
 import type { BeadProject, Cell } from "../../domain/types";
-import { GridPreview, type PreviewTransform } from "./GridPreview";
+import { GridPreview, type PreviewTransform, type SourceImageSize } from "./GridPreview";
 
 interface FocusRequest {
   cell: Cell;
@@ -29,7 +29,7 @@ interface DragStart {
 }
 
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 4;
+const MAX_ZOOM = 8;
 const ZOOM_STEP = 0.25;
 const FOCUS_ZOOM = 2;
 const INITIAL_VIEW: PreviewTransform = { zoom: MIN_ZOOM, panX: 0, panY: 0 };
@@ -52,20 +52,64 @@ function pointerPoint(event: PointerEvent<HTMLDivElement>) {
   };
 }
 
-function focusedTransform(project: BeadProject, cell: Cell, side: PreviewSide): PreviewTransform {
+function measuredContentSize(
+  element: HTMLDivElement | null,
+  fallback: { width: number; height: number },
+) {
+  if (!element) {
+    return fallback;
+  }
+  const rect = element.getBoundingClientRect();
+  return {
+    width: element.clientWidth || rect.width || fallback.width,
+    height: element.clientHeight || rect.height || fallback.height,
+  };
+}
+
+function sourceCellCenter(project: BeadProject, cell: Cell) {
+  return {
+    x: (project.grid.x_lines[cell.column] + project.grid.x_lines[cell.column + 1]) / 2,
+    y: (project.grid.y_lines[cell.row] + project.grid.y_lines[cell.row + 1]) / 2,
+  };
+}
+
+function targetCellCenter(cell: Cell) {
+  return {
+    x: cell.column * 52 + 26,
+    y: cell.row * 52 + 26,
+  };
+}
+
+function focusedTransform(
+  project: BeadProject,
+  cell: Cell,
+  side: PreviewSide,
+  contentElement: HTMLDivElement | null,
+  sourceImageSize: SourceImageSize | null,
+): PreviewTransform {
+  const targetViewSize = {
+    width: project.grid.columns * 52,
+    height: project.grid.rows * 52,
+  };
+  const sourceFallbackSize = sourceImageSize ?? {
+    width: project.grid.bounds[2],
+    height: project.grid.bounds[3],
+  };
+  const naturalSize = side === "source" ? sourceFallbackSize : targetViewSize;
+  const contentSize = measuredContentSize(contentElement, naturalSize);
   const centerX =
     side === "source"
-      ? (project.grid.x_lines[cell.column] + project.grid.x_lines[cell.column + 1]) / 2
-      : cell.column * 52 + 26;
+      ? sourceCellCenter(project, cell).x * (contentSize.width / naturalSize.width)
+      : targetCellCenter(cell).x * (contentSize.width / targetViewSize.width);
   const centerY =
     side === "source"
-      ? (project.grid.y_lines[cell.row] + project.grid.y_lines[cell.row + 1]) / 2
-      : cell.row * 52 + 26;
+      ? sourceCellCenter(project, cell).y * (contentSize.height / naturalSize.height)
+      : targetCellCenter(cell).y * (contentSize.height / targetViewSize.height);
 
   return {
     zoom: FOCUS_ZOOM,
-    panX: 120 - centerX,
-    panY: 120 - centerY,
+    panX: Math.round(contentSize.width / 2 - centerX * FOCUS_ZOOM),
+    panY: Math.round(contentSize.height / 2 - centerY * FOCUS_ZOOM),
   };
 }
 
@@ -85,12 +129,18 @@ export function ComparisonPreview({
   const [draggingSide, setDraggingSide] = useState<PreviewSide | null>(null);
   const [showReviewOverlay, setShowReviewOverlay] = useState(true);
   const [focusedCell, setFocusedCell] = useState<Cell | null>(null);
+  const [sourceImageSize, setSourceImageSize] = useState<SourceImageSize | null>(null);
   const dragStart = useRef<DragStart | null>(null);
+  const contentRefs = useRef<Record<PreviewSide, HTMLDivElement | null>>({
+    source: null,
+    target: null,
+  });
 
   useEffect(() => {
     setViews(initialViews());
     setDraggingSide(null);
     setFocusedCell(null);
+    setSourceImageSize(null);
     dragStart.current = null;
   }, [project.id]);
 
@@ -100,10 +150,22 @@ export function ComparisonPreview({
     }
     setFocusedCell(focusRequest.cell);
     setViews({
-      source: focusedTransform(project, focusRequest.cell, "source"),
-      target: focusedTransform(project, focusRequest.cell, "target"),
+      source: focusedTransform(
+        project,
+        focusRequest.cell,
+        "source",
+        contentRefs.current.source,
+        sourceImageSize,
+      ),
+      target: focusedTransform(
+        project,
+        focusRequest.cell,
+        "target",
+        contentRefs.current.target,
+        sourceImageSize,
+      ),
     });
-  }, [focusRequest, project]);
+  }, [focusRequest, project, sourceImageSize]);
 
   function changeZoom(side: PreviewSide, delta: number) {
     setViews((current) => {
@@ -194,12 +256,8 @@ export function ComparisonPreview({
         >
           +
         </button>
-        <button
-          type="button"
-          aria-label={`${title} 适应窗口`}
-          onClick={() => fitToWindow(side)}
-        >
-          适应窗口
+        <button type="button" aria-label={`${title} 重置`} onClick={() => fitToWindow(side)}>
+          重置
         </button>
         {side === "source" ? (
           <button
@@ -246,7 +304,11 @@ export function ComparisonPreview({
         <GridPreview
           {...viewportProps("source")}
           actions={controls("source")}
+          contentRef={(node) => {
+            contentRefs.current.source = node;
+          }}
           focusedCell={focusedCell}
+          onSourceImageSizeChange={setSourceImageSize}
           project={project}
           showReviewOverlay={showReviewOverlay}
           sourceImageUrl={sourceImageUrl}
@@ -257,6 +319,9 @@ export function ComparisonPreview({
         <GridPreview
           {...viewportProps("target")}
           actions={controls("target")}
+          contentRef={(node) => {
+            contentRefs.current.target = node;
+          }}
           focusedCell={focusedCell}
           project={project}
           target

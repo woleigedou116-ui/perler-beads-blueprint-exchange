@@ -42,6 +42,13 @@ function firePointer(
   fireEvent(element, event);
 }
 
+function setReadOnlyNumberProperty(element: Element, name: string, value: number) {
+  Object.defineProperty(element, name, {
+    configurable: true,
+    value,
+  });
+}
+
 it("applies zoom and panning independently for each blueprint preview", async () => {
   const { container } = renderPreview();
 
@@ -73,24 +80,39 @@ it("applies zoom and panning independently for each blueprint preview", async ()
     "translate(24px, 16px) scale(1.25)",
   ]);
 
-  await userEvent.click(screen.getByRole("button", { name: "COCO 重绘预览 适应窗口" }));
+  await userEvent.click(screen.getByRole("button", { name: "COCO 重绘预览 重置" }));
 
   expect(transforms(container)).toEqual([
     "translate(0px, 0px) scale(1.25)",
     "translate(0px, 0px) scale(1)",
   ]);
-  expect(screen.getByRole("button", { name: "识别叠加视图 适应窗口" })).toHaveTextContent(
-    /^适应窗口$/,
+  expect(screen.getByRole("button", { name: "识别叠加视图 重置" })).toHaveTextContent(
+    /^重置$/,
   );
-  expect(screen.getByRole("button", { name: "COCO 重绘预览 适应窗口" })).toHaveTextContent(
-    /^适应窗口$/,
+  expect(screen.getByRole("button", { name: "COCO 重绘预览 重置" })).toHaveTextContent(
+    /^重置$/,
   );
+});
+
+it("allows zooming deep enough for detailed bead review", async () => {
+  renderPreview();
+
+  const zoomIn = screen.getByRole("button", { name: "识别叠加视图 放大" });
+  for (let index = 0; index < 28; index += 1) {
+    await userEvent.click(zoomIn);
+  }
+
+  expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("800%");
 });
 
 it("toggles source review overlays without hiding the uploaded image", async () => {
   const { container } = renderPreview();
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+  fireEvent.load(sourceImage);
 
-  expect(screen.getByAltText("上传原图")).toHaveAttribute("src", "blob:source-pattern");
+  expect(sourceImage).toHaveAttribute("src", "blob:source-pattern");
   expect(screen.getByLabelText("待复核标记叠加层")).toBeInTheDocument();
   expect(
     within(screen.getByLabelText("预览工具栏")).queryByRole("button", {
@@ -115,6 +137,15 @@ it("toggles source review overlays without hiding the uploaded image", async () 
 
 it("focuses a requested cell in both previews", () => {
   const { container, rerender } = renderPreview();
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+  fireEvent.load(sourceImage);
+  const [sourceTransform, targetTransform] = container.querySelectorAll(".preview-transform");
+  setReadOnlyNumberProperty(sourceTransform, "clientWidth", 640);
+  setReadOnlyNumberProperty(sourceTransform, "clientHeight", 320);
+  setReadOnlyNumberProperty(targetTransform, "clientWidth", 520);
+  setReadOnlyNumberProperty(targetTransform, "clientHeight", 260);
 
   rerender(
     <ComparisonPreview
@@ -127,8 +158,8 @@ it("focuses a requested cell in both previews", () => {
     />,
   );
 
-  expect(transforms(container)[0]).toContain("scale(2)");
-  expect(transforms(container)[1]).toContain("scale(2)");
+  expect(transforms(container)[0]).toBe("translate(0px, -160px) scale(2)");
+  expect(transforms(container)[1]).toBe("translate(0px, -130px) scale(2)");
   expect(container.querySelectorAll(".focused-cell")).toHaveLength(2);
 });
 

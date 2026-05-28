@@ -13,7 +13,7 @@ ignored local materials and are not committed as application assets.
 ## Verification
 
 - Backend: `.\.venv\Scripts\python -m pytest -q` passed with 37 tests.
-- Frontend: Vitest passed with 18 tests; TypeScript checking and Vite build passed.
+- Frontend: Vitest passed with 20 tests; TypeScript checking and Vite build passed.
 - Hosted UI: the built app was opened at `http://127.0.0.1:8765`; the upload,
   local-processing notice, review area, `.beadproject` open input, and preview
   zoom/full-screen controls are covered by smoke and component checks.
@@ -50,6 +50,11 @@ review cell was not necessary for this acceptance pass.
   available while giving each preview independent zoom and drag controls.
 - The recognition preview can toggle pending-review markers on or off over the
   uploaded source image.
+- Source-image review markers now wait for the uploaded image dimensions before
+  rendering, preventing the grid overlay from stretching into the legend and
+  color-count area while the image is still loading or cached.
+- Located cells are centered with measured preview dimensions, and detailed
+  review zoom can reach 800%.
 - The correction queue is height-limited with its own scroll area; each review
   card can locate the cell, confirm the suggested mapping, or choose from
   nearest target-color candidates.

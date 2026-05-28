@@ -317,7 +317,7 @@ p {
 
 .preview-transform {
   max-width: 100%;
-  transform-origin: center center;
+  transform-origin: top left;
 }
 
 .source-overlay-preview {

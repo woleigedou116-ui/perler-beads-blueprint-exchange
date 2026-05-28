@@ -41,6 +41,21 @@ it("overlays review cells on the uploaded source image within a preview transfor
   });
 });
 
+it("waits for source image dimensions before drawing review overlays", () => {
+  render(
+    <GridPreview
+      project={projectWithOneReviewCell}
+      sourceImageUrl="blob:source-pattern"
+      target={false}
+      title="识别叠加视图"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByAltText("上传原图")).toHaveAttribute("src", "blob:source-pattern");
+  expect(screen.queryByLabelText("待复核标记叠加层")).not.toBeInTheDocument();
+});
+
 it("can hide review overlay markers while keeping the source image visible", () => {
   render(
     <GridPreview

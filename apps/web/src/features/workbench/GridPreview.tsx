@@ -1,6 +1,8 @@
 import {
   useEffect,
+  useRef,
   useState,
+  type Ref,
   type ReactNode,
   type PointerEventHandler,
   type WheelEventHandler,
@@ -14,9 +16,16 @@ export interface PreviewTransform {
   panY: number;
 }
 
+export interface SourceImageSize {
+  width: number;
+  height: number;
+}
+
 interface GridPreviewProps {
   actions?: ReactNode;
+  contentRef?: Ref<HTMLDivElement>;
   focusedCell?: Cell | null;
+  onSourceImageSizeChange?: (size: SourceImageSize) => void;
   project: BeadProject;
   showReviewOverlay?: boolean;
   sourceImageUrl?: string | null;
@@ -37,7 +46,9 @@ const CELL_SIZE = 52;
 
 export function GridPreview({
   actions = null,
+  contentRef = null,
   focusedCell = null,
+  onSourceImageSizeChange,
   project,
   showReviewOverlay = true,
   sourceImageUrl = null,
@@ -53,18 +64,30 @@ export function GridPreview({
   onViewportPointerUp,
   onViewportWheel,
 }: GridPreviewProps) {
-  const [sourceSize, setSourceSize] = useState<{ width: number; height: number } | null>(
-    null,
-  );
+  const sourceImageRef = useRef<HTMLImageElement | null>(null);
+  const [sourceSize, setSourceSize] = useState<SourceImageSize | null>(null);
+
+  function updateSourceSize(image: HTMLImageElement) {
+    if (image.naturalWidth <= 0 || image.naturalHeight <= 0) {
+      return;
+    }
+    const next = {
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+    };
+    setSourceSize(next);
+    onSourceImageSizeChange?.(next);
+  }
 
   useEffect(() => {
     setSourceSize(null);
+    const image = sourceImageRef.current;
+    if (image?.complete) {
+      updateSourceSize(image);
+    }
   }, [sourceImageUrl]);
 
   const showSourceOverlay = !target && sourceImageUrl;
-  const sourceViewBox = sourceSize
-    ? `0 0 ${sourceSize.width} ${sourceSize.height}`
-    : `0 0 ${project.grid.bounds[2]} ${project.grid.bounds[3]}`;
 
   return (
     <section className="preview-card">
@@ -89,6 +112,7 @@ export function GridPreview({
       >
         <div
           className="preview-transform"
+          ref={contentRef}
           style={{
             transform: `translate(${transform.panX}px, ${transform.panY}px) scale(${transform.zoom})`,
           }}
@@ -98,19 +122,15 @@ export function GridPreview({
               <img
                 alt="上传原图"
                 className="source-overlay-image"
+                ref={sourceImageRef}
                 src={sourceImageUrl}
-                onLoad={(event) =>
-                  setSourceSize({
-                    width: event.currentTarget.naturalWidth,
-                    height: event.currentTarget.naturalHeight,
-                  })
-                }
+                onLoad={(event) => updateSourceSize(event.currentTarget)}
               />
-              {showReviewOverlay ? (
+              {showReviewOverlay && sourceSize ? (
                 <svg
                   aria-label="待复核标记叠加层"
                   className="source-review-overlay"
-                  viewBox={sourceViewBox}
+                  viewBox={`0 0 ${sourceSize.width} ${sourceSize.height}`}
                 >
                   {project.cells
                     .filter((cell) => cell.status === "review-required")
