@@ -1,6 +1,6 @@
 from PIL import Image
 
-from bead_converter.vision.ocr import RapidOcrProvider, normalize_code
+from bead_converter.vision.ocr import RapidOcrProvider, TesseractOcrProvider, normalize_code
 
 
 def test_normalize_code_accepts_only_known_mard_pattern() -> None:
@@ -42,5 +42,48 @@ def test_provider_treats_engine_empty_output_as_no_candidates() -> None:
     provider = RapidOcrProvider(engine=lambda _image: EmptyOutput())
 
     assert provider.recognize_cells([Image.new("RGB", (24, 24), "white")], {"H7"}) == [
+        []
+    ]
+
+
+def test_tesseract_provider_uses_whitelist_and_normalizes_output() -> None:
+    calls = []
+
+    def fake_runner(command, **_kwargs):
+        calls.append(command)
+
+        class Result:
+            returncode = 0
+            stdout = " 87\n"
+            stderr = ""
+
+        return Result()
+
+    provider = TesseractOcrProvider(command="fake-tesseract", runner=fake_runner)
+    results = provider.recognize_cells(
+        [Image.new("RGB", (24, 24), "white")],
+        {"B7"},
+    )
+
+    assert results[0][0].text == "87"
+    assert results[0][0].normalized_code == "B7"
+    assert results[0][0].confidence == 0.91
+    assert calls[0][0] == "fake-tesseract"
+    assert "stdout" in calls[0]
+    assert "tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789" in calls[0]
+
+
+def test_tesseract_provider_returns_no_candidates_for_empty_output() -> None:
+    def fake_runner(_command, **_kwargs):
+        class Result:
+            returncode = 0
+            stdout = "\n"
+            stderr = ""
+
+        return Result()
+
+    provider = TesseractOcrProvider(command="fake-tesseract", runner=fake_runner)
+
+    assert provider.recognize_cells([Image.new("RGB", (24, 24), "white")], {"B7"}) == [
         []
     ]

@@ -1,8 +1,11 @@
 from collections.abc import Callable
+from pathlib import Path
+import subprocess
+import tempfile
 from typing import Protocol
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 from bead_converter.domain.models import OcrCandidate
 
@@ -80,3 +83,72 @@ class RapidOcrProvider:
                 ]
             )
         return results
+
+
+class TesseractOcrProvider:
+    def __init__(
+        self,
+        command: str = "tesseract",
+        runner: Callable[..., object] | None = None,
+        scale: int = 5,
+        assumed_confidence: float = 0.91,
+    ) -> None:
+        self._command = command
+        self._runner = runner or subprocess.run
+        self._scale = scale
+        self._assumed_confidence = assumed_confidence
+
+    def recognize_cells(
+        self,
+        cell_images: list[Image.Image],
+        known_codes: set[str],
+    ) -> list[list[OcrCandidate]]:
+        results: list[list[OcrCandidate]] = []
+        with tempfile.TemporaryDirectory() as directory:
+            temp_dir = Path(directory)
+            for index, cell in enumerate(cell_images):
+                image_path = temp_dir / f"cell-{index}.png"
+                prepared = self._prepare_cell(cell)
+                prepared.save(image_path)
+                command = [
+                    self._command,
+                    str(image_path),
+                    "stdout",
+                    "--psm",
+                    "7",
+                    "--oem",
+                    "1",
+                    "-c",
+                    "tessedit_char_whitelist=ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789",
+                ]
+                completed = self._runner(
+                    command,
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                )
+                if getattr(completed, "returncode", 1) != 0:
+                    results.append([])
+                    continue
+                raw_text = "".join(str(getattr(completed, "stdout", "")).split())
+                if not raw_text:
+                    results.append([])
+                    continue
+                results.append(
+                    [
+                        OcrCandidate(
+                            text=raw_text,
+                            normalized_code=normalize_code(raw_text, known_codes),
+                            confidence=self._assumed_confidence,
+                        )
+                    ]
+                )
+        return results
+
+    def _prepare_cell(self, cell: Image.Image) -> Image.Image:
+        enlarged = cell.resize(
+            (cell.width * self._scale, cell.height * self._scale),
+            Image.Resampling.LANCZOS,
+        )
+        grayscale = ImageOps.grayscale(enlarged)
+        return ImageOps.autocontrast(grayscale)

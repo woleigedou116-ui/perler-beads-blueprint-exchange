@@ -52,3 +52,11 @@ cd ..\..
 ```
 
 默认输出到 `.data\ocr-benchmark\rapidocr-summary.csv` 和 `.json`，包含每张图的网格尺寸、待复核数量、复核原因、常见原始 OCR 文本、目标色号统计和耗时。后续接入 PaddleOCR、Tesseract 等候选引擎时，用同一份样例跑报告即可横向比较。
+
+可选使用 Tesseract 白名单模式跑同一批样例：
+
+```powershell
+.\.venv\Scripts\python scripts\ocr_benchmark.py ..\..\拼豆样例图 --engine tesseract
+```
+
+如果本机未安装 `tesseract`，报告会标记为 `engine-unavailable:tesseract`。安装后可通过 `--tesseract-command` 指定可执行文件路径。
