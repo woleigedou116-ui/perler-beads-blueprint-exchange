@@ -35,12 +35,12 @@ export function ReviewPanel({
   const [targetCode, setTargetCode] = useState("");
   const [candidateGroupKey, setCandidateGroupKey] = useState<string | null>(null);
   const [expandedPaletteGroupKey, setExpandedPaletteGroupKey] = useState<string | null>(null);
-  const sortedTargetMappings = useMemo(
+  const sortedSourceMappings = useMemo(
     () =>
       [...paletteMappings]
         .filter((mapping) => mapping.target_code)
         .sort((left, right) =>
-          compareCodes(left.target_code ?? "", right.target_code ?? ""),
+          compareCodes(left.source_code, right.source_code),
         ),
     [paletteMappings],
   );
@@ -65,10 +65,10 @@ export function ReviewPanel({
       return [];
     }
     return paletteMappings
-      .filter((mapping) => mapping.target_code && mapping.target_rgb)
+      .filter((mapping) => mapping.target_code && mapping.source_rgb)
       .map((mapping) => ({
         ...mapping,
-        distance: colorDistance(cell.sampled_color as RGB, mapping.target_rgb as RGB),
+        distance: colorDistance(cell.sampled_color as RGB, mapping.source_rgb as RGB),
       }))
       .sort((left, right) => left.distance - right.distance)
       .slice(0, 5);
@@ -141,14 +141,15 @@ export function ReviewPanel({
               </div>
               {candidateGroupKey === group.key ? (
                 <div className="candidate-list" aria-label="近似色号候选">
-                  <p>近似色号</p>
+                  <p>来源近似色号</p>
                   {nearestCandidates(representative).map((candidate) => (
                     <button
                       key={`${candidate.source_code}-${candidate.target_code}`}
                       type="button"
+                      title={`MARD ${candidate.source_code} -> COCO ${candidate.target_code}`}
                       onClick={() => handleCandidateClick(representative, candidate)}
                     >
-                      {candidate.target_code}
+                      {candidate.source_code}
                     </button>
                   ))}
                   <button
@@ -162,15 +163,15 @@ export function ReviewPanel({
                     更多
                   </button>
                   {expandedPaletteGroupKey === group.key ? (
-                    <div className="full-candidate-list" aria-label="全部目标色号候选">
-                      {sortedTargetMappings.map((mapping) => (
+                    <div className="full-candidate-list" aria-label="全部来源色号候选">
+                      {sortedSourceMappings.map((mapping) => (
                         <button
                           key={`${mapping.source_code}-${mapping.target_code}`}
                           type="button"
                           title={`MARD ${mapping.source_code} -> COCO ${mapping.target_code}`}
                           onClick={() => handleCandidateClick(representative, mapping)}
                         >
-                          {mapping.target_code}
+                          {mapping.source_code}
                         </button>
                       ))}
                     </div>

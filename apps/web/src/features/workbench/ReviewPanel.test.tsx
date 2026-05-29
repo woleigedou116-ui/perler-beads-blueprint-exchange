@@ -85,15 +85,15 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
   const candidateButtons = within(candidates).getAllByRole("button");
 
   expect(candidateButtons.map((button) => button.textContent)).toEqual([
-    "B09",
-    "A10",
-    "K07",
-    "A02",
-    "K26",
+    "H7",
+    "H3",
+    "F14",
+    "H4",
+    "E20",
     "更多",
   ]);
 
-  await userEvent.click(screen.getByRole("button", { name: "B09" }));
+  await userEvent.click(screen.getByRole("button", { name: "H7" }));
   expect(onCorrectCell).toHaveBeenCalledWith(
     projectWithOneReviewCell.cells[0],
     "H7",
@@ -101,19 +101,61 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
   );
 
   await userEvent.click(screen.getByRole("button", { name: "更多" }));
-  const fullPalette = screen.getByLabelText("全部目标色号候选");
+  const fullPalette = screen.getByLabelText("全部来源色号候选");
   expect(
     within(fullPalette)
       .getAllByRole("button")
       .map((button) => button.textContent),
-  ).toEqual(["A01", "A02", "A10", "B09", "K07", "K26"]);
+  ).toEqual(["E20", "F14", "H2", "H3", "H4", "H7"]);
 
-  await userEvent.click(within(fullPalette).getByRole("button", { name: "A02" }));
+  await userEvent.click(within(fullPalette).getByRole("button", { name: "H4" }));
   expect(onCorrectCell).toHaveBeenLastCalledWith(
     projectWithOneReviewCell.cells[0],
     "H4",
     "A02",
   );
+});
+
+it("chooses correction candidates from the uploaded source recognition colors", async () => {
+  const misleadingTargetPalette: PaletteMapping[] = [
+    {
+      source_code: "H7",
+      source_rgb: { r: 14, g: 14, b: 14 },
+      target_code: "B09",
+      target_rgb: { r: 250, g: 250, b: 250 },
+      requires_review: false,
+    },
+    {
+      source_code: "H2",
+      source_rgb: { r: 250, g: 250, b: 250 },
+      target_code: "A01",
+      target_rgb: { r: 14, g: 14, b: 14 },
+      requires_review: false,
+    },
+  ];
+
+  render(
+    <ReviewPanel
+      paletteMappings={misleadingTargetPalette}
+      project={projectWithOneReviewCell}
+      selectedCell={projectWithOneReviewCell.cells[0]}
+      onConfirmMapping={vi.fn()}
+      onCorrectCell={vi.fn()}
+      onLocateCell={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "修改" }));
+
+  const candidates = within(screen.getByLabelText("近似色号候选")).getAllByRole(
+    "button",
+  );
+  expect(candidates.map((button) => button.textContent)).toEqual([
+    "H7",
+    "H2",
+    "更多",
+  ]);
 });
 
 it("groups repeated review cells by mapping so large patterns stay reviewable", async () => {
