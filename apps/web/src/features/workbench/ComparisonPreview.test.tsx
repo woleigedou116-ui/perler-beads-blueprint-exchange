@@ -1,7 +1,10 @@
+/// <reference types="vite/client" />
+
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
+import appStyles from "../../styles/app.css?inline";
 import type { BeadProject } from "../../domain/types";
 import { ComparisonPreview } from "./ComparisonPreview";
 import { projectWithOneReviewCell } from "./test-data";
@@ -62,6 +65,14 @@ function setPreviewSize(
   setReadOnlyNumberProperty(viewport, "clientHeight", viewportSize.height);
   setReadOnlyNumberProperty(transform, "clientWidth", contentSize.width);
   setReadOnlyNumberProperty(transform, "clientHeight", contentSize.height);
+}
+
+function cssBlockFor(selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = appStyles.match(
+    new RegExp(`(?:^|})\\s*${escapedSelector}\\s*\\{([^}]+)\\}`, "m"),
+  );
+  return match?.[1] ?? "";
 }
 
 it("applies zoom and panning independently for each blueprint preview", async () => {
@@ -176,6 +187,22 @@ it("uses caller-provided target color statistics sorting", () => {
 
   expect(statCodes).toEqual(["K07", "A10", "B09"]);
   expect(screen.queryByRole("button", { name: "COCO 重绘预览 设置" })).not.toBeInTheDocument();
+});
+
+it("uses shared preview rows so both drawing panes align under wrapped controls", () => {
+  renderPreview();
+
+  expect(appStyles).toContain(".preview-row");
+  expect(cssBlockFor(".preview-row")).toContain(
+    "grid-template-rows: auto minmax(350px, auto) auto;",
+  );
+  expect(cssBlockFor(".preview-card")).toContain("display: grid;");
+  expect(cssBlockFor(".preview-card")).toContain("grid-row: span 3;");
+  expect(cssBlockFor(".preview-card")).toContain("grid-template-rows: subgrid;");
+  expect(cssBlockFor(".preview-card-header")).toContain("grid-row: 1;");
+  expect(cssBlockFor(".preview-viewport")).toContain("grid-row: 2;");
+  expect(cssBlockFor(".preview-viewport")).toContain("margin-top: 0;");
+  expect(cssBlockFor(".target-color-stats")).toContain("grid-row: 3;");
 });
 
 it("allows zooming deep enough for detailed bead review", async () => {

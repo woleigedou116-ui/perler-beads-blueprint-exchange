@@ -226,9 +226,11 @@ p {
 }
 
 .preview-row {
+  align-items: stretch;
   display: grid;
   gap: 0.8rem;
   grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: auto minmax(350px, auto) auto;
 }
 
 .comparison-preview {
@@ -269,6 +271,9 @@ p {
 .preview-card {
   border: 1px solid #e6e9e4;
   border-radius: 14px;
+  display: grid;
+  grid-row: span 3;
+  grid-template-rows: subgrid;
   padding: 0.75rem;
 }
 
@@ -276,6 +281,7 @@ p {
   align-items: flex-start;
   display: grid;
   gap: 0.5rem;
+  grid-row: 1;
   grid-template-columns: auto minmax(0, 1fr);
 }
 
@@ -317,8 +323,9 @@ p {
 .preview-viewport {
   align-items: center;
   display: flex;
+  grid-row: 2;
   justify-content: center;
-  margin-top: 0.65rem;
+  margin-top: 0;
   min-height: 350px;
   overflow: hidden;
   overscroll-behavior: contain;
@@ -702,6 +709,7 @@ p {
   border-top: 1px solid #edf0ed;
   display: grid;
   gap: 0.45rem;
+  grid-row: 3;
   grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
   margin-top: 0.75rem;
   max-height: min(32vh, 260px);
