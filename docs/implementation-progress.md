@@ -57,9 +57,9 @@ Last updated: 2026-05-29
   Clean PNG exports use the same 52 px cell size and centered 16 px labels as
   the on-screen redraw preview.
 - The palette reference now loads the full local MARD-to-COCO table: 287
-  mappings are available, with the original 10 manually checked color mappings
-  preserved as verified and the screenshot-extracted additions marked for
-  review. Image and project exports now use the browser save dialog when
+  mappings are available. User review on 2026-05-29 corrected `M9 -> Y09`
+  and `M10 -> Y10`, and the current table is fully marked as manually
+  verified. Image and project exports now use the browser save dialog when
   available, with the old download behavior as a fallback.
 - The review queue now groups repeated pending cells by suggested source-target
   mapping, so confirming a repeated mapping can clear an entire color group
@@ -78,7 +78,7 @@ Last updated: 2026-05-29
   additional user-provided images now also complete import, all exports, and
   `.beadproject` reopen checks. Details are recorded in
   `docs/acceptance/mvp-sample-checklist.md`.
-- Latest full verification on 2026-05-29: backend tests pass with 43 tests;
+- Latest full verification on 2026-05-29: backend tests pass with 44 tests;
   frontend tests pass with 36 tests; TypeScript/Vite production build passes.
 
 ## Remaining Checkpoints

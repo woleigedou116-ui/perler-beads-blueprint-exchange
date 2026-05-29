@@ -1,5 +1,5 @@
 from bead_converter.domain.models import CellStatus, OcrCandidate
-from bead_converter.palettes.repository import PaletteRepository
+from bead_converter.palettes.repository import ConversionResult, PaletteRepository
 from bead_converter.vision.recognizer import recognize_pattern
 from fixtures.generate_patterns import make_grid_with_cell_fill
 
@@ -56,11 +56,23 @@ def test_ocr_color_conflict_requires_review() -> None:
 
 def test_unverified_palette_mapping_requires_review() -> None:
     image = make_grid_with_cell_fill((252, 160, 117))
+    palette = PaletteRepository(
+        mappings={
+            "A12": ConversionResult(
+                source_code="A12",
+                source_rgb=(252, 160, 117),
+                target_code="K09",
+                target_rgb=(253, 158, 116),
+                requires_review=True,
+            )
+        },
+        version="test-unverified",
+    )
 
     project = recognize_pattern(
         image,
         "完整色号表待核对映射",
-        PaletteRepository.load_default(),
+        palette,
         FirstCellOcr("A12"),
     )
 

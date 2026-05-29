@@ -14,8 +14,16 @@ def test_complete_reference_table_is_available_for_palette_lookup() -> None:
 
     assert len(repo.all_mappings()) >= 280
     assert repo.convert("A1", "MARD", "COCO").target_code == "E02"
+    assert repo.convert("M9", "MARD", "COCO").target_code == "Y09"
+    assert repo.convert("M10", "MARD", "COCO").target_code == "Y10"
     assert repo.convert("R28", "MARD", "COCO").target_code == "S15"
     assert repo.convert("Y5", "MARD", "COCO").target_code == "N05"
+
+
+def test_default_reference_table_has_been_manually_reviewed() -> None:
+    repo = PaletteRepository.load_default()
+
+    assert all(not mapping.requires_review for mapping in repo.all_mappings())
 
 
 def test_mapping_includes_display_colors_for_recognition_and_redraw() -> None:
