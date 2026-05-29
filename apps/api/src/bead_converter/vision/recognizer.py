@@ -22,6 +22,7 @@ from bead_converter.vision.grid import detect_grid
 from bead_converter.vision.ocr import OcrProvider
 
 COLOR_CLUSTER_DISTANCE = 6.0
+FUZZY_OCR_MAX_DISTANCE = 1
 
 
 def _nearest_source_mapping(
@@ -45,6 +46,60 @@ def _nearest_source_mapping(
         mapping.source_rgb or (0, 0, 0),
     )
     return mapping, distance
+
+
+def _normalized_ocr_text(raw_text: str) -> str:
+    return raw_text.replace(" ", "").upper()
+
+
+def _edit_distance(left: str, right: str) -> int:
+    if left == right:
+        return 0
+    previous = list(range(len(right) + 1))
+    for left_index, left_char in enumerate(left, start=1):
+        current = [left_index]
+        for right_index, right_char in enumerate(right, start=1):
+            current.append(
+                min(
+                    previous[right_index] + 1,
+                    current[right_index - 1] + 1,
+                    previous[right_index - 1] + (left_char != right_char),
+                )
+            )
+        previous = current
+    return previous[-1]
+
+
+def _fuzzy_ocr_color_mapping(
+    candidates: list[OcrCandidate],
+    sampled: RGB,
+    palette: PaletteRepository,
+) -> tuple[ConversionResult | None, float]:
+    sampled_tuple = (sampled.r, sampled.g, sampled.b)
+    ranked: list[tuple[int, float, str, ConversionResult]] = []
+    mappings = [
+        mapping
+        for mapping in palette.all_mappings()
+        if mapping.source_rgb is not None and mapping.target_code is not None
+    ]
+    for candidate in candidates:
+        raw_code = _normalized_ocr_text(candidate.text)
+        if not raw_code:
+            continue
+        for mapping in mappings:
+            if raw_code[0] != mapping.source_code[0]:
+                continue
+            text_distance = _edit_distance(raw_code, mapping.source_code)
+            if text_distance > FUZZY_OCR_MAX_DISTANCE:
+                continue
+            color_distance = delta_e(sampled_tuple, mapping.source_rgb or (0, 0, 0))
+            ranked.append(
+                (text_distance, color_distance, mapping.source_code, mapping)
+            )
+    if not ranked:
+        return None, float("inf")
+    text_distance, color_distance, _source_code, mapping = min(ranked)
+    return mapping, color_distance
 
 
 def _valid_ocr_candidate(candidates: list[OcrCandidate]) -> OcrCandidate | None:
@@ -186,12 +241,32 @@ def recognize_pattern(
                 )
             continue
 
-        if nearest and color_distance < COLOR_MATCH_STRONG:
+        fuzzy, fuzzy_color_distance = _fuzzy_ocr_color_mapping(
+            candidates,
+            sampled,
+            palette,
+        )
+        if fuzzy and fuzzy_color_distance < COLOR_MATCH_STRONG:
             cells.append(
                 Cell(
                     row=row,
                     column=column,
                     sampled_color=sampled,
+                    ocr_candidates=candidates,
+                    detected_source_code=fuzzy.source_code,
+                    target_code=fuzzy.target_code,
+                    confidence=0.65,
+                    status=CellStatus.review_required,
+                    issue_reasons=["ocr-fuzzy-color-suggestion"],
+                )
+            )
+        elif nearest and color_distance < COLOR_MATCH_STRONG:
+            cells.append(
+                Cell(
+                    row=row,
+                    column=column,
+                    sampled_color=sampled,
+                    ocr_candidates=candidates,
                     detected_source_code=nearest.source_code,
                     target_code=nearest.target_code,
                     confidence=0.6,

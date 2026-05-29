@@ -23,6 +23,23 @@ class FirstCellOcr:
         return results
 
 
+class RawTextOcr:
+    def __init__(self, text: str) -> None:
+        self.text = text
+
+    def recognize_cells(self, cell_images, known_codes):
+        return [
+            [
+                OcrCandidate(
+                    text=self.text,
+                    normalized_code=None,
+                    confidence=0.98,
+                )
+            ]
+            for _cell in cell_images
+        ]
+
+
 def test_matching_ocr_and_color_confirms_cell() -> None:
     image = make_grid_with_cell_fill((14, 14, 14))
 
@@ -98,6 +115,24 @@ def test_color_only_match_is_a_reviewable_suggestion() -> None:
     assert cell.target_code == "B09"
     assert cell.status == CellStatus.review_required
     assert "color-only-suggestion" in cell.issue_reasons
+
+
+def test_invalid_ocr_text_guides_ambiguous_color_suggestion() -> None:
+    image = make_grid_with_cell_fill((244, 228, 235))
+
+    project = recognize_pattern(
+        image,
+        "E20 近似色纠错",
+        PaletteRepository.load_default(),
+        RawTextOcr("E28"),
+    )
+
+    cell = project.cells[0]
+    assert cell.detected_source_code == "E20"
+    assert cell.target_code == "K26"
+    assert cell.status == CellStatus.review_required
+    assert "ocr-fuzzy-color-suggestion" in cell.issue_reasons
+    assert cell.ocr_candidates[0].text == "E28"
 
 
 def test_empty_grid_cells_are_not_submitted_to_ocr() -> None:
