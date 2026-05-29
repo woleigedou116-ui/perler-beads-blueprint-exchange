@@ -15,7 +15,7 @@ function renderPreview(project: BeadProject = projectWithOneReviewCell) {
   return render(
     <ComparisonPreview
       fullscreen={false}
-      project={projectWithOneReviewCell}
+      project={project}
       sourceImageUrl="blob:source-pattern"
       onFullscreenChange={onFullscreenChange}
       onSelectCell={vi.fn()}
@@ -109,6 +109,71 @@ it("applies zoom and panning independently for each blueprint preview", async ()
   expect(screen.getByRole("button", { name: "COCO 重绘预览 重置" })).toHaveTextContent(
     /^重置$/,
   );
+});
+
+it("keeps wheel zoom events inside preview frames", () => {
+  const parentWheel = vi.fn();
+  const { container } = render(
+    <div onWheel={parentWheel}>
+      <ComparisonPreview
+        fullscreen={false}
+        project={projectWithOneReviewCell}
+        sourceImageUrl="blob:source-pattern"
+        onFullscreenChange={vi.fn()}
+        onSelectCell={vi.fn()}
+      />
+    </div>,
+  );
+  setPreviewSize(container, 0, { width: 400, height: 200 });
+
+  fireEvent.wheel(container.querySelectorAll(".preview-viewport")[0], {
+    deltaY: -100,
+  });
+
+  expect(parentWheel).not.toHaveBeenCalled();
+  expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("125%");
+});
+
+it("configures target color statistics sorting from preview settings", async () => {
+  const projectWithUnevenStats: BeadProject = {
+    ...projectWithOneReviewCell,
+    grid: {
+      ...projectWithOneReviewCell.grid,
+      columns: 4,
+      x_lines: [0, 32, 64, 96, 128],
+    },
+    cells: [
+      ...projectWithOneReviewCell.cells,
+      {
+        ...projectWithOneReviewCell.cells[1],
+        column: 2,
+        target_code: "K07",
+      },
+      {
+        ...projectWithOneReviewCell.cells[1],
+        column: 3,
+        target_code: "A10",
+      },
+    ],
+  };
+  renderPreview(projectWithUnevenStats);
+
+  const statCodes = () =>
+    Array.from(
+      screen
+        .getByLabelText("COCO 色块统计")
+        .querySelectorAll<HTMLElement>(".target-color-stat strong"),
+    ).map((element) => element.textContent);
+
+  expect(statCodes()).toEqual(["A10", "B09", "K07"]);
+
+  await userEvent.click(
+    screen.getByRole("button", { name: "COCO 重绘预览 设置" }),
+  );
+  await userEvent.click(screen.getByRole("button", { name: "按数量排序" }));
+  await userEvent.click(screen.getByRole("button", { name: "倒序" }));
+
+  expect(statCodes()).toEqual(["K07", "A10", "B09"]);
 });
 
 it("allows zooming deep enough for detailed bead review", async () => {

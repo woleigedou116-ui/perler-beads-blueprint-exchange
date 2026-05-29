@@ -6,9 +6,41 @@ export interface TargetColorStat {
   rgb: RGB | null;
 }
 
+export interface ColorStatSort {
+  sortBy: "code" | "count";
+  sortDirection: "asc" | "desc";
+}
+
+const DEFAULT_SORT: ColorStatSort = {
+  sortBy: "code",
+  sortDirection: "asc",
+};
+
+function compareCodes(left: string, right: string) {
+  return left.localeCompare(right, undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+}
+
+function compareStats(left: TargetColorStat, right: TargetColorStat, sort: ColorStatSort) {
+  const codeOrder = compareCodes(left.code, right.code);
+  if (sort.sortBy === "code") {
+    return sort.sortDirection === "asc" ? codeOrder : -codeOrder;
+  }
+
+  const countOrder = left.count - right.count;
+  if (countOrder !== 0) {
+    return sort.sortDirection === "asc" ? countOrder : -countOrder;
+  }
+
+  return codeOrder;
+}
+
 export function buildTargetColorStats(
   project: BeadProject,
   paletteMappings: PaletteMapping[],
+  sort: ColorStatSort = DEFAULT_SORT,
 ): TargetColorStat[] {
   const targetRgbByCode = new Map<string, RGB>();
   for (const mapping of paletteMappings) {
@@ -35,5 +67,5 @@ export function buildTargetColorStats(
       count,
       rgb: targetRgbByCode.get(code) ?? sampledRgbByCode.get(code) ?? null,
     }))
-    .sort((left, right) => left.code.localeCompare(right.code));
+    .sort((left, right) => compareStats(left, right, sort));
 }

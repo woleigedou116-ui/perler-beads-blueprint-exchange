@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
 
 import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
-import { buildTargetColorStats } from "./colorStats";
+import { buildTargetColorStats, type ColorStatSort } from "./colorStats";
 import {
   GridPreview,
   type PreviewContentSize,
@@ -177,6 +177,11 @@ export function ComparisonPreview({
   const [showReviewOverlay, setShowReviewOverlay] = useState(true);
   const [showTargetReviewOverlay, setShowTargetReviewOverlay] = useState(true);
   const [showColorStats, setShowColorStats] = useState(true);
+  const [showTargetSettings, setShowTargetSettings] = useState(false);
+  const [colorStatSort, setColorStatSort] = useState<ColorStatSort>({
+    sortBy: "code",
+    sortDirection: "asc",
+  });
   const [focusedCell, setFocusedCell] = useState<Cell | null>(null);
   const [sourceImageSize, setSourceImageSize] = useState<SourceImageSize | null>(null);
   const [contentSizes, setContentSizes] = useState<Record<PreviewSide, PreviewContentSize | null>>({
@@ -200,6 +205,8 @@ export function ComparisonPreview({
     setShowReviewOverlay(true);
     setShowTargetReviewOverlay(true);
     setShowColorStats(true);
+    setShowTargetSettings(false);
+    setColorStatSort({ sortBy: "code", sortDirection: "asc" });
     setSourceImageSize(null);
     setContentSizes({ source: null, target: null });
     dragStart.current = null;
@@ -284,6 +291,7 @@ export function ComparisonPreview({
 
   function handleWheel(side: PreviewSide, event: WheelEvent<HTMLDivElement>) {
     event.preventDefault();
+    event.stopPropagation();
     changeZoom(side, event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
   }
 
@@ -381,6 +389,85 @@ export function ComparisonPreview({
             >
               {showColorStats ? "隐藏色块统计" : "显示色块统计"}
             </button>
+            <div className="preview-settings-anchor">
+              <button
+                type="button"
+                aria-expanded={showTargetSettings}
+                aria-label={`${title} 设置`}
+                onClick={() => setShowTargetSettings((current) => !current)}
+              >
+                设置
+              </button>
+              {showTargetSettings ? (
+                <div
+                  aria-label="COCO 重绘预览设置"
+                  className="preview-settings-popover"
+                  role="dialog"
+                >
+                  <div className="preview-settings-group">
+                    <div className="preview-settings-label">色块统计排序</div>
+                    <div className="segmented-control" aria-label="排序依据">
+                      <button
+                        className={colorStatSort.sortBy === "code" ? "is-active" : ""}
+                        type="button"
+                        aria-label="按色号排序"
+                        aria-pressed={colorStatSort.sortBy === "code"}
+                        onClick={() =>
+                          setColorStatSort((current) => ({ ...current, sortBy: "code" }))
+                        }
+                      >
+                        色号
+                      </button>
+                      <button
+                        className={colorStatSort.sortBy === "count" ? "is-active" : ""}
+                        type="button"
+                        aria-label="按数量排序"
+                        aria-pressed={colorStatSort.sortBy === "count"}
+                        onClick={() =>
+                          setColorStatSort((current) => ({ ...current, sortBy: "count" }))
+                        }
+                      >
+                        数量
+                      </button>
+                    </div>
+                    <div className="segmented-control" aria-label="排序顺序">
+                      <button
+                        className={
+                          colorStatSort.sortDirection === "asc" ? "is-active" : ""
+                        }
+                        type="button"
+                        aria-label="正序"
+                        aria-pressed={colorStatSort.sortDirection === "asc"}
+                        onClick={() =>
+                          setColorStatSort((current) => ({
+                            ...current,
+                            sortDirection: "asc",
+                          }))
+                        }
+                      >
+                        正序
+                      </button>
+                      <button
+                        className={
+                          colorStatSort.sortDirection === "desc" ? "is-active" : ""
+                        }
+                        type="button"
+                        aria-label="倒序"
+                        aria-pressed={colorStatSort.sortDirection === "desc"}
+                        onClick={() =>
+                          setColorStatSort((current) => ({
+                            ...current,
+                            sortDirection: "desc",
+                          }))
+                        }
+                      >
+                        倒序
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
           </>
         )}
       </div>
@@ -440,7 +527,7 @@ export function ComparisonPreview({
         <GridPreview
           {...viewportProps("target")}
           actions={controls("target")}
-          colorStats={buildTargetColorStats(project, paletteMappings)}
+          colorStats={buildTargetColorStats(project, paletteMappings, colorStatSort)}
           contentRef={(node) => {
             contentRefs.current.target = node;
           }}
