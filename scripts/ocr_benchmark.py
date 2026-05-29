@@ -7,7 +7,7 @@ import shutil
 from time import perf_counter
 import sys
 
-from PIL import Image, UnidentifiedImageError
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps, UnidentifiedImageError
 
 from bead_converter.palettes.repository import PaletteRepository
 from bead_converter.vision.grid import GridNotFoundError
@@ -16,6 +16,15 @@ from bead_converter.vision.recognizer import recognize_pattern
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp"}
 ENGINE_CHOICES = {"rapidocr", "tesseract"}
+OCR_PROFILE_CHOICES = {"standard", "watermark"}
+PREPROCESS_SCOPE_CHOICES = {"full", "ocr"}
+PREPROCESS_CHOICES = {
+    "none",
+    "autocontrast",
+    "sharpen",
+    "contrast-sharpen",
+    "grayscale-contrast",
+}
 
 
 def safe_display_name(name: str, encoding: str | None = None) -> str:
@@ -26,6 +35,38 @@ def safe_display_name(name: str, encoding: str | None = None) -> str:
 def compact_counter(counter: Counter[str], limit: int | None = None) -> str:
     items = counter.most_common(limit)
     return "; ".join(f"{key}={value}" for key, value in items)
+
+
+def filter_image_paths(samples_dir: Path, name_contains: str | None = None) -> list[Path]:
+    image_paths = [
+        path
+        for path in sorted(samples_dir.iterdir(), key=lambda item: item.name)
+        if path.suffix.lower() in IMAGE_SUFFIXES
+    ]
+    if name_contains:
+        image_paths = [path for path in image_paths if name_contains in path.name]
+    return image_paths
+
+
+def preprocess_image(image: Image.Image, mode: str) -> Image.Image:
+    rgb_image = image.convert("RGB")
+    if mode == "none":
+        return rgb_image
+    if mode == "autocontrast":
+        return ImageOps.autocontrast(rgb_image)
+    if mode == "sharpen":
+        return rgb_image.filter(
+            ImageFilter.UnsharpMask(radius=1.2, percent=170, threshold=3)
+        )
+    if mode == "contrast-sharpen":
+        enhanced = ImageEnhance.Contrast(ImageOps.autocontrast(rgb_image)).enhance(1.22)
+        return enhanced.filter(
+            ImageFilter.UnsharpMask(radius=1.2, percent=170, threshold=3)
+        )
+    if mode == "grayscale-contrast":
+        gray = ImageOps.autocontrast(ImageOps.grayscale(rgb_image))
+        return ImageOps.colorize(gray, black="#000000", white="#ffffff").convert("RGB")
+    raise ValueError(f"Unsupported preprocess mode: {mode}")
 
 
 def top_review_groups(project) -> Counter[str]:
@@ -57,10 +98,19 @@ def target_counter(project) -> Counter[str]:
     return counter
 
 
-def empty_row(path: Path, status: str) -> dict:
+def empty_row(
+    path: Path,
+    status: str,
+    preprocess: str = "none",
+    preprocess_scope: str = "ocr",
+    ocr_profile: str = "standard",
+) -> dict:
     return {
         "file": path.name,
         "engine": "",
+        "preprocess": preprocess,
+        "preprocess_scope": preprocess_scope,
+        "ocr_profile": ocr_profile,
         "status": status,
         "grid": "",
         "total_cells": 0,
@@ -80,13 +130,27 @@ def benchmark_image(
     palette: PaletteRepository,
     ocr: OcrProvider,
     engine: str,
+    preprocess: str,
+    preprocess_scope: str,
+    ocr_profile: str,
 ) -> dict:
     start = perf_counter()
-    row = empty_row(path, "ok")
+    row = empty_row(path, "ok", preprocess, preprocess_scope, ocr_profile)
     row["engine"] = engine
     try:
         image = Image.open(path).convert("RGB")
-        project = recognize_pattern(image, path.name, palette, ocr)
+        processed_image = preprocess_image(image, preprocess)
+        if preprocess_scope == "full":
+            project = recognize_pattern(processed_image, path.name, palette, ocr)
+        else:
+            ocr_image = processed_image if preprocess != "none" else None
+            project = recognize_pattern(
+                image,
+                path.name,
+                palette,
+                ocr,
+                ocr_image=ocr_image,
+            )
     except GridNotFoundError:
         row["status"] = "grid-not-found"
         row["elapsed_seconds"] = round(perf_counter() - start, 3)
@@ -124,9 +188,13 @@ def tesseract_available(command: str) -> bool:
     return Path(command).exists() or shutil.which(command) is not None
 
 
-def create_provider(engine: str, tesseract_command: str) -> OcrProvider | None:
+def create_provider(
+    engine: str,
+    tesseract_command: str,
+    ocr_profile: str,
+) -> OcrProvider | None:
     if engine == "rapidocr":
-        return RapidOcrProvider()
+        return RapidOcrProvider(profile=ocr_profile)
     if engine == "tesseract":
         if not tesseract_available(tesseract_command):
             return None
@@ -154,7 +222,30 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("samples_dir", type=Path)
     parser.add_argument("--engine", choices=sorted(ENGINE_CHOICES), default="rapidocr")
+    parser.add_argument(
+        "--ocr-profile",
+        choices=sorted(OCR_PROFILE_CHOICES),
+        default="standard",
+        help="Use the standard OCR pass or slower watermark-oriented cell variants.",
+    )
     parser.add_argument("--tesseract-command", default="tesseract")
+    parser.add_argument(
+        "--preprocess",
+        choices=sorted(PREPROCESS_CHOICES),
+        default="none",
+        help="Apply a benchmark-only preprocessing strategy before recognition.",
+    )
+    parser.add_argument(
+        "--preprocess-scope",
+        choices=sorted(PREPROCESS_SCOPE_CHOICES),
+        default="ocr",
+        help="Apply preprocessing to OCR crops only, or to the full image pipeline.",
+    )
+    parser.add_argument(
+        "--name-contains",
+        default=None,
+        help="Only benchmark image files whose filename contains this text.",
+    )
     parser.add_argument(
         "--output",
         type=Path,
@@ -166,26 +257,33 @@ def main() -> None:
         default=None,
     )
     args = parser.parse_args()
-    output = args.output or Path(".data") / "ocr-benchmark" / f"{args.engine}-summary.csv"
-    json_output = (
-        args.json_output
-        or Path(".data") / "ocr-benchmark" / f"{args.engine}-summary.json"
-    )
+    suffix_parts = []
+    if args.preprocess != "none":
+        suffix_parts.append(f"{args.preprocess}-{args.preprocess_scope}")
+    if args.ocr_profile != "standard":
+        suffix_parts.append(args.ocr_profile)
+    suffix = "" if not suffix_parts else "-" + "-".join(suffix_parts)
+    output_name = f"{args.engine}{suffix}-summary.csv"
+    json_name = f"{args.engine}{suffix}-summary.json"
+    output = args.output or Path(".data") / "ocr-benchmark" / output_name
+    json_output = args.json_output or Path(".data") / "ocr-benchmark" / json_name
 
-    image_paths = [
-        path
-        for path in sorted(args.samples_dir.iterdir(), key=lambda item: item.name)
-        if path.suffix.lower() in IMAGE_SUFFIXES
-    ]
+    image_paths = filter_image_paths(args.samples_dir, args.name_contains)
     if not image_paths:
-        raise SystemExit(f"No image files found in {args.samples_dir}")
+        raise SystemExit(f"No matching image files found in {args.samples_dir}")
 
     palette = PaletteRepository.load_default()
-    ocr = create_provider(args.engine, args.tesseract_command)
+    ocr = create_provider(args.engine, args.tesseract_command, args.ocr_profile)
     if ocr is None:
         rows = []
         for path in image_paths:
-            row = empty_row(path, f"engine-unavailable:{args.engine}")
+            row = empty_row(
+                path,
+                f"engine-unavailable:{args.engine}",
+                args.preprocess,
+                args.preprocess_scope,
+                args.ocr_profile,
+            )
             row["engine"] = args.engine
             rows.append(row)
             print(
@@ -202,7 +300,15 @@ def main() -> None:
 
     rows = []
     for path in image_paths:
-        row = benchmark_image(path, palette, ocr, args.engine)
+        row = benchmark_image(
+            path,
+            palette,
+            ocr,
+            args.engine,
+            args.preprocess,
+            args.preprocess_scope,
+            args.ocr_profile,
+        )
         rows.append(row)
         print(
             safe_display_name(path.name),

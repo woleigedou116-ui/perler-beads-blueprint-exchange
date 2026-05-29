@@ -53,6 +53,20 @@ cd ..\..
 
 默认输出到 `.data\ocr-benchmark\rapidocr-summary.csv` 和 `.json`，包含每张图的网格尺寸、待复核数量、复核原因、常见原始 OCR 文本、目标色号统计和耗时。后续接入 PaddleOCR、Tesseract 等候选引擎时，用同一份样例跑报告即可横向比较。
 
+只评测文件名包含指定文字的样例，或试跑水印/低清图预处理策略：
+
+```powershell
+.\.venv\Scripts\python scripts\ocr_benchmark.py ..\..\拼豆样例图 --name-contains 水印 --preprocess contrast-sharpen
+```
+
+目前 `--preprocess` 支持 `none`、`autocontrast`、`sharpen`、`contrast-sharpen`、`grayscale-contrast`。默认只把预处理图用于 OCR 小格裁剪，网格检测和颜色采样仍使用原图；如需复现实验中的整图预处理，可加 `--preprocess-scope full`。这些策略只用于评测，不会改变应用里的正式识别流程；带预处理的报告会输出到类似 `.data\ocr-benchmark\rapidocr-contrast-sharpen-ocr-summary.csv`。
+
+还可以试跑较慢的水印/低清小格 OCR profile，它会对每个小格尝试多种只用于读字的版本：
+
+```powershell
+.\.venv\Scripts\python scripts\ocr_benchmark.py ..\..\拼豆样例图 --name-contains 水印 --ocr-profile watermark
+```
+
 可选使用 Tesseract 白名单模式跑同一批样例：
 
 ```powershell

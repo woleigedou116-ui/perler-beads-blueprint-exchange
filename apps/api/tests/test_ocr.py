@@ -34,6 +34,25 @@ def test_provider_preserves_raw_text_and_normalizes_known_candidate() -> None:
     assert results[0][1].normalized_code is None
 
 
+def test_watermark_profile_tries_additional_cell_preparations() -> None:
+    calls = []
+
+    def fake_engine(image):
+        calls.append(image.shape)
+        if len(calls) == 1:
+            return ([], 0.01)
+        return ([[[], " h7 ", 0.93]], 0.01)
+
+    provider = RapidOcrProvider(engine=fake_engine, profile="watermark")
+    results = provider.recognize_cells(
+        [Image.new("RGB", (24, 24), "#f0e2e6")],
+        {"H7"},
+    )
+
+    assert len(calls) > 1
+    assert results[0][0].normalized_code == "H7"
+
+
 def test_provider_treats_engine_empty_output_as_no_candidates() -> None:
     class EmptyOutput:
         txts = None

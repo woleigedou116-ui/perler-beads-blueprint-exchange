@@ -1,7 +1,9 @@
+from PIL import ImageDraw
+
 from bead_converter.domain.models import CellStatus, OcrCandidate
 from bead_converter.palettes.repository import ConversionResult, PaletteRepository
 from bead_converter.vision.recognizer import recognize_pattern
-from fixtures.generate_patterns import make_grid_with_cell_fill
+from fixtures.generate_patterns import make_grid_pattern, make_grid_with_cell_fill
 
 
 class FirstCellOcr:
@@ -39,6 +41,16 @@ class RawTextOcr:
             ]
             for _cell in cell_images
         ]
+
+
+class InspectingOcr:
+    def __init__(self) -> None:
+        self.center_pixel: tuple[int, int, int] | None = None
+
+    def recognize_cells(self, cell_images, known_codes):
+        first = cell_images[0].convert("RGB")
+        self.center_pixel = first.getpixel((first.width // 2, first.height // 2))
+        return [[OcrCandidate(text="H7", normalized_code="H7", confidence=0.99)]]
 
 
 def test_matching_ocr_and_color_confirms_cell() -> None:
@@ -137,6 +149,8 @@ def test_color_only_match_is_a_reviewable_suggestion() -> None:
 
 def test_invalid_ocr_text_guides_ambiguous_color_suggestion() -> None:
     image = make_grid_with_cell_fill((244, 228, 235))
+    draw = ImageDraw.Draw(image)
+    draw.text((15, 17), "E28", fill=(90, 90, 90))
 
     project = recognize_pattern(
         image,
@@ -162,6 +176,37 @@ def test_empty_grid_cells_are_not_submitted_to_ocr() -> None:
     assert ocr.received_count == 1
 
 
+def test_faint_watermark_on_empty_grid_stays_empty() -> None:
+    image = make_grid_pattern(rows=3, columns=3)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((10, 10, 38, 38), fill=(240, 230, 225))
+    ocr = FirstCellOcr(None)
+
+    project = recognize_pattern(image, "空白水印", PaletteRepository.load_default(), ocr)
+
+    assert ocr.received_count == 0
+    assert {cell.status for cell in project.cells} == {CellStatus.empty}
+
+
+def test_light_bead_with_unread_ink_gets_color_suggestion() -> None:
+    image = make_grid_with_cell_fill((246, 245, 239))
+    draw = ImageDraw.Draw(image)
+    draw.text((15, 17), "H2", fill=(90, 90, 90))
+
+    project = recognize_pattern(
+        image,
+        "白色珠子未读字",
+        PaletteRepository.load_default(),
+        FirstCellOcr(None),
+    )
+
+    cell = project.cells[0]
+    assert cell.status == CellStatus.review_required
+    assert cell.detected_source_code == "H2"
+    assert cell.target_code == "A01"
+    assert "color-only-suggestion" in cell.issue_reasons
+
+
 def test_repeated_fill_color_is_ocrd_once_and_applied_to_group() -> None:
     image = make_grid_with_cell_fill(
         (247, 152, 158),
@@ -174,3 +219,29 @@ def test_repeated_fill_color_is_ocrd_once_and_applied_to_group() -> None:
     f14_cells = [cell for cell in project.cells if cell.confirmed_source_code == "F14"]
     assert ocr.received_count == 1
     assert len(f14_cells) == 3
+
+
+def test_ocr_image_is_used_only_for_ocr_crops() -> None:
+    image = make_grid_with_cell_fill((14, 14, 14))
+    ocr_image = image.copy()
+    draw = ImageDraw.Draw(ocr_image)
+    draw.rectangle((9, 9, 39, 39), fill=(247, 152, 158))
+    ocr = InspectingOcr()
+
+    project = recognize_pattern(
+        image,
+        "OCR 预处理隔离",
+        PaletteRepository.load_default(),
+        ocr,
+        ocr_image=ocr_image,
+    )
+
+    cell = project.cells[0]
+    assert ocr.center_pixel == (247, 152, 158)
+    assert (cell.sampled_color.r, cell.sampled_color.g, cell.sampled_color.b) == (
+        14,
+        14,
+        14,
+    )
+    assert project.grid.rows == 3
+    assert project.grid.columns == 3

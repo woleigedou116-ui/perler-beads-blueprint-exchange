@@ -5,7 +5,7 @@ import tempfile
 from typing import Protocol
 
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 from bead_converter.domain.models import OcrCandidate
 
@@ -53,12 +53,16 @@ class RapidOcrProvider:
     def __init__(
         self,
         engine: Callable[[np.ndarray], object] | None = None,
+        profile: str = "standard",
     ) -> None:
         if engine is None:
             from rapidocr import RapidOCR
 
             engine = RapidOCR()
         self._engine = engine
+        if profile not in {"standard", "watermark"}:
+            raise ValueError(f"Unsupported RapidOCR profile: {profile}")
+        self._profile = profile
 
     def recognize_cells(
         self,
@@ -67,22 +71,52 @@ class RapidOcrProvider:
     ) -> list[list[OcrCandidate]]:
         results: list[list[OcrCandidate]] = []
         for cell in cell_images:
-            enlarged = cell.resize(
-                (cell.width * 3, cell.height * 3),
-                Image.Resampling.LANCZOS,
-            )
-            lines = _result_lines(self._engine(np.asarray(enlarged.convert("RGB"))))
-            results.append(
-                [
-                    OcrCandidate(
+            candidates_by_key: dict[tuple[str, str | None], OcrCandidate] = {}
+            for prepared in self._prepare_cell_variants(cell):
+                lines = _result_lines(self._engine(np.asarray(prepared.convert("RGB"))))
+                for text, score in lines:
+                    candidate = OcrCandidate(
                         text=text,
                         normalized_code=normalize_code(text, known_codes),
                         confidence=max(0.0, min(1.0, score)),
                     )
-                    for text, score in lines
-                ]
+                    key = (candidate.text, candidate.normalized_code)
+                    previous = candidates_by_key.get(key)
+                    if previous is None or candidate.confidence > previous.confidence:
+                        candidates_by_key[key] = candidate
+            results.append(
+                sorted(
+                    candidates_by_key.values(),
+                    key=lambda candidate: candidate.confidence,
+                    reverse=True,
+                )
             )
         return results
+
+    def _prepare_cell_variants(self, cell: Image.Image) -> list[Image.Image]:
+        enlarged = cell.resize(
+            (cell.width * 3, cell.height * 3),
+            Image.Resampling.LANCZOS,
+        )
+        if self._profile == "standard":
+            return [enlarged]
+
+        large = cell.resize(
+            (cell.width * 5, cell.height * 5),
+            Image.Resampling.LANCZOS,
+        )
+        grayscale = ImageOps.grayscale(large)
+        contrast = ImageOps.autocontrast(grayscale)
+        sharpened = ImageEnhance.Contrast(contrast).enhance(1.25).filter(
+            ImageFilter.UnsharpMask(radius=1.2, percent=180, threshold=3)
+        )
+        threshold = sharpened.point(lambda value: 255 if value >= 150 else 0)
+        return [
+            enlarged,
+            contrast.convert("RGB"),
+            sharpened.convert("RGB"),
+            threshold.convert("RGB"),
+        ]
 
 
 class TesseractOcrProvider:

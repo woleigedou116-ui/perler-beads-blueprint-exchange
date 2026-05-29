@@ -118,7 +118,17 @@ def _may_contain_bead(crop: Image.Image) -> bool:
         )
     )
     brightness = interior.mean(axis=2)
-    return bool(np.median(brightness) < 248 or np.mean(brightness < 210) > 0.02)
+    chroma = interior.max(axis=2) - interior.min(axis=2)
+    median_brightness = float(np.median(brightness))
+    median_chroma = float(np.median(chroma))
+    dark_ink_ratio = float(np.mean(brightness < 165))
+    printed_ink_ratio = float(np.mean(brightness < 210))
+    return bool(
+        median_brightness < 225
+        or median_chroma > 24
+        or dark_ink_ratio > 0.006
+        or printed_ink_ratio > 0.04
+    )
 
 
 def _cluster_indices(indices: list[int], colors: list[RGB]) -> list[list[int]]:
@@ -148,25 +158,40 @@ def recognize_pattern(
     ocr: OcrProvider,
     source_standard: str = "MARD",
     target_standard: str = "COCO",
+    ocr_image: Image.Image | None = None,
 ) -> BeadProject:
+    image = image.convert("RGB")
+    ocr_source_image = ocr_image.convert("RGB") if ocr_image is not None else image
+    if ocr_source_image.size != image.size:
+        raise ValueError("ocr_image must have the same size as image")
+
     grid = detect_grid(image)
-    crops = [
-        image.crop(
-            (
-                grid.x_lines[column],
-                grid.y_lines[row],
-                grid.x_lines[column + 1],
-                grid.y_lines[row + 1],
-            )
+    crop_boxes = [
+        (
+            grid.x_lines[column],
+            grid.y_lines[row],
+            grid.x_lines[column + 1],
+            grid.y_lines[row + 1],
         )
         for row in range(grid.rows)
         for column in range(grid.columns)
     ]
+    crops = [
+        image.crop(crop_box)
+        for crop_box in crop_boxes
+    ]
+    ocr_crops = [
+        ocr_source_image.crop(crop_box)
+        for crop_box in crop_boxes
+    ]
     sampled_colors = [sample_cell_color(crop) for crop in crops]
-    ocr_indices = [index for index, crop in enumerate(crops) if _may_contain_bead(crop)]
+    may_contain_bead = [_may_contain_bead(crop) for crop in crops]
+    ocr_indices = [
+        index for index, contains_bead in enumerate(may_contain_bead) if contains_bead
+    ]
     ocr_clusters = _cluster_indices(ocr_indices, sampled_colors)
     submitted_results = ocr.recognize_cells(
-        [crops[cluster[0]] for cluster in ocr_clusters],
+        [ocr_crops[cluster[0]] for cluster in ocr_clusters],
         palette.known_source_codes(),
     )
     ocr_by_index = {
@@ -182,7 +207,9 @@ def recognize_pattern(
         row, column = divmod(index, grid.columns)
         text_choice = _valid_ocr_candidate(candidates)
         nearest, color_distance = _nearest_source_mapping(sampled, palette)
-        if text_choice is None and min(sampled.r, sampled.g, sampled.b) >= 245:
+        if text_choice is None and (
+            not may_contain_bead[index] or min(sampled.r, sampled.g, sampled.b) >= 245
+        ):
             cells.append(
                 Cell(
                     row=row,

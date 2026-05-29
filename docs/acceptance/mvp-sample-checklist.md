@@ -87,3 +87,14 @@ review cell was not necessary for this acceptance pass.
   nearest target-color candidates.
 - Imports show staged progress, and a floating palette reference switches
   between colors used in the current project and every available mapping.
+- Watermarked-image recognition now treats faint background/watermark patches
+  as empty unless the cell has enough color or printed-ink evidence to be a
+  bead. In the benchmark report `all-watermark-tuned-final`, the four non-
+  watermarked samples remain at `0` pending reviews; `有水印版.jpg` drops from
+  `1589` to `557`, and
+  `洛克王国｜恶魔狼_2_玉米大盗_来自小红书网页版_有水印.jpg` drops from `1327` to `282`.
+- The OCR benchmark script can now isolate watermarked samples with
+  `--name-contains`, compare OCR-only versus full-image preprocessing, and run
+  the optional slower `--ocr-profile watermark` for future low-quality-image
+  experiments. Full-image preprocessing is kept as a benchmark-only option
+  because it can distort grid detection and falsely mark pale cells empty.
