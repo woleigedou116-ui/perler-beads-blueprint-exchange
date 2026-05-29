@@ -270,8 +270,9 @@ describe("WorkbenchPage", () => {
     await userEvent.click(middleGroup);
     await userEvent.clear(screen.getByLabelText("来源色号"));
     await userEvent.type(screen.getByLabelText("来源色号"), "F14");
-    await userEvent.clear(screen.getByLabelText("目标色号"));
-    await userEvent.type(screen.getByLabelText("目标色号"), "K07");
+
+    expect(screen.getByLabelText("目标色号")).toHaveValue("K07");
+
     await userEvent.click(screen.getByRole("button", { name: "修正选中格" }));
 
     expect(correctCell).toHaveBeenCalledWith("pattern-1", 0, 1, "F14", "K07");

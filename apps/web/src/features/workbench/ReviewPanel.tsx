@@ -23,6 +23,10 @@ const DEFAULT_COLOR_STAT_SORT: ColorStatSort = {
   sortDirection: "asc",
 };
 
+function normalizeCode(code: string) {
+  return code.trim().toUpperCase();
+}
+
 export function ReviewPanel({
   autoLocateAfterDecision,
   colorStatSort = DEFAULT_COLOR_STAT_SORT,
@@ -51,6 +55,18 @@ export function ReviewPanel({
         .sort((left, right) =>
           compareCodes(left.source_code, right.source_code),
         ),
+    [paletteMappings],
+  );
+  const targetCodeBySourceCode = useMemo(
+    () =>
+      new Map(
+        paletteMappings
+          .filter((mapping) => mapping.target_code)
+          .map((mapping) => [
+            normalizeCode(mapping.source_code),
+            mapping.target_code as string,
+          ]),
+      ),
     [paletteMappings],
   );
 
@@ -112,6 +128,19 @@ export function ReviewPanel({
   function handleLocate(cell: Cell) {
     handleSelect(cell);
     onLocateCell?.(cell);
+  }
+
+  function handleSourceCodeChange(value: string) {
+    const normalizedSourceCode = normalizeCode(value);
+    setSourceCode(normalizedSourceCode);
+    const mappedTargetCode = targetCodeBySourceCode.get(normalizedSourceCode);
+    if (mappedTargetCode) {
+      setTargetCode(mappedTargetCode);
+    }
+  }
+
+  function handleSubmitCorrection(cell: Cell) {
+    onCorrectCell(cell, normalizeCode(sourceCode), normalizeCode(targetCode));
   }
 
   return (
@@ -320,19 +349,25 @@ export function ReviewPanel({
           className="cell-editor"
           onSubmit={(event) => {
             event.preventDefault();
-            onCorrectCell(selectedCell, sourceCode, targetCode);
+            handleSubmitCorrection(selectedCell);
           }}
         >
           <h3>选中格 {selectedCell.row + 1}, {selectedCell.column + 1}</h3>
           <label>
             来源色号
-            <input value={sourceCode} onChange={(event) => setSourceCode(event.target.value)} />
+            <input
+              value={sourceCode}
+              onChange={(event) => handleSourceCodeChange(event.target.value)}
+            />
           </label>
           <label>
             目标色号
-            <input value={targetCode} onChange={(event) => setTargetCode(event.target.value)} />
+            <input
+              value={targetCode}
+              onChange={(event) => setTargetCode(normalizeCode(event.target.value))}
+            />
           </label>
-          <button disabled={!sourceCode || !targetCode} type="submit">
+          <button disabled={!sourceCode.trim() || !targetCode.trim()} type="submit">
             修正选中格
           </button>
         </form>

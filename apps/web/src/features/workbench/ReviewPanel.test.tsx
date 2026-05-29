@@ -162,6 +162,37 @@ it("chooses correction candidates from the uploaded source recognition colors", 
   ]);
 });
 
+it("updates the target code when the editor source code matches the palette", async () => {
+  const onCorrectCell = vi.fn();
+  render(
+    <ReviewPanel
+      autoLocateAfterDecision
+      paletteMappings={paletteMappings}
+      project={projectWithOneReviewCell}
+      selectedCell={projectWithOneReviewCell.cells[0]}
+      onAutoLocateAfterDecisionChange={vi.fn()}
+      onConfirmMapping={vi.fn()}
+      onCorrectCell={onCorrectCell}
+      onLocateCell={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  await userEvent.clear(screen.getByLabelText("来源色号"));
+  await userEvent.type(screen.getByLabelText("来源色号"), "f14");
+
+  expect(screen.getByLabelText("来源色号")).toHaveValue("F14");
+  expect(screen.getByLabelText("目标色号")).toHaveValue("K07");
+
+  await userEvent.click(screen.getByRole("button", { name: "修正选中格" }));
+
+  expect(onCorrectCell).toHaveBeenCalledWith(
+    projectWithOneReviewCell.cells[0],
+    "F14",
+    "K07",
+  );
+});
+
 it("groups repeated review cells by mapping so large patterns stay reviewable", async () => {
   const repeatedReviewProject: BeadProject = {
     ...projectWithOneReviewCell,
