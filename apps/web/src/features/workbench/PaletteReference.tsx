@@ -9,11 +9,32 @@ interface PaletteReferenceProps {
 
 type PaletteMode = "used" | "all";
 
-function rgbStyle(rgb: RGB | null) {
-  if (!rgb) {
-    return { background: "#ffffff" };
-  }
+function rgbStyle(rgb: RGB) {
   return { background: `rgb(${rgb.r} ${rgb.g} ${rgb.b})` };
+}
+
+function isLightSwatch(rgb: RGB) {
+  return rgb.r > 238 && rgb.g > 238 && rgb.b > 238;
+}
+
+function Swatch({ rgb, label }: { rgb: RGB | null; label: string }) {
+  if (!rgb) {
+    return (
+      <div
+        aria-label={`${label}缺失`}
+        className="palette-swatch is-missing"
+        title={`${label}缺失`}
+      />
+    );
+  }
+  return (
+    <div
+      aria-label={`${label} rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`}
+      className={`palette-swatch${isLightSwatch(rgb) ? " is-light" : ""}`}
+      style={rgbStyle(rgb)}
+      title={`${label} rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`}
+    />
+  );
 }
 
 export function PaletteReference({ paletteMappings, project }: PaletteReferenceProps) {
@@ -71,18 +92,27 @@ export function PaletteReference({ paletteMappings, project }: PaletteReferenceP
             </button>
           </div>
           <div className="palette-reference-list">
-            {rows.map((mapping) => (
-              <article key={`${mapping.source_code}-${mapping.target_code}`}>
-                <div className="palette-swatch" style={rgbStyle(mapping.source_rgb)} />
+            {rows.map((mapping) => {
+              const usedCount = mapping.target_code ? usedCounts[mapping.target_code] : 0;
+              return (
+              <article
+                aria-label={`${mapping.source_code} -> ${mapping.target_code ?? "?"}`}
+                key={`${mapping.source_code}-${mapping.target_code}`}
+              >
+                <Swatch label="来源色样" rgb={mapping.source_rgb} />
                 <strong>
                   {mapping.source_code} -&gt; {mapping.target_code ?? "?"}
                 </strong>
-                <div className="palette-swatch" style={rgbStyle(mapping.target_rgb)} />
-                {mapping.target_code && usedCounts[mapping.target_code] ? (
-                  <span>{usedCounts[mapping.target_code]} 颗</span>
-                ) : null}
+                <Swatch label="目标色样" rgb={mapping.target_rgb} />
+                <span
+                  aria-label={usedCount ? `${usedCount} 颗` : "未使用"}
+                  className="palette-count"
+                >
+                  {usedCount ? `${usedCount} 颗` : ""}
+                </span>
               </article>
-            ))}
+              );
+            })}
             {rows.length === 0 ? <p>当前图纸暂无可显示色号。</p> : null}
           </div>
         </section>

@@ -70,7 +70,7 @@ describe("WorkbenchPage", () => {
   it("uploads a MARD pattern and shows review and export actions", async () => {
     await importPattern();
 
-    expect(await screen.findByText("待确认 1 项")).toBeInTheDocument();
+    expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
     expect(screen.getByText("网格 1 x 2")).toBeInTheDocument();
     expect(screen.getByText("MARD H7")).toBeInTheDocument();
     expect(screen.getByText("COCO B09")).toBeInTheDocument();
@@ -131,7 +131,7 @@ describe("WorkbenchPage", () => {
     await userEvent.click(await screen.findByRole("button", { name: "确认" }));
 
     expect(confirmMapping).toHaveBeenCalledWith("pattern-1", "H7", "B09");
-    expect(await screen.findByText("待确认 0 项")).toBeInTheDocument();
+    expect(await screen.findByText("待确认 0 格 / 0 组")).toBeInTheDocument();
   });
 
   it("locates a review cell and offers palette-backed correction candidates", async () => {
@@ -221,6 +221,6 @@ describe("WorkbenchPage", () => {
     await userEvent.upload(screen.getByLabelText("打开项目"), projectFile);
 
     expect(openProject).toHaveBeenCalledWith(projectFile);
-    expect(await screen.findByText("待确认 1 项")).toBeInTheDocument();
+    expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
   });
 });

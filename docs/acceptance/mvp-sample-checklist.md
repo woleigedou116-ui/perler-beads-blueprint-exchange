@@ -13,7 +13,7 @@ ignored local materials and are not committed as application assets.
 ## Verification
 
 - Backend: `.\.venv\Scripts\python -m pytest` passed with 43 tests.
-- Frontend: Vitest passed with 34 tests; TypeScript checking and Vite build passed.
+- Frontend: Vitest passed with 36 tests; TypeScript checking and Vite build passed.
 - Hosted UI: the built app was opened at `http://127.0.0.1:8765`; the upload,
   local-processing notice, review area, `.beadproject` open input, and preview
   zoom/full-screen controls are covered by smoke and component checks.
@@ -73,6 +73,14 @@ review cell was not necessary for this acceptance pass.
   10 manually checked color mappings remain verified; screenshot-extracted
   additions are available for lookup and review. Exports use the browser save
   dialog when supported and fall back to normal downloads otherwise.
+- The correction queue groups repeated pending cells by source-target mapping.
+  In the latest sample pass this reduces visible review cards substantially:
+  the Hatsune sample goes from `806` pending cells to `11` review groups, the
+  first camera sample from `175` to `2`, and the watermarked 50x50 sample from
+  `2181` to `37`.
+- The palette reference labels missing swatches with a patterned placeholder,
+  outlines very light swatches so white/off-white colors remain visible, and
+  keeps the right-side used-count column aligned even when a row has no count.
 - The correction queue is height-limited with its own scroll area; each review
   card can locate the cell, confirm the suggested mapping, or choose from
   nearest target-color candidates.

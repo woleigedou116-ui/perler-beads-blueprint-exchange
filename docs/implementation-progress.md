@@ -61,6 +61,15 @@ Last updated: 2026-05-29
   preserved as verified and the screenshot-extracted additions marked for
   review. Image and project exports now use the browser save dialog when
   available, with the old download behavior as a fallback.
+- The review queue now groups repeated pending cells by suggested source-target
+  mapping, so confirming a repeated mapping can clear an entire color group
+  instead of requiring one card per bead. The floating palette reference also
+  distinguishes very light or missing swatches and reserves a fixed count column
+  so used-count numbers stay aligned.
+- Six local sample images were rechecked for review volume. The new grouping
+  reduces the visible correction queue from cells to mapping groups, for example
+  `806` pending cells to `11` groups on the Hatsune sample and `2181` pending
+  cells to `37` groups on the watermarked sample.
 - Preview sizing follow-up fixes make the source-image overlay share the
   uploaded image's intrinsic size, give regenerated SVG previews explicit
   dimensions, and center located cells against the same visually constrained
@@ -70,7 +79,7 @@ Last updated: 2026-05-29
   `.beadproject` reopen checks. Details are recorded in
   `docs/acceptance/mvp-sample-checklist.md`.
 - Latest full verification on 2026-05-29: backend tests pass with 43 tests;
-  frontend tests pass with 34 tests; TypeScript/Vite production build passes.
+  frontend tests pass with 36 tests; TypeScript/Vite production build passes.
 
 ## Remaining Checkpoints
 

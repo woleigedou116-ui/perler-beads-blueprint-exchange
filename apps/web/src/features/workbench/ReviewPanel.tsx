@@ -12,6 +12,14 @@ interface ReviewPanelProps {
   onSelectCell: (cell: Cell) => void;
 }
 
+interface ReviewGroup {
+  key: string;
+  source: string;
+  target: string;
+  issueReasons: string[];
+  cells: Cell[];
+}
+
 export function ReviewPanel({
   paletteMappings = [],
   project,
@@ -22,9 +30,10 @@ export function ReviewPanel({
   onSelectCell,
 }: ReviewPanelProps) {
   const reviewCells = project.cells.filter((cell) => cell.status === "review-required");
+  const reviewGroups = groupReviewCells(reviewCells);
   const [sourceCode, setSourceCode] = useState("");
   const [targetCode, setTargetCode] = useState("");
-  const [candidateCellKey, setCandidateCellKey] = useState<string | null>(null);
+  const [candidateGroupKey, setCandidateGroupKey] = useState<string | null>(null);
 
   useEffect(() => {
     setSourceCode(
@@ -32,10 +41,6 @@ export function ReviewPanel({
     );
     setTargetCode(selectedCell?.target_code ?? "");
   }, [selectedCell]);
-
-  function cellKey(cell: Cell) {
-    return `${cell.row}-${cell.column}`;
-  }
 
   function colorDistance(first: RGB, second: RGB) {
     return Math.sqrt(
@@ -63,58 +68,78 @@ export function ReviewPanel({
     return cell.confirmed_source_code ?? cell.detected_source_code ?? "";
   }
 
+  function handleSelect(cell: Cell) {
+    onSelectCell(cell);
+  }
+
+  function handleLocate(cell: Cell) {
+    handleSelect(cell);
+    onLocateCell?.(cell);
+  }
+
   return (
     <aside className="panel review-panel" aria-label="待确认事项">
       <div className="panel-heading">
         <h2>校对</h2>
-        <strong>待确认 {reviewCells.length} 项</strong>
+        <strong>待确认 {reviewCells.length} 格 / {reviewGroups.length} 组</strong>
       </div>
       <div className="review-list">
-        {reviewCells.map((cell) => {
-          const source = cell.confirmed_source_code ?? cell.detected_source_code ?? "?";
-          const target = cell.target_code ?? "?";
+        {reviewGroups.map((group) => {
+          const representative = group.cells[0];
           return (
-            <article key={`${cell.row}-${cell.column}`} onClick={() => onSelectCell(cell)}>
-              <p>MARD {source}</p>
-              <p>COCO {target}</p>
-              <small>{cell.issue_reasons.join(", ")}</small>
+            <article
+              aria-label={`MARD ${group.source} 到 COCO ${group.target}，涉及 ${group.cells.length} 格`}
+              key={group.key}
+              onClick={() => handleSelect(representative)}
+            >
+              <div className="review-card-heading">
+                <div>
+                  <p>MARD {group.source}</p>
+                  <p>COCO {group.target}</p>
+                </div>
+                <span>涉及 {group.cells.length} 格</span>
+              </div>
+              <small>{group.issueReasons.join(", ")}</small>
               <div className="review-actions">
                 <button
                   type="button"
                   onClick={() => {
-                    onSelectCell(cell);
-                    onLocateCell?.(cell);
+                    handleLocate(representative);
                   }}
                 >
                   定位
                 </button>
-                {source !== "?" && target !== "?" ? (
-                  <button type="button" onClick={() => onConfirmMapping(cell)}>
+                {group.source !== "?" && group.target !== "?" ? (
+                  <button type="button" onClick={() => onConfirmMapping(representative)}>
                     确认
                   </button>
                 ) : null}
                 <button
                   type="button"
                   onClick={() => {
-                    onSelectCell(cell);
-                    setCandidateCellKey((current) =>
-                      current === cellKey(cell) ? null : cellKey(cell),
+                    handleSelect(representative);
+                    setCandidateGroupKey((current) =>
+                      current === group.key ? null : group.key,
                     );
                   }}
                 >
                   修改
                 </button>
               </div>
-              {candidateCellKey === cellKey(cell) ? (
+              {candidateGroupKey === group.key ? (
                 <div className="candidate-list" aria-label="近似色号候选">
                   <p>近似色号</p>
-                  {nearestCandidates(cell).map((candidate) => (
+                  {nearestCandidates(representative).map((candidate) => (
                     <button
                       key={`${candidate.source_code}-${candidate.target_code}`}
                       type="button"
                       onClick={() => {
                         if (candidate.target_code) {
-                          onCorrectCell(cell, sourceFor(cell), candidate.target_code);
+                          onCorrectCell(
+                            representative,
+                            sourceFor(representative),
+                            candidate.target_code,
+                          );
                         }
                       }}
                     >
@@ -126,7 +151,7 @@ export function ReviewPanel({
             </article>
           );
         })}
-        {reviewCells.length === 0 ? <p className="complete-note">全部疑点已确认</p> : null}
+        {reviewGroups.length === 0 ? <p className="complete-note">全部疑点已确认</p> : null}
       </div>
       {selectedCell ? (
         <form
@@ -152,4 +177,43 @@ export function ReviewPanel({
       ) : null}
     </aside>
   );
+}
+
+function sourceForGroup(cell: Cell) {
+  return cell.confirmed_source_code ?? cell.detected_source_code ?? "?";
+}
+
+function targetForGroup(cell: Cell) {
+  return cell.target_code ?? "?";
+}
+
+function groupReviewCells(cells: Cell[]): ReviewGroup[] {
+  const groups = new Map<string, ReviewGroup>();
+  for (const cell of cells) {
+    const source = sourceForGroup(cell);
+    const target = targetForGroup(cell);
+    const reasons = [...cell.issue_reasons].sort();
+    const key = `${source}->${target}`;
+    const existing = groups.get(key);
+    if (existing) {
+      existing.cells.push(cell);
+      existing.issueReasons = Array.from(
+        new Set([...existing.issueReasons, ...reasons]),
+      ).sort();
+    } else {
+      groups.set(key, {
+        key,
+        source,
+        target,
+        issueReasons: reasons,
+        cells: [cell],
+      });
+    }
+  }
+  return Array.from(groups.values()).sort((left, right) => {
+    if (right.cells.length !== left.cells.length) {
+      return right.cells.length - left.cells.length;
+    }
+    return left.key.localeCompare(right.key);
+  });
 }

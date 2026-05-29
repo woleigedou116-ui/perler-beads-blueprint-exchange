@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it } from "vitest";
 
@@ -63,4 +63,49 @@ it("shows only current-project colors first, then the complete mapping list", as
 
   expect(screen.getByText("E20 -> K26")).toBeInTheDocument();
   expect(screen.getByText("A120 -> E120")).toBeInTheDocument();
+});
+
+it("keeps palette counts aligned and labels missing swatches explicitly", async () => {
+  const paletteWithBlankSide: PaletteMapping[] = [
+    {
+      source_code: "H3",
+      source_rgb: null,
+      target_code: "B03",
+      target_rgb: { r: 180, g: 177, b: 184 },
+      requires_review: true,
+    },
+    {
+      source_code: "H4",
+      source_rgb: { r: 255, g: 255, b: 255 },
+      target_code: "B05",
+      target_rgb: null,
+      requires_review: true,
+    },
+  ];
+
+  render(
+    <PaletteReference
+      paletteMappings={paletteWithBlankSide}
+      project={{
+        ...projectWithOneReviewCell,
+        cells: [
+          {
+            ...projectWithOneReviewCell.cells[0],
+            target_code: "B03",
+          },
+        ],
+      }}
+    />,
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "色号表" }));
+  await userEvent.click(screen.getByRole("button", { name: "全部色号" }));
+
+  const firstRow = screen.getByLabelText("H3 -> B03");
+  expect(within(firstRow).getByLabelText("来源色样缺失")).toBeInTheDocument();
+  expect(within(firstRow).getByText("1 颗")).toHaveClass("palette-count");
+
+  const secondRow = screen.getByLabelText("H4 -> B05");
+  expect(within(secondRow).getByLabelText("目标色样缺失")).toBeInTheDocument();
+  expect(within(secondRow).getByLabelText("未使用")).toHaveClass("palette-count");
 });
