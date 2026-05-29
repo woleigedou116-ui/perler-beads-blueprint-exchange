@@ -134,7 +134,7 @@ it("keeps wheel zoom events inside preview frames", () => {
   expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("125%");
 });
 
-it("configures target color statistics sorting from preview settings", async () => {
+it("uses caller-provided target color statistics sorting", () => {
   const projectWithUnevenStats: BeadProject = {
     ...projectWithOneReviewCell,
     grid: {
@@ -156,24 +156,26 @@ it("configures target color statistics sorting from preview settings", async () 
       },
     ],
   };
-  renderPreview(projectWithUnevenStats);
+  render(
+    <ComparisonPreview
+      colorStatSort={{ sortBy: "count", sortDirection: "desc" }}
+      fullscreen={false}
+      project={projectWithUnevenStats}
+      sourceImageUrl="blob:source-pattern"
+      onFullscreenChange={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
 
-  const statCodes = () =>
+  const statCodes =
     Array.from(
       screen
         .getByLabelText("COCO 色块统计")
         .querySelectorAll<HTMLElement>(".target-color-stat strong"),
     ).map((element) => element.textContent);
 
-  expect(statCodes()).toEqual(["A10", "B09", "K07"]);
-
-  await userEvent.click(
-    screen.getByRole("button", { name: "COCO 重绘预览 设置" }),
-  );
-  await userEvent.click(screen.getByRole("button", { name: "按数量排序" }));
-  await userEvent.click(screen.getByRole("button", { name: "倒序" }));
-
-  expect(statCodes()).toEqual(["K07", "A10", "B09"]);
+  expect(statCodes).toEqual(["K07", "A10", "B09"]);
+  expect(screen.queryByRole("button", { name: "COCO 重绘预览 设置" })).not.toBeInTheDocument();
 });
 
 it("allows zooming deep enough for detailed bead review", async () => {
@@ -321,6 +323,40 @@ it("keeps each preview zoom while centering the located review cell", async () =
   expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("125%");
   expect(transforms(container)[0]).toBe("translate(4px, -12px) scale(1.75)");
   expect(transforms(container)[1]).toBe("translate(20px, -6px) scale(1.25)");
+});
+
+it("selects a source cell from pointer release after zoom enables panning", async () => {
+  const onSelectCell = vi.fn();
+  const { container } = render(
+    <ComparisonPreview
+      fullscreen={false}
+      project={projectWithOneReviewCell}
+      sourceImageUrl="blob:source-pattern"
+      onFullscreenChange={vi.fn()}
+      onSelectCell={onSelectCell}
+    />,
+  );
+  setPreviewSize(container, 0, { width: 400, height: 240 }, { width: 400, height: 200 });
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+  fireEvent.load(sourceImage);
+  await userEvent.click(screen.getByRole("button", { name: "识别叠加视图 放大" }));
+
+  const sourceHitCell = screen.getByLabelText("原图格子选择层").querySelectorAll("rect")[1];
+  const sourceViewport = container.querySelectorAll(".preview-viewport")[0];
+  firePointer(sourceHitCell, "pointerdown", {
+    pointerId: 8,
+    clientX: 120,
+    clientY: 80,
+  });
+  firePointer(sourceViewport, "pointerup", {
+    pointerId: 8,
+    clientX: 120,
+    clientY: 80,
+  });
+
+  expect(onSelectCell).toHaveBeenCalledWith(projectWithOneReviewCell.cells[1]);
 });
 
 it("requests entering and exiting full-screen review mode", async () => {

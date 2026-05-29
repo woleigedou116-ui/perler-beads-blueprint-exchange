@@ -324,29 +324,6 @@ p {
   transform-origin: top left;
 }
 
-.preview-settings-anchor {
-  display: inline-flex;
-  position: relative;
-}
-
-.preview-settings-popover {
-  background: #fff;
-  border: 1px solid #dce6e1;
-  border-radius: 12px;
-  box-shadow: 0 14px 38px rgba(28, 45, 48, 0.18);
-  min-width: 188px;
-  padding: 0.7rem;
-  position: absolute;
-  right: 0;
-  top: calc(100% + 0.42rem);
-  z-index: 15;
-}
-
-.preview-settings-group {
-  display: grid;
-  gap: 0.48rem;
-}
-
 .preview-settings-label {
   color: #385d58;
   font-size: 0.75rem;
@@ -361,7 +338,7 @@ p {
   padding: 0.18rem;
 }
 
-.preview-controls .segmented-control button {
+.segmented-control button {
   background: transparent;
   border-color: transparent;
   border-radius: 999px;
@@ -370,7 +347,7 @@ p {
   padding: 0.28rem 0.52rem;
 }
 
-.preview-controls .segmented-control button.is-active {
+.segmented-control button.is-active {
   background: #fff;
   border-color: #d5e3de;
   box-shadow: 0 2px 8px rgba(28, 45, 48, 0.08);
@@ -423,7 +400,8 @@ p {
 
 .source-hit-cell {
   cursor: pointer;
-  fill: transparent;
+  fill: rgba(255, 255, 255, 0.001);
+  pointer-events: all;
 }
 
 .grid-preview rect {
@@ -493,6 +471,14 @@ p {
   display: flex;
   font-size: 0.82rem;
   gap: 0.45rem;
+}
+
+.review-settings-section {
+  border-top: 1px solid #f0dfc7;
+  display: grid;
+  gap: 0.48rem;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
 }
 
 .review-panel {

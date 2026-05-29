@@ -224,3 +224,29 @@ it("groups repeated review cells by mapping so large patterns stay reviewable", 
   await userEvent.click(within(groupedCard).getByRole("button", { name: "确认" }));
   expect(onConfirmMapping).toHaveBeenCalledWith(repeatedReviewProject.cells[0]);
 });
+
+it("closes review settings when clicking outside the menu", async () => {
+  render(
+    <div>
+      <button type="button">外部区域</button>
+      <ReviewPanel
+        autoLocateAfterDecision
+        paletteMappings={paletteMappings}
+        project={projectWithOneReviewCell}
+        selectedCell={projectWithOneReviewCell.cells[0]}
+        onAutoLocateAfterDecisionChange={vi.fn()}
+        onConfirmMapping={vi.fn()}
+        onCorrectCell={vi.fn()}
+        onLocateCell={vi.fn()}
+        onSelectCell={vi.fn()}
+      />
+    </div>,
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "校对设置" }));
+  expect(screen.getByRole("dialog", { name: "校对设置" })).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "外部区域" }));
+
+  expect(screen.queryByRole("dialog", { name: "校对设置" })).not.toBeInTheDocument();
+});

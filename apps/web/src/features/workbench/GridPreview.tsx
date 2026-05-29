@@ -234,6 +234,8 @@ export function GridPreview({
                     .map((cell) => (
                       <rect
                         key={`${cell.row}-${cell.column}`}
+                        data-cell-column={cell.column}
+                        data-cell-row={cell.row}
                         className="source-hit-cell"
                         x={project.grid.x_lines[cell.column]}
                         y={project.grid.y_lines[cell.row]}
@@ -271,6 +273,8 @@ export function GridPreview({
                 return (
                   <g
                     key={`${cell.row}-${cell.column}`}
+                    data-cell-column={cell.column}
+                    data-cell-row={cell.row}
                     className={[
                       showReviewOverlay && cell.status === "review-required"
                         ? "review-cell"

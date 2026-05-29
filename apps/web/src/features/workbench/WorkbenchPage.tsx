@@ -13,6 +13,7 @@ import { saveExport } from "../../api/exports";
 import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
 import { UploadPanel } from "../upload/UploadPanel";
 import { ComparisonPreview } from "./ComparisonPreview";
+import type { ColorStatSort } from "./colorStats";
 import { PaletteReference } from "./PaletteReference";
 import { ReviewPanel } from "./ReviewPanel";
 import { buildReviewGroups, reviewGroupKey } from "./reviewGroups";
@@ -29,6 +30,11 @@ const RECOGNITION_STAGES: RecognitionProgress[] = [
   { label: "生成项目中", value: 88 },
 ];
 
+const DEFAULT_COLOR_STAT_SORT: ColorStatSort = {
+  sortBy: "code",
+  sortDirection: "asc",
+};
+
 export function WorkbenchPage() {
   const [file, setFile] = useState<File | null>(null);
   const [project, setProject] = useState<BeadProject | null>(null);
@@ -43,6 +49,9 @@ export function WorkbenchPage() {
     useState<RecognitionProgress | null>(null);
   const [isReviewFullscreen, setIsReviewFullscreen] = useState(false);
   const [autoLocateAfterDecision, setAutoLocateAfterDecision] = useState(true);
+  const [colorStatSort, setColorStatSort] = useState<ColorStatSort>(
+    DEFAULT_COLOR_STAT_SORT,
+  );
 
   useEffect(() => {
     if (!file || typeof URL.createObjectURL !== "function") {
@@ -123,6 +132,7 @@ export function WorkbenchPage() {
   function loadProject(opened: BeadProject) {
     setProject(opened);
     setAttribution(opened.source_attribution ?? "");
+    setColorStatSort(DEFAULT_COLOR_STAT_SORT);
     setSelectedCell(
       opened.cells.find((cell) => cell.status === "review-required") ??
         opened.cells[0] ??
@@ -181,6 +191,11 @@ export function WorkbenchPage() {
     if (next.shouldLocate && next.cell) {
       setFocusRequest({ cell: next.cell, nonce: Date.now() });
     }
+  }
+
+  function handleSelectCell(cell: Cell) {
+    setSelectedCell(cell);
+    setFocusRequest({ cell, nonce: Date.now() });
   }
 
   function findUpdatedCell(updatedProject: BeadProject, cell: Cell) {
@@ -268,13 +283,14 @@ export function WorkbenchPage() {
         {project ? (
           <>
             <ComparisonPreview
+              colorStatSort={colorStatSort}
               focusRequest={focusRequest}
               fullscreen={isReviewFullscreen}
               paletteMappings={paletteMappings}
               project={project}
               sourceImageUrl={previewUrl}
               onFullscreenChange={setIsReviewFullscreen}
-              onSelectCell={setSelectedCell}
+              onSelectCell={handleSelectCell}
             />
             <StatisticsPanel
               paletteMappings={paletteMappings}
@@ -293,14 +309,16 @@ export function WorkbenchPage() {
       {project ? (
         <ReviewPanel
           autoLocateAfterDecision={autoLocateAfterDecision}
+          colorStatSort={colorStatSort}
           paletteMappings={paletteMappings}
           project={project}
           selectedCell={selectedCell}
           onAutoLocateAfterDecisionChange={setAutoLocateAfterDecision}
+          onColorStatSortChange={setColorStatSort}
           onConfirmMapping={handleConfirmMapping}
           onCorrectCell={handleCorrectCell}
           onLocateCell={(cell) => setFocusRequest({ cell, nonce: Date.now() })}
-          onSelectCell={setSelectedCell}
+          onSelectCell={handleSelectCell}
         />
       ) : (
         <aside className="panel review-panel idle-review">

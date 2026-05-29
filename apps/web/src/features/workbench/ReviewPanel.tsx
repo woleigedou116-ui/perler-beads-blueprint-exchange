@@ -1,26 +1,36 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { BeadProject, Cell, PaletteMapping, RGB } from "../../domain/types";
+import type { ColorStatSort } from "./colorStats";
 import { buildReviewGroups, compareCodes } from "./reviewGroups";
 
 interface ReviewPanelProps {
   autoLocateAfterDecision: boolean;
+  colorStatSort?: ColorStatSort;
   paletteMappings?: PaletteMapping[];
   project: BeadProject;
   selectedCell: Cell | null;
   onAutoLocateAfterDecisionChange: (enabled: boolean) => void;
+  onColorStatSortChange?: (sort: ColorStatSort) => void;
   onConfirmMapping: (cell: Cell) => void;
   onCorrectCell: (cell: Cell, sourceCode: string, targetCode: string) => void;
   onLocateCell?: (cell: Cell) => void;
   onSelectCell: (cell: Cell) => void;
 }
 
+const DEFAULT_COLOR_STAT_SORT: ColorStatSort = {
+  sortBy: "code",
+  sortDirection: "asc",
+};
+
 export function ReviewPanel({
   autoLocateAfterDecision,
+  colorStatSort = DEFAULT_COLOR_STAT_SORT,
   paletteMappings = [],
   project,
   selectedCell,
   onAutoLocateAfterDecisionChange,
+  onColorStatSortChange = () => undefined,
   onConfirmMapping,
   onCorrectCell,
   onLocateCell,
@@ -33,6 +43,7 @@ export function ReviewPanel({
   const [candidateGroupKey, setCandidateGroupKey] = useState<string | null>(null);
   const [expandedPaletteGroupKey, setExpandedPaletteGroupKey] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
+  const settingsRef = useRef<HTMLDivElement | null>(null);
   const sortedSourceMappings = useMemo(
     () =>
       [...paletteMappings]
@@ -49,6 +60,22 @@ export function ReviewPanel({
     );
     setTargetCode(selectedCell?.target_code ?? "");
   }, [selectedCell]);
+
+  useEffect(() => {
+    if (!showSettings) {
+      return;
+    }
+
+    function handlePointerDown(event: globalThis.PointerEvent) {
+      const target = event.target;
+      if (target instanceof Node && !settingsRef.current?.contains(target)) {
+        setShowSettings(false);
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown);
+    return () => document.removeEventListener("pointerdown", handlePointerDown);
+  }, [showSettings]);
 
   function colorDistance(first: RGB, second: RGB) {
     return Math.sqrt(
@@ -93,7 +120,7 @@ export function ReviewPanel({
         <h2>校对</h2>
         <div className="review-heading-actions">
           <strong>待确认 {reviewCells.length} 格 / {reviewGroups.length} 组</strong>
-          <div className="review-settings-anchor">
+          <div className="review-settings-anchor" ref={settingsRef}>
             <button
               type="button"
               aria-expanded={showSettings}
@@ -119,6 +146,67 @@ export function ReviewPanel({
                   />
                   处理后自动定位下一组/上一组
                 </label>
+                <div className="review-settings-section">
+                  <div className="preview-settings-label">色块统计排序</div>
+                  <div className="segmented-control" aria-label="排序依据">
+                    <button
+                      className={colorStatSort.sortBy === "code" ? "is-active" : ""}
+                      type="button"
+                      aria-label="按色号排序"
+                      aria-pressed={colorStatSort.sortBy === "code"}
+                      onClick={() =>
+                        onColorStatSortChange({ ...colorStatSort, sortBy: "code" })
+                      }
+                    >
+                      色号
+                    </button>
+                    <button
+                      className={colorStatSort.sortBy === "count" ? "is-active" : ""}
+                      type="button"
+                      aria-label="按数量排序"
+                      aria-pressed={colorStatSort.sortBy === "count"}
+                      onClick={() =>
+                        onColorStatSortChange({ ...colorStatSort, sortBy: "count" })
+                      }
+                    >
+                      数量
+                    </button>
+                  </div>
+                  <div className="segmented-control" aria-label="排序顺序">
+                    <button
+                      className={
+                        colorStatSort.sortDirection === "asc" ? "is-active" : ""
+                      }
+                      type="button"
+                      aria-label="正序"
+                      aria-pressed={colorStatSort.sortDirection === "asc"}
+                      onClick={() =>
+                        onColorStatSortChange({
+                          ...colorStatSort,
+                          sortDirection: "asc",
+                        })
+                      }
+                    >
+                      正序
+                    </button>
+                    <button
+                      className={
+                        colorStatSort.sortDirection === "desc" ? "is-active" : ""
+                      }
+                      type="button"
+                      aria-label="倒序"
+                      aria-pressed={colorStatSort.sortDirection === "desc"}
+                      onClick={() =>
+                        onColorStatSortChange({
+                          ...colorStatSort,
+                          sortDirection: "desc",
+                        })
+                      }
+                    >
+                      倒序
+                    </button>
+                  </div>
+                </div>
               </div>
             ) : null}
           </div>
@@ -144,20 +232,28 @@ export function ReviewPanel({
               <div className="review-actions">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(event) => {
+                    event.stopPropagation();
                     handleLocate(representative);
                   }}
                 >
                   定位
                 </button>
                 {group.source !== "?" && group.target !== "?" ? (
-                  <button type="button" onClick={() => onConfirmMapping(representative)}>
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onConfirmMapping(representative);
+                    }}
+                  >
                     确认
                   </button>
                 ) : null}
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(event) => {
+                    event.stopPropagation();
                     handleSelect(representative);
                     setCandidateGroupKey((current) =>
                       current === group.key ? null : group.key,
@@ -176,18 +272,22 @@ export function ReviewPanel({
                       key={`${candidate.source_code}-${candidate.target_code}`}
                       type="button"
                       title={`MARD ${candidate.source_code} -> COCO ${candidate.target_code}`}
-                      onClick={() => handleCandidateClick(representative, candidate)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleCandidateClick(representative, candidate);
+                      }}
                     >
                       {candidate.source_code}
                     </button>
                   ))}
                   <button
                     type="button"
-                    onClick={() =>
+                    onClick={(event) => {
+                      event.stopPropagation();
                       setExpandedPaletteGroupKey((current) =>
                         current === group.key ? null : group.key,
-                      )
-                    }
+                      );
+                    }}
                   >
                     更多
                   </button>
@@ -198,7 +298,10 @@ export function ReviewPanel({
                           key={`${mapping.source_code}-${mapping.target_code}`}
                           type="button"
                           title={`MARD ${mapping.source_code} -> COCO ${mapping.target_code}`}
-                          onClick={() => handleCandidateClick(representative, mapping)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleCandidateClick(representative, mapping);
+                          }}
                         >
                           {mapping.source_code}
                         </button>

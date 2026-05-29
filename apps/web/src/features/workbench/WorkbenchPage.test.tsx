@@ -225,6 +225,73 @@ describe("WorkbenchPage", () => {
     expect(document.querySelectorAll(".focused-cell")).toHaveLength(0);
   });
 
+  it("keeps manual source-cell selection editable and visually focused", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:source-pattern"),
+      revokeObjectURL: vi.fn(),
+    });
+    await importPattern(projectAfterMappingConfirmation);
+
+    const sourceImage = await screen.findByAltText("上传原图");
+    Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+    Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+    fireEvent.load(sourceImage);
+
+    const hitCells = screen.getByLabelText("原图格子选择层").querySelectorAll("rect");
+    fireEvent.click(hitCells[1]);
+
+    expect(await screen.findByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
+    expect(document.querySelectorAll(".focused-cell")).toHaveLength(2);
+    expect(screen.getByLabelText("来源色号")).toHaveValue("F14");
+    expect(screen.getByLabelText("目标色号")).toHaveValue("K07");
+  });
+
+  it("uses a single review settings menu for preview statistics and closes it on outside clicks", async () => {
+    const projectWithUnevenStats: BeadProject = {
+      ...projectWithOneReviewCell,
+      grid: {
+        ...projectWithOneReviewCell.grid,
+        columns: 4,
+        x_lines: [0, 32, 64, 96, 128],
+      },
+      cells: [
+        ...projectWithOneReviewCell.cells,
+        {
+          ...projectWithOneReviewCell.cells[1],
+          column: 2,
+          target_code: "K07",
+        },
+        {
+          ...projectWithOneReviewCell.cells[1],
+          column: 3,
+          target_code: "A10",
+        },
+      ],
+    };
+    await importPattern(projectWithUnevenStats);
+
+    const statCodes = () =>
+      Array.from(
+        screen
+          .getByLabelText("COCO 色块统计")
+          .querySelectorAll<HTMLElement>(".target-color-stat strong"),
+      ).map((element) => element.textContent);
+
+    expect(screen.queryByRole("button", { name: "COCO 重绘预览 设置" })).not.toBeInTheDocument();
+    expect(statCodes()).toEqual(["A10", "B09", "K07"]);
+
+    await userEvent.click(await screen.findByRole("button", { name: "校对设置" }));
+    expect(screen.getByRole("dialog", { name: "校对设置" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "按数量排序" }));
+    await userEvent.click(screen.getByRole("button", { name: "倒序" }));
+
+    expect(statCodes()).toEqual(["K07", "A10", "B09"]);
+
+    await userEvent.click(screen.getByText("上传与参数"));
+    expect(screen.queryByRole("dialog", { name: "校对设置" })).not.toBeInTheDocument();
+  });
+
   it("locates a review cell and offers palette-backed correction candidates", async () => {
     vi.mocked(correctCell).mockResolvedValue(projectAfterMappingConfirmation);
     await importPattern();

@@ -15,6 +15,7 @@ interface FocusRequest {
 }
 
 interface ComparisonPreviewProps {
+  colorStatSort?: ColorStatSort;
   focusRequest?: FocusRequest | null;
   fullscreen: boolean;
   project: BeadProject;
@@ -27,6 +28,8 @@ interface ComparisonPreviewProps {
 type PreviewSide = "source" | "target";
 
 interface DragStart {
+  cell: Cell | null;
+  moved: boolean;
   pointerId: number;
   side: PreviewSide;
   x: number;
@@ -38,8 +41,13 @@ interface DragStart {
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 const ZOOM_STEP = 0.25;
+const CLICK_MOVE_TOLERANCE = 4;
 const PREVIEW_CONTENT_MAX_HEIGHT = 475;
 const INITIAL_VIEW: PreviewTransform = { zoom: MIN_ZOOM, panX: 0, panY: 0 };
+const DEFAULT_COLOR_STAT_SORT: ColorStatSort = {
+  sortBy: "code",
+  sortDirection: "asc",
+};
 
 function clampZoom(zoom: number) {
   return Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
@@ -57,6 +65,24 @@ function pointerPoint(event: PointerEvent<HTMLDivElement>) {
     x: Number.isFinite(event.clientX) ? event.clientX : 0,
     y: Number.isFinite(event.clientY) ? event.clientY : 0,
   };
+}
+
+function cellFromEventTarget(project: BeadProject, target: EventTarget | null) {
+  if (!(target instanceof Element)) {
+    return null;
+  }
+  const cellElement = target.closest("[data-cell-row][data-cell-column]");
+  if (!cellElement) {
+    return null;
+  }
+  const row = Number(cellElement.getAttribute("data-cell-row"));
+  const column = Number(cellElement.getAttribute("data-cell-column"));
+  if (!Number.isInteger(row) || !Number.isInteger(column)) {
+    return null;
+  }
+  return (
+    project.cells.find((cell) => cell.row === row && cell.column === column) ?? null
+  );
 }
 
 function measuredContentSize(
@@ -164,6 +190,7 @@ function sideTitle(side: PreviewSide) {
 }
 
 export function ComparisonPreview({
+  colorStatSort = DEFAULT_COLOR_STAT_SORT,
   focusRequest = null,
   fullscreen,
   paletteMappings = [],
@@ -177,11 +204,6 @@ export function ComparisonPreview({
   const [showReviewOverlay, setShowReviewOverlay] = useState(true);
   const [showTargetReviewOverlay, setShowTargetReviewOverlay] = useState(true);
   const [showColorStats, setShowColorStats] = useState(true);
-  const [showTargetSettings, setShowTargetSettings] = useState(false);
-  const [colorStatSort, setColorStatSort] = useState<ColorStatSort>({
-    sortBy: "code",
-    sortDirection: "asc",
-  });
   const [focusedCell, setFocusedCell] = useState<Cell | null>(null);
   const [sourceImageSize, setSourceImageSize] = useState<SourceImageSize | null>(null);
   const [contentSizes, setContentSizes] = useState<Record<PreviewSide, PreviewContentSize | null>>({
@@ -205,8 +227,6 @@ export function ComparisonPreview({
     setShowReviewOverlay(true);
     setShowTargetReviewOverlay(true);
     setShowColorStats(true);
-    setShowTargetSettings(false);
-    setColorStatSort({ sortBy: "code", sortDirection: "asc" });
     setSourceImageSize(null);
     setContentSizes({ source: null, target: null });
     dragStart.current = null;
@@ -301,6 +321,8 @@ export function ComparisonPreview({
     }
     const point = pointerPoint(event);
     dragStart.current = {
+      cell: cellFromEventTarget(project, event.target),
+      moved: false,
       pointerId: event.pointerId,
       side,
       x: point.x,
@@ -318,12 +340,17 @@ export function ComparisonPreview({
       return;
     }
     const point = pointerPoint(event);
+    const deltaX = point.x - start.x;
+    const deltaY = point.y - start.y;
+    if (Math.hypot(deltaX, deltaY) > CLICK_MOVE_TOLERANCE) {
+      start.moved = true;
+    }
     setViews((current) => ({
       ...current,
       [side]: {
         ...current[side],
-        panX: start.panX + point.x - start.x,
-        panY: start.panY + point.y - start.y,
+        panX: start.panX + deltaX,
+        panY: start.panY + deltaY,
       },
     }));
   }
@@ -333,6 +360,9 @@ export function ComparisonPreview({
       return;
     }
     event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if (!dragStart.current.moved && dragStart.current.cell) {
+      onSelectCell(dragStart.current.cell);
+    }
     dragStart.current = null;
     setDraggingSide(null);
   }
@@ -389,85 +419,6 @@ export function ComparisonPreview({
             >
               {showColorStats ? "隐藏色块统计" : "显示色块统计"}
             </button>
-            <div className="preview-settings-anchor">
-              <button
-                type="button"
-                aria-expanded={showTargetSettings}
-                aria-label={`${title} 设置`}
-                onClick={() => setShowTargetSettings((current) => !current)}
-              >
-                设置
-              </button>
-              {showTargetSettings ? (
-                <div
-                  aria-label="COCO 重绘预览设置"
-                  className="preview-settings-popover"
-                  role="dialog"
-                >
-                  <div className="preview-settings-group">
-                    <div className="preview-settings-label">色块统计排序</div>
-                    <div className="segmented-control" aria-label="排序依据">
-                      <button
-                        className={colorStatSort.sortBy === "code" ? "is-active" : ""}
-                        type="button"
-                        aria-label="按色号排序"
-                        aria-pressed={colorStatSort.sortBy === "code"}
-                        onClick={() =>
-                          setColorStatSort((current) => ({ ...current, sortBy: "code" }))
-                        }
-                      >
-                        色号
-                      </button>
-                      <button
-                        className={colorStatSort.sortBy === "count" ? "is-active" : ""}
-                        type="button"
-                        aria-label="按数量排序"
-                        aria-pressed={colorStatSort.sortBy === "count"}
-                        onClick={() =>
-                          setColorStatSort((current) => ({ ...current, sortBy: "count" }))
-                        }
-                      >
-                        数量
-                      </button>
-                    </div>
-                    <div className="segmented-control" aria-label="排序顺序">
-                      <button
-                        className={
-                          colorStatSort.sortDirection === "asc" ? "is-active" : ""
-                        }
-                        type="button"
-                        aria-label="正序"
-                        aria-pressed={colorStatSort.sortDirection === "asc"}
-                        onClick={() =>
-                          setColorStatSort((current) => ({
-                            ...current,
-                            sortDirection: "asc",
-                          }))
-                        }
-                      >
-                        正序
-                      </button>
-                      <button
-                        className={
-                          colorStatSort.sortDirection === "desc" ? "is-active" : ""
-                        }
-                        type="button"
-                        aria-label="倒序"
-                        aria-pressed={colorStatSort.sortDirection === "desc"}
-                        onClick={() =>
-                          setColorStatSort((current) => ({
-                            ...current,
-                            sortDirection: "desc",
-                          }))
-                        }
-                      >
-                        倒序
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : null}
-            </div>
           </>
         )}
       </div>
