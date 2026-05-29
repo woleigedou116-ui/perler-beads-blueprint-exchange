@@ -9,7 +9,22 @@ from bead_converter.domain.models import OcrCandidate
 
 def normalize_code(raw_text: str, known_codes: set[str]) -> str | None:
     candidate = raw_text.replace(" ", "").upper()
-    return candidate if candidate in known_codes else None
+    if candidate in known_codes:
+        return candidate
+    alternatives = _common_ocr_alternatives(candidate)
+    matches = sorted(alternative for alternative in alternatives if alternative in known_codes)
+    return matches[0] if len(matches) == 1 else None
+
+
+def _common_ocr_alternatives(candidate: str) -> set[str]:
+    alternatives: set[str] = set()
+    if not candidate:
+        return alternatives
+    if candidate[0] == "8":
+        alternatives.add(f"B{candidate[1:]}")
+    if len(candidate) > 1 and candidate[-1] == "8":
+        alternatives.add(f"{candidate[:-1]}0")
+    return alternatives
 
 
 class OcrProvider(Protocol):

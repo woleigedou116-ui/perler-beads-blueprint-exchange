@@ -152,6 +152,21 @@ it("toggles source review overlays without hiding the uploaded image", async () 
   expect(screen.getByRole("button", { name: "显示叠加" })).toBeInTheDocument();
 });
 
+it("toggles target review overlays so correction frames do not cover colors", async () => {
+  const { container } = renderPreview();
+
+  expect(container.querySelectorAll(".grid-preview .review-cell")).toHaveLength(1);
+
+  await userEvent.click(
+    screen.getByRole("button", { name: "COCO 重绘预览 隐藏叠加" }),
+  );
+
+  expect(container.querySelectorAll(".grid-preview .review-cell")).toHaveLength(0);
+  expect(
+    screen.getByRole("button", { name: "COCO 重绘预览 显示叠加" }),
+  ).toBeInTheDocument();
+});
+
 it("focuses a requested cell in both previews", () => {
   const { container, rerender } = renderPreview();
   const sourceImage = screen.getByAltText("上传原图");

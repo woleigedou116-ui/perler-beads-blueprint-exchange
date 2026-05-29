@@ -468,6 +468,22 @@ p {
   margin: 0 0.35rem 0.35rem 0;
 }
 
+.full-candidate-list {
+  border-top: 1px solid #f0dfc7;
+  display: grid;
+  gap: 0.35rem;
+  grid-template-columns: repeat(auto-fill, minmax(3.8rem, 1fr));
+  margin-top: 0.55rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  padding-top: 0.55rem;
+}
+
+.full-candidate-list button {
+  margin: 0;
+  padding: 0.36rem 0.3rem;
+}
+
 .complete-note {
   color: #267269;
   padding: 0.5rem 0;

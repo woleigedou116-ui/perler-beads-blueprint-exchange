@@ -175,6 +175,7 @@ export function ComparisonPreview({
   const [views, setViews] = useState<Record<PreviewSide, PreviewTransform>>(initialViews);
   const [draggingSide, setDraggingSide] = useState<PreviewSide | null>(null);
   const [showReviewOverlay, setShowReviewOverlay] = useState(true);
+  const [showTargetReviewOverlay, setShowTargetReviewOverlay] = useState(true);
   const [showColorStats, setShowColorStats] = useState(true);
   const [focusedCell, setFocusedCell] = useState<Cell | null>(null);
   const [sourceImageSize, setSourceImageSize] = useState<SourceImageSize | null>(null);
@@ -196,6 +197,8 @@ export function ComparisonPreview({
     setViews(initialViews());
     setDraggingSide(null);
     setFocusedCell(null);
+    setShowReviewOverlay(true);
+    setShowTargetReviewOverlay(true);
     setShowColorStats(true);
     setSourceImageSize(null);
     setContentSizes({ source: null, target: null });
@@ -359,13 +362,26 @@ export function ComparisonPreview({
             {showReviewOverlay ? "隐藏叠加" : "显示叠加"}
           </button>
         ) : (
-          <button
-            type="button"
-            aria-label={showColorStats ? "隐藏色块统计" : "显示色块统计"}
-            onClick={() => setShowColorStats((current) => !current)}
-          >
-            {showColorStats ? "隐藏色块统计" : "显示色块统计"}
-          </button>
+          <>
+            <button
+              type="button"
+              aria-label={
+                showTargetReviewOverlay
+                  ? `${title} 隐藏叠加`
+                  : `${title} 显示叠加`
+              }
+              onClick={() => setShowTargetReviewOverlay((current) => !current)}
+            >
+              {showTargetReviewOverlay ? "隐藏叠加" : "显示叠加"}
+            </button>
+            <button
+              type="button"
+              aria-label={showColorStats ? "隐藏色块统计" : "显示色块统计"}
+              onClick={() => setShowColorStats((current) => !current)}
+            >
+              {showColorStats ? "隐藏色块统计" : "显示色块统计"}
+            </button>
+          </>
         )}
       </div>
     );
@@ -434,6 +450,7 @@ export function ComparisonPreview({
           }
           project={project}
           showColorStats={showColorStats}
+          showReviewOverlay={showTargetReviewOverlay}
           target
           title="COCO 重绘预览"
           viewportRef={(node) => {

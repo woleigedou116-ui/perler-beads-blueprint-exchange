@@ -12,6 +12,27 @@ afterEach(() => {
 
 const paletteMappings: PaletteMapping[] = [
   {
+    source_code: "H2",
+    source_rgb: { r: 252, g: 252, b: 248 },
+    target_code: "A01",
+    target_rgb: { r: 252, g: 252, b: 248 },
+    requires_review: false,
+  },
+  {
+    source_code: "H4",
+    source_rgb: { r: 224, g: 224, b: 224 },
+    target_code: "A02",
+    target_rgb: { r: 224, g: 224, b: 224 },
+    requires_review: false,
+  },
+  {
+    source_code: "H3",
+    source_rgb: { r: 180, g: 180, b: 180 },
+    target_code: "A10",
+    target_rgb: { r: 180, g: 180, b: 180 },
+    requires_review: false,
+  },
+  {
     source_code: "F14",
     source_rgb: { r: 247, g: 152, b: 158 },
     target_code: "K07",
@@ -64,16 +85,34 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
   const candidateButtons = within(candidates).getAllByRole("button");
 
   expect(candidateButtons.map((button) => button.textContent)).toEqual([
-    "改为 B09",
-    "改为 K07",
-    "改为 K26",
+    "B09",
+    "A10",
+    "K07",
+    "A02",
+    "K26",
+    "更多",
   ]);
 
-  await userEvent.click(screen.getByRole("button", { name: "改为 B09" }));
+  await userEvent.click(screen.getByRole("button", { name: "B09" }));
   expect(onCorrectCell).toHaveBeenCalledWith(
     projectWithOneReviewCell.cells[0],
     "H7",
     "B09",
+  );
+
+  await userEvent.click(screen.getByRole("button", { name: "更多" }));
+  const fullPalette = screen.getByLabelText("全部目标色号候选");
+  expect(
+    within(fullPalette)
+      .getAllByRole("button")
+      .map((button) => button.textContent),
+  ).toEqual(["A01", "A02", "A10", "B09", "K07", "K26"]);
+
+  await userEvent.click(within(fullPalette).getByRole("button", { name: "A02" }));
+  expect(onCorrectCell).toHaveBeenLastCalledWith(
+    projectWithOneReviewCell.cells[0],
+    "H4",
+    "A02",
   );
 });
 
@@ -127,7 +166,7 @@ it("groups repeated review cells by mapping so large patterns stay reviewable", 
   expect(screen.getByText("待确认 3 格 / 2 组")).toBeInTheDocument();
   expect(screen.getAllByText("MARD H5")).toHaveLength(1);
   expect(screen.getByText("涉及 2 格")).toBeInTheDocument();
-  expect(screen.getByText("mapping-unverified, ocr-color-conflict")).toBeInTheDocument();
+  expect(screen.getByText("对照表未核验、OCR 色号与取色不一致")).toBeInTheDocument();
 
   const groupedCard = screen.getByLabelText("MARD H5 到 COCO B06，涉及 2 格");
   await userEvent.click(within(groupedCard).getByRole("button", { name: "定位" }));

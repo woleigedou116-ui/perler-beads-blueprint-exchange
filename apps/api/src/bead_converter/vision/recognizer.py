@@ -23,6 +23,7 @@ from bead_converter.vision.ocr import OcrProvider
 
 COLOR_CLUSTER_DISTANCE = 6.0
 FUZZY_OCR_MAX_DISTANCE = 1
+OCR_COLOR_CONFLICT_REVIEW_CONFIDENCE = 0.9
 
 
 def _nearest_source_mapping(
@@ -208,6 +209,7 @@ def recognize_pattern(
                 conversion.target_code is not None
                 and
                 conversion.source_rgb is not None
+                and text_choice.confidence < OCR_COLOR_CONFLICT_REVIEW_CONFIDENCE
                 and delta_e(
                     (sampled.r, sampled.g, sampled.b),
                     conversion.source_rgb,

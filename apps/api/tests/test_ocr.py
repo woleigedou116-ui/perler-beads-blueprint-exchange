@@ -11,6 +11,14 @@ def test_normalize_code_accepts_only_known_mard_pattern() -> None:
     assert normalize_code("D S", known) is None
 
 
+def test_normalize_code_recovers_common_cell_ocr_confusions() -> None:
+    known = {"B7", "H7", "E20", "E18"}
+
+    assert normalize_code("87", known) == "B7"
+    assert normalize_code("E28", known) == "E20"
+    assert normalize_code("E18", known) == "E18"
+
+
 def test_provider_preserves_raw_text_and_normalizes_known_candidate() -> None:
     def fake_engine(_image):
         return ([[[], " h7 ", 0.93], [[], "watermark", 0.88]], 0.01)

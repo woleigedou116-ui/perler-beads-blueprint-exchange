@@ -5,8 +5,9 @@ from fixtures.generate_patterns import make_grid_with_cell_fill
 
 
 class FirstCellOcr:
-    def __init__(self, code: str | None) -> None:
+    def __init__(self, code: str | None, confidence: float = 0.97) -> None:
         self.code = code
+        self.confidence = confidence
         self.received_count = 0
 
     def recognize_cells(self, cell_images, known_codes):
@@ -17,7 +18,7 @@ class FirstCellOcr:
                 OcrCandidate(
                     text=self.code,
                     normalized_code=self.code,
-                    confidence=0.97,
+                    confidence=self.confidence,
                 )
             ]
         return results
@@ -63,12 +64,29 @@ def test_ocr_color_conflict_requires_review() -> None:
         image,
         "冲突测试",
         PaletteRepository.load_default(),
-        FirstCellOcr("H7"),
+        FirstCellOcr("H7", confidence=0.72),
     )
 
     cell = project.cells[0]
     assert cell.status == CellStatus.review_required
     assert "ocr-color-conflict" in cell.issue_reasons
+
+
+def test_high_confidence_ocr_is_not_blocked_by_color_conflict() -> None:
+    image = make_grid_with_cell_fill((95, 195, 174))
+
+    project = recognize_pattern(
+        image,
+        "高置信 OCR 优先",
+        PaletteRepository.load_default(),
+        FirstCellOcr("B18", confidence=0.98),
+    )
+
+    cell = project.cells[0]
+    assert cell.detected_source_code == "B18"
+    assert cell.target_code == "F07"
+    assert cell.status == CellStatus.confirmed
+    assert "ocr-color-conflict" not in cell.issue_reasons
 
 
 def test_unverified_palette_mapping_requires_review() -> None:

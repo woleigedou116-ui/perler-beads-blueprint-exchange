@@ -241,8 +241,12 @@ export function GridPreview({
                   <g
                     key={`${cell.row}-${cell.column}`}
                     className={[
-                      cell.status === "review-required" ? "review-cell" : "",
-                      focusedCell?.row === cell.row && focusedCell.column === cell.column
+                      showReviewOverlay && cell.status === "review-required"
+                        ? "review-cell"
+                        : "",
+                      showReviewOverlay &&
+                      focusedCell?.row === cell.row &&
+                      focusedCell.column === cell.column
                         ? "focused-cell"
                         : "",
                     ].filter(Boolean).join(" ")}

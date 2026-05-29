@@ -146,7 +146,7 @@ describe("WorkbenchPage", () => {
     ).toMatch(/^translate\(.+\) scale\(1\)$/);
 
     await userEvent.click(screen.getByRole("button", { name: "修改" }));
-    await userEvent.click(screen.getByRole("button", { name: "改为 B09" }));
+    await userEvent.click(screen.getByRole("button", { name: "B09" }));
 
     expect(correctCell).toHaveBeenCalledWith("pattern-1", 0, 0, "H7", "B09");
   });

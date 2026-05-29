@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { BeadProject, Cell, PaletteMapping, RGB } from "../../domain/types";
 
@@ -34,6 +34,16 @@ export function ReviewPanel({
   const [sourceCode, setSourceCode] = useState("");
   const [targetCode, setTargetCode] = useState("");
   const [candidateGroupKey, setCandidateGroupKey] = useState<string | null>(null);
+  const [expandedPaletteGroupKey, setExpandedPaletteGroupKey] = useState<string | null>(null);
+  const sortedTargetMappings = useMemo(
+    () =>
+      [...paletteMappings]
+        .filter((mapping) => mapping.target_code)
+        .sort((left, right) =>
+          compareCodes(left.target_code ?? "", right.target_code ?? ""),
+        ),
+    [paletteMappings],
+  );
 
   useEffect(() => {
     setSourceCode(
@@ -64,8 +74,10 @@ export function ReviewPanel({
       .slice(0, 5);
   }
 
-  function sourceFor(cell: Cell) {
-    return cell.confirmed_source_code ?? cell.detected_source_code ?? "";
+  function handleCandidateClick(cell: Cell, candidate: PaletteMapping) {
+    if (candidate.target_code) {
+      onCorrectCell(cell, candidate.source_code, candidate.target_code);
+    }
   }
 
   function handleSelect(cell: Cell) {
@@ -99,7 +111,7 @@ export function ReviewPanel({
                 </div>
                 <span>涉及 {group.cells.length} 格</span>
               </div>
-              <small>{group.issueReasons.join(", ")}</small>
+              <small>{group.issueReasons.map(issueReasonLabel).join("、")}</small>
               <div className="review-actions">
                 <button
                   type="button"
@@ -121,6 +133,7 @@ export function ReviewPanel({
                     setCandidateGroupKey((current) =>
                       current === group.key ? null : group.key,
                     );
+                    setExpandedPaletteGroupKey(null);
                   }}
                 >
                   修改
@@ -133,19 +146,35 @@ export function ReviewPanel({
                     <button
                       key={`${candidate.source_code}-${candidate.target_code}`}
                       type="button"
-                      onClick={() => {
-                        if (candidate.target_code) {
-                          onCorrectCell(
-                            representative,
-                            sourceFor(representative),
-                            candidate.target_code,
-                          );
-                        }
-                      }}
+                      onClick={() => handleCandidateClick(representative, candidate)}
                     >
-                      改为 {candidate.target_code}
+                      {candidate.target_code}
                     </button>
                   ))}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedPaletteGroupKey((current) =>
+                        current === group.key ? null : group.key,
+                      )
+                    }
+                  >
+                    更多
+                  </button>
+                  {expandedPaletteGroupKey === group.key ? (
+                    <div className="full-candidate-list" aria-label="全部目标色号候选">
+                      {sortedTargetMappings.map((mapping) => (
+                        <button
+                          key={`${mapping.source_code}-${mapping.target_code}`}
+                          type="button"
+                          title={`MARD ${mapping.source_code} -> COCO ${mapping.target_code}`}
+                          onClick={() => handleCandidateClick(representative, mapping)}
+                        >
+                          {mapping.target_code}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
             </article>
@@ -185,6 +214,28 @@ function sourceForGroup(cell: Cell) {
 
 function targetForGroup(cell: Cell) {
   return cell.target_code ?? "?";
+}
+
+const ISSUE_REASON_LABELS: Record<string, string> = {
+  "mapping-missing": "缺少对应色号",
+  "mapping-unverified": "对照表未核验",
+  "ocr-color-conflict": "OCR 色号与取色不一致",
+  "color-only-suggestion": "仅根据取色推荐",
+  "unreadable-cell": "未识别到有效色号",
+  "ocr-fuzzy-color-suggestion": "OCR 近似识别并结合取色推荐",
+  "user-confirmed-mapping": "人工确认",
+  "user-corrected": "人工修正",
+};
+
+function issueReasonLabel(reason: string) {
+  return ISSUE_REASON_LABELS[reason] ?? reason;
+}
+
+function compareCodes(left: string, right: string) {
+  return left.localeCompare(right, "zh-CN", {
+    numeric: true,
+    sensitivity: "base",
+  });
 }
 
 function groupReviewCells(cells: Cell[]): ReviewGroup[] {
