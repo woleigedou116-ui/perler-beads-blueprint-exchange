@@ -56,6 +56,11 @@ Last updated: 2026-05-29
   target swatches and the COCO redraw use the real target-standard colors.
   Clean PNG exports use the same 52 px cell size and centered 16 px labels as
   the on-screen redraw preview.
+- The palette reference now loads the full local MARD-to-COCO table: 287
+  mappings are available, with the original 10 manually checked color mappings
+  preserved as verified and the screenshot-extracted additions marked for
+  review. Image and project exports now use the browser save dialog when
+  available, with the old download behavior as a fallback.
 - Preview sizing follow-up fixes make the source-image overlay share the
   uploaded image's intrinsic size, give regenerated SVG previews explicit
   dimensions, and center located cells against the same visually constrained
@@ -64,8 +69,8 @@ Last updated: 2026-05-29
   additional user-provided images now also complete import, all exports, and
   `.beadproject` reopen checks. Details are recorded in
   `docs/acceptance/mvp-sample-checklist.md`.
-- Latest full verification on 2026-05-29: backend tests pass with 41 tests;
-  frontend tests pass with 32 tests; TypeScript/Vite production build passes.
+- Latest full verification on 2026-05-29: backend tests pass with 43 tests;
+  frontend tests pass with 34 tests; TypeScript/Vite production build passes.
 
 ## Remaining Checkpoints
 

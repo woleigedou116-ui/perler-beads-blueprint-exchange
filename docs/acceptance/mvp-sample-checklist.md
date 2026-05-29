@@ -12,8 +12,8 @@ ignored local materials and are not committed as application assets.
 
 ## Verification
 
-- Backend: `.\.venv\Scripts\python -m pytest` passed with 41 tests.
-- Frontend: Vitest passed with 32 tests; TypeScript checking and Vite build passed.
+- Backend: `.\.venv\Scripts\python -m pytest` passed with 43 tests.
+- Frontend: Vitest passed with 34 tests; TypeScript checking and Vite build passed.
 - Hosted UI: the built app was opened at `http://127.0.0.1:8765`; the upload,
   local-processing notice, review area, `.beadproject` open input, and preview
   zoom/full-screen controls are covered by smoke and component checks.
@@ -69,6 +69,10 @@ review cell was not necessary for this acceptance pass.
   same color-count statistics.
 - Color statistics normalize palette RGB arrays before rendering, and the clean
   PNG export now matches the COCO redraw's 52 px cells and centered 16 px labels.
+- The palette reference includes 287 local MARD-to-COCO mappings. The original
+  10 manually checked color mappings remain verified; screenshot-extracted
+  additions are available for lookup and review. Exports use the browser save
+  dialog when supported and fall back to normal downloads otherwise.
 - The correction queue is height-limited with its own scroll area; each review
   card can locate the cell, confirm the suggested mapping, or choose from
   nearest target-color candidates.

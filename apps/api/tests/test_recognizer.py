@@ -54,6 +54,23 @@ def test_ocr_color_conflict_requires_review() -> None:
     assert "ocr-color-conflict" in cell.issue_reasons
 
 
+def test_unverified_palette_mapping_requires_review() -> None:
+    image = make_grid_with_cell_fill((252, 160, 117))
+
+    project = recognize_pattern(
+        image,
+        "完整色号表待核对映射",
+        PaletteRepository.load_default(),
+        FirstCellOcr("A12"),
+    )
+
+    cell = project.cells[0]
+    assert cell.detected_source_code == "A12"
+    assert cell.target_code == "K09"
+    assert cell.status == CellStatus.review_required
+    assert "mapping-unverified" in cell.issue_reasons
+
+
 def test_color_only_match_is_a_reviewable_suggestion() -> None:
     image = make_grid_with_cell_fill((14, 14, 14))
 

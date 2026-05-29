@@ -9,6 +9,15 @@ def test_verified_reference_mappings_are_available() -> None:
     assert repo.convert("F14", "MARD", "COCO").target_code == "K07"
 
 
+def test_complete_reference_table_is_available_for_palette_lookup() -> None:
+    repo = PaletteRepository.load_default()
+
+    assert len(repo.all_mappings()) >= 280
+    assert repo.convert("A1", "MARD", "COCO").target_code == "E02"
+    assert repo.convert("R28", "MARD", "COCO").target_code == "S15"
+    assert repo.convert("Y5", "MARD", "COCO").target_code == "N05"
+
+
 def test_mapping_includes_display_colors_for_recognition_and_redraw() -> None:
     result = PaletteRepository.load_default().convert("H7", "MARD", "COCO")
 

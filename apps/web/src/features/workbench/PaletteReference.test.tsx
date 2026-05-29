@@ -34,10 +34,20 @@ const paletteMappings: PaletteMapping[] = [
   },
 ];
 
-it("opens a floating palette and switches between used and all colors", async () => {
+it("shows only current-project colors first, then the complete mapping list", async () => {
+  const completePalette = [
+    ...paletteMappings,
+    ...Array.from({ length: 120 }, (_, index) => ({
+      source_code: `A${index + 1}`,
+      source_rgb: { r: 240, g: 240, b: 240 },
+      target_code: `E${String(index + 1).padStart(2, "0")}`,
+      target_rgb: { r: 240, g: 220, b: 120 },
+      requires_review: true,
+    })),
+  ];
   render(
     <PaletteReference
-      paletteMappings={paletteMappings}
+      paletteMappings={completePalette}
       project={projectWithOneReviewCell}
     />,
   );
@@ -52,4 +62,5 @@ it("opens a floating palette and switches between used and all colors", async ()
   await userEvent.click(screen.getByRole("button", { name: "全部色号" }));
 
   expect(screen.getByText("E20 -> K26")).toBeInTheDocument();
+  expect(screen.getByText("A120 -> E120")).toBeInTheDocument();
 });

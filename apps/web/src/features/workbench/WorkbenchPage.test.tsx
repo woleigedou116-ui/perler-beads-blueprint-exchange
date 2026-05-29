@@ -10,6 +10,7 @@ import {
   importImage,
   openProject,
 } from "../../api/client";
+import { saveExport } from "../../api/exports";
 import { WorkbenchPage } from "./WorkbenchPage";
 import {
   projectAfterMappingConfirmation,
@@ -24,6 +25,9 @@ vi.mock("../../api/client", () => ({
   importImage: vi.fn(),
   openProject: vi.fn(),
   saveAttribution: vi.fn(),
+}));
+vi.mock("../../api/exports", () => ({
+  saveExport: vi.fn(),
 }));
 
 const patternFile = new File(["pattern"], "pattern.png", { type: "image/png" });
@@ -188,13 +192,13 @@ describe("WorkbenchPage", () => {
 
   it("adds the color-statistics export option to image downloads", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
-    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
     await importPattern();
 
     await userEvent.click(await screen.findByRole("button", { name: "导出图纸" }));
     expect(exportUrl).toHaveBeenCalledWith("pattern-1", "clean.png", {
       includeColorStats: true,
     });
+    expect(saveExport).toHaveBeenCalledWith("/download", "clean.png");
 
     await userEvent.click(screen.getByLabelText("导出时附带色块统计"));
     await userEvent.click(screen.getByRole("button", { name: "导出检查图" }));
@@ -202,6 +206,7 @@ describe("WorkbenchPage", () => {
     expect(exportUrl).toHaveBeenLastCalledWith("pattern-1", "overlay.png", {
       includeColorStats: false,
     });
+    expect(saveExport).toHaveBeenLastCalledWith("/download", "overlay.png");
   });
 
   it("reopens a saved project file for further review", async () => {

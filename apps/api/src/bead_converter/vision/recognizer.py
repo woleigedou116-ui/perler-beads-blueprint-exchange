@@ -146,7 +146,12 @@ def recognize_pattern(
             if conversion.target_code is None:
                 issues.append("mapping-missing")
                 status = CellStatus.review_required
-            elif (
+            elif conversion.requires_review:
+                issues.append("mapping-unverified")
+                status = CellStatus.review_required
+            if (
+                conversion.target_code is not None
+                and
                 conversion.source_rgb is not None
                 and delta_e(
                     (sampled.r, sampled.g, sampled.b),
@@ -174,8 +179,10 @@ def recognize_pattern(
                 decisions[source_code] = MappingDecision(
                     source_code=source_code,
                     target_code=conversion.target_code,
-                    origin="verified",
-                    confidence=1.0,
+                    origin="verified"
+                    if not conversion.requires_review
+                    else "unverified-reference",
+                    confidence=1.0 if not conversion.requires_review else 0.8,
                 )
             continue
 

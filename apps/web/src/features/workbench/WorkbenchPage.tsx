@@ -9,6 +9,7 @@ import {
   openProject,
   saveAttribution,
 } from "../../api/client";
+import { saveExport } from "../../api/exports";
 import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
 import { UploadPanel } from "../upload/UploadPanel";
 import { ComparisonPreview } from "./ComparisonPreview";
@@ -177,7 +178,7 @@ export function WorkbenchPage() {
     }
   }
 
-  function handleExport(kind: ExportKind, options: ExportOptions = {}) {
+  async function handleExport(kind: ExportKind, options: ExportOptions = {}) {
     if (!project) {
       return;
     }
@@ -189,10 +190,11 @@ export function WorkbenchPage() {
     ) {
       return;
     }
-    const link = document.createElement("a");
-    link.href = exportUrl(project.id, kind, options);
-    link.download = kind;
-    link.click();
+    try {
+      await saveExport(exportUrl(project.id, kind, options), kind);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "导出失败，请稍后重试");
+    }
   }
 
   return (
