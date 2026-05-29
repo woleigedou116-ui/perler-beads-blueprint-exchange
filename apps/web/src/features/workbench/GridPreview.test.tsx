@@ -116,6 +116,33 @@ it("renders target color block statistics when requested", () => {
   });
 });
 
+it("uses target palette colors in the regenerated preview when available", () => {
+  const recoloredProject = {
+    ...projectWithOneReviewCell,
+    cells: projectWithOneReviewCell.cells.map((cell) => ({
+      ...cell,
+      sampled_color: { r: 200, g: 200, b: 200 },
+    })),
+  };
+  const { container } = render(
+    <GridPreview
+      colorStats={[
+        { code: "B09", count: 1, rgb: { r: 14, g: 14, b: 14 } },
+        { code: "K07", count: 1, rgb: { r: 247, g: 150, b: 157 } },
+      ]}
+      project={recoloredProject}
+      showColorStats
+      target
+      title="COCO 重绘预览"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const [darkCell, lightCell] = Array.from(container.querySelectorAll("rect"));
+  expect(darkCell).toHaveAttribute("fill", "rgb(14 14 14)");
+  expect(lightCell).toHaveAttribute("fill", "rgb(247 150 157)");
+});
+
 it("gives regenerated SVG previews explicit dimensions for layout measurement", () => {
   const { container } = render(
     <GridPreview

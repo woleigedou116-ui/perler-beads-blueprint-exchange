@@ -1,8 +1,47 @@
-import type { BeadProject, PaletteMapping } from "../domain/types";
+import type { BeadProject, PaletteMapping, RGB } from "../domain/types";
 
 export interface PaletteResponse {
   version: string;
   mappings: PaletteMapping[];
+}
+
+type RawRGB = RGB | [number, number, number] | null;
+
+interface RawPaletteMapping {
+  source_code: string;
+  source_rgb: RawRGB;
+  target_code: string | null;
+  target_rgb: RawRGB;
+  requires_review: boolean;
+}
+
+interface RawPaletteResponse {
+  version: string;
+  mappings: RawPaletteMapping[];
+}
+
+function normalizeRgb(rgb: RawRGB): RGB | null {
+  if (!rgb) {
+    return null;
+  }
+  if (Array.isArray(rgb)) {
+    const [r, g, b] = rgb;
+    return { r, g, b };
+  }
+  return rgb;
+}
+
+function normalizePaletteResponse(response: RawPaletteResponse): PaletteResponse {
+  return {
+    version: response.version,
+    mappings: response.mappings.map((mapping) => ({
+      source_code: mapping.source_code,
+      source_rgb: normalizeRgb(mapping.source_rgb),
+      target_code: mapping.target_code,
+      target_rgb: normalizeRgb(mapping.target_rgb),
+      requires_review: mapping.requires_review,
+    })),
+  };
 }
 
 async function projectResponse(response: Response): Promise<BeadProject> {
@@ -29,7 +68,7 @@ export async function getPalette(): Promise<PaletteResponse> {
   if (!response.ok) {
     throw new Error("色号表加载失败");
   }
-  return response.json() as Promise<PaletteResponse>;
+  return normalizePaletteResponse((await response.json()) as RawPaletteResponse);
 }
 
 export async function openProject(file: File): Promise<BeadProject> {

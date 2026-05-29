@@ -1,18 +1,38 @@
 from collections import Counter
+from functools import lru_cache
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from bead_converter.domain.models import BeadProject, Cell, CellStatus
 from bead_converter.palettes.repository import PaletteRepository
 
-CELL_SIZE = 44
+CELL_SIZE = 52
 PADDING = 24
 LEGEND_WIDTH = 190
 STAT_SWATCH = 22
 STAT_LINE_HEIGHT = 30
+LABEL_FONT_SIZE = 16
+LABEL_STROKE_WIDTH = 2
 REVIEW_COLOR = (226, 151, 32)
 DARK_TEXT = (25, 25, 25)
 LIGHT_TEXT = (255, 255, 255)
+
+
+@lru_cache
+def _cell_label_font() -> ImageFont.ImageFont:
+    for font_name in (
+        "DejaVuSans-Bold.ttf",
+        "arialbd.ttf",
+        "C:/Windows/Fonts/arialbd.ttf",
+    ):
+        try:
+            return ImageFont.truetype(font_name, LABEL_FONT_SIZE)
+        except OSError:
+            continue
+    try:
+        return ImageFont.load_default(size=LABEL_FONT_SIZE)
+    except TypeError:
+        return ImageFont.load_default()
 
 
 def _target_fill(cell: Cell, palette: PaletteRepository) -> tuple[int, int, int]:
@@ -43,16 +63,31 @@ def _label_colors(fill: tuple[int, int, int] | str) -> tuple[tuple[int, int, int
 
 def _draw_cell_label(
     draw: ImageDraw.ImageDraw,
-    position: tuple[int, int],
+    cell_box: tuple[int, int, int, int],
     text: str,
     fill: tuple[int, int, int] | str,
 ) -> None:
     text_fill, stroke_fill = _label_colors(fill)
+    font = _cell_label_font()
+    left, top, right, bottom = cell_box
+    text_box = draw.textbbox(
+        (0, 0),
+        text,
+        font=font,
+        stroke_width=LABEL_STROKE_WIDTH,
+    )
+    text_width = text_box[2] - text_box[0]
+    text_height = text_box[3] - text_box[1]
+    position = (
+        round(left + (right - left - text_width) / 2 - text_box[0]),
+        round(top + (bottom - top - text_height) / 2 - text_box[1]),
+    )
     draw.text(
         position,
         text,
+        font=font,
         fill=text_fill,
-        stroke_width=2,
+        stroke_width=LABEL_STROKE_WIDTH,
         stroke_fill=stroke_fill,
     )
 
@@ -164,7 +199,7 @@ def render_clean_pattern(
         fill = "white" if cell.status == CellStatus.empty else _target_fill(cell, palette)
         draw.rectangle((left, top, right, bottom), fill=fill, outline=(155, 155, 155))
         if cell.target_code:
-            _draw_cell_label(draw, (left + 8, top + 16), cell.target_code, fill)
+            _draw_cell_label(draw, (left, top, right, bottom), cell.target_code, fill)
 
     if include_color_stats:
         _draw_color_stats(

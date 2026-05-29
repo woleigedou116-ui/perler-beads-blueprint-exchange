@@ -52,6 +52,10 @@ Last updated: 2026-05-29
 - The COCO redraw now uses larger on-screen bead labels and can show or hide a
   target-color statistics strip. Clean and overlay PNG exports can include or
   omit the same color-count statistics.
+- Color statistics now normalize API palette RGB arrays before display, so
+  target swatches and the COCO redraw use the real target-standard colors.
+  Clean PNG exports use the same 52 px cell size and centered 16 px labels as
+  the on-screen redraw preview.
 - Preview sizing follow-up fixes make the source-image overlay share the
   uploaded image's intrinsic size, give regenerated SVG previews explicit
   dimensions, and center located cells against the same visually constrained
@@ -60,8 +64,8 @@ Last updated: 2026-05-29
   additional user-provided images now also complete import, all exports, and
   `.beadproject` reopen checks. Details are recorded in
   `docs/acceptance/mvp-sample-checklist.md`.
-- Latest full verification on 2026-05-29: backend tests pass with 40 tests;
-  frontend tests pass with 30 tests; TypeScript/Vite production build passes.
+- Latest full verification on 2026-05-29: backend tests pass with 41 tests;
+  frontend tests pass with 32 tests; TypeScript/Vite production build passes.
 
 ## Remaining Checkpoints
 

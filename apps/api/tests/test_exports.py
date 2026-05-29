@@ -13,6 +13,7 @@ from bead_converter.domain.models import (
 )
 from bead_converter.exports.csv_export import export_mapping_csv
 from bead_converter.exports.image_export import (
+    CELL_SIZE,
     PADDING,
     render_clean_pattern,
     render_overlay_pattern,
@@ -107,7 +108,45 @@ def test_clean_export_can_hide_color_statistics() -> None:
 
     assert with_stats.size[0] > without_stats.size[0]
     assert with_stats.size[1] > without_stats.size[1]
-    assert without_stats.size == (PADDING * 2 + 2 * 44, PADDING * 2 + 44)
+    assert without_stats.size == (
+        PADDING * 2 + 2 * CELL_SIZE,
+        PADDING * 2 + CELL_SIZE,
+    )
+
+
+def test_clean_export_matches_preview_cell_size_and_centers_labels() -> None:
+    project = confirmed_project()
+    clean = render_clean_pattern(
+        project,
+        PaletteRepository.load_default(),
+        include_color_stats=False,
+    )
+
+    assert CELL_SIZE == 52
+
+    def label_center(column: int, fill: tuple[int, int, int]) -> tuple[float, float]:
+        left = PADDING + column * CELL_SIZE
+        top = PADDING
+        pixels = [
+            (x, y)
+            for x in range(left + 2, left + CELL_SIZE - 2)
+            for y in range(top + 2, top + CELL_SIZE - 2)
+            if clean.getpixel((x, y)) != fill
+        ]
+        assert pixels
+        return (
+            (min(x for x, _ in pixels) + max(x for x, _ in pixels)) / 2,
+            (min(y for _, y in pixels) + max(y for _, y in pixels)) / 2,
+        )
+
+    first_label_center = label_center(0, (14, 14, 14))
+    second_label_center = label_center(1, (247, 150, 157))
+    expected_y = PADDING + CELL_SIZE / 2
+
+    assert abs(first_label_center[0] - (PADDING + CELL_SIZE / 2)) <= 3
+    assert abs(first_label_center[1] - expected_y) <= 3
+    assert abs(second_label_center[0] - (PADDING + CELL_SIZE + CELL_SIZE / 2)) <= 3
+    assert abs(second_label_center[1] - expected_y) <= 3
 
 
 def test_overlay_export_can_append_color_statistics() -> None:
@@ -133,13 +172,13 @@ def test_clean_export_uses_contrasting_stroked_labels() -> None:
 
     dark_cell_pixels = [
         clean.getpixel((x, y))
-        for x in range(PADDING, PADDING + 44)
-        for y in range(PADDING, PADDING + 44)
+        for x in range(PADDING, PADDING + CELL_SIZE)
+        for y in range(PADDING, PADDING + CELL_SIZE)
     ]
     light_cell_pixels = [
         clean.getpixel((x, y))
-        for x in range(PADDING + 44, PADDING + 88)
-        for y in range(PADDING, PADDING + 44)
+        for x in range(PADDING + CELL_SIZE, PADDING + 2 * CELL_SIZE)
+        for y in range(PADDING, PADDING + CELL_SIZE)
     ]
 
     assert any(max(pixel) >= 235 for pixel in dark_cell_pixels)

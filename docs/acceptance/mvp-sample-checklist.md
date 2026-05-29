@@ -12,8 +12,8 @@ ignored local materials and are not committed as application assets.
 
 ## Verification
 
-- Backend: `.\.venv\Scripts\python -m pytest` passed with 40 tests.
-- Frontend: Vitest passed with 30 tests; TypeScript checking and Vite build passed.
+- Backend: `.\.venv\Scripts\python -m pytest` passed with 41 tests.
+- Frontend: Vitest passed with 32 tests; TypeScript checking and Vite build passed.
 - Hosted UI: the built app was opened at `http://127.0.0.1:8765`; the upload,
   local-processing notice, review area, `.beadproject` open input, and preview
   zoom/full-screen controls are covered by smoke and component checks.
@@ -67,6 +67,8 @@ review cell was not necessary for this acceptance pass.
 - COCO redraw uses larger on-screen bead labels and can toggle a target-color
   statistics strip. Clean and overlay PNG downloads can include or omit the
   same color-count statistics.
+- Color statistics normalize palette RGB arrays before rendering, and the clean
+  PNG export now matches the COCO redraw's 52 px cells and centered 16 px labels.
 - The correction queue is height-limited with its own scroll area; each review
   card can locate the cell, confirm the suggested mapping, or choose from
   nearest target-color candidates.

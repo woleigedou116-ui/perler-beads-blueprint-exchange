@@ -94,6 +94,11 @@ export function GridPreview({
 }: GridPreviewProps) {
   const sourceImageRef = useRef<HTMLImageElement | null>(null);
   const [sourceSize, setSourceSize] = useState<SourceImageSize | null>(null);
+  const targetRgbByCode = new Map(
+    colorStats
+      .filter((stat) => stat.rgb)
+      .map((stat) => [stat.code, stat.rgb]),
+  );
 
   function setContentNode(node: HTMLDivElement | null) {
     if (typeof contentRef === "function") {
@@ -225,7 +230,10 @@ export function GridPreview({
               viewBox={`0 0 ${project.grid.columns * CELL_SIZE} ${project.grid.rows * CELL_SIZE}`}
             >
               {project.cells.map((cell) => {
-                const rgb = cell.sampled_color;
+                const rgb =
+                  target && cell.target_code
+                    ? targetRgbByCode.get(cell.target_code) ?? cell.sampled_color
+                    : cell.sampled_color;
                 const label = target
                   ? cell.target_code
                   : cell.confirmed_source_code ?? cell.detected_source_code;
