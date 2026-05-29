@@ -8,6 +8,24 @@ afterEach(() => {
   cleanup();
 });
 
+it("uses a compact header layout that keeps the title and controls aligned", () => {
+  const { container } = render(
+    <GridPreview
+      actions={<button type="button">隐藏色块统计</button>}
+      project={projectWithOneReviewCell}
+      target
+      title="COCO 重绘预览"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(container.querySelector(".preview-card-header")).toBeInTheDocument();
+  expect(screen.getByRole("heading", { name: "COCO 重绘预览" })).toHaveClass(
+    "preview-card-title",
+  );
+  expect(container.querySelector(".preview-standard-pill")).toHaveTextContent("COCO");
+});
+
 it("overlays review cells on the uploaded source image within a preview transform", () => {
   const { container } = render(
     <GridPreview

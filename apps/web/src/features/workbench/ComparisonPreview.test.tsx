@@ -325,6 +325,18 @@ it("keeps each preview zoom while centering the located review cell", async () =
   expect(transforms(container)[1]).toBe("translate(20px, -6px) scale(1.25)");
 });
 
+it("allows panning clipped previews even at base zoom", () => {
+  const { container } = renderPreview();
+  setPreviewSize(container, 1, { width: 400, height: 240 }, { width: 400, height: 475 });
+
+  const targetViewport = container.querySelectorAll(".preview-viewport")[1];
+  firePointer(targetViewport, "pointerdown", { pointerId: 9, clientX: 50, clientY: 50 });
+  firePointer(targetViewport, "pointermove", { pointerId: 9, clientX: 50, clientY: 10 });
+  firePointer(targetViewport, "pointerup", { pointerId: 9 });
+
+  expect(transforms(container)[1]).toBe("translate(0px, -40px) scale(1)");
+});
+
 it("selects a source cell from pointer release after zoom enables panning", async () => {
   const onSelectCell = vi.fn();
   const { container } = render(

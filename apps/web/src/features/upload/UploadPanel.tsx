@@ -39,7 +39,12 @@ export function UploadPanel({
           aria-label="上传图纸"
           accept=".jpg,.jpeg,.png,.webp"
           type="file"
-          onChange={(event) => onSelectFile(event.target.files?.[0] ?? null)}
+          onChange={(event) => {
+            const selected = event.target.files?.[0];
+            if (selected) {
+              onSelectFile(selected);
+            }
+          }}
         />
       </label>
       {previewUrl ? (

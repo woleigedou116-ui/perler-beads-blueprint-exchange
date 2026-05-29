@@ -146,10 +146,12 @@ export function GridPreview({
 
   return (
     <section className="preview-card">
-      <header>
-        <h3>{title}</h3>
+      <header className="preview-card-header">
+        <div className="preview-card-title-row">
+          <h3 className="preview-card-title">{title}</h3>
+          <span className="preview-standard-pill">{target ? "COCO" : "MARD"}</span>
+        </div>
         <div className="preview-card-actions">
-          <span>{target ? "COCO" : "MARD"}</span>
           {actions}
         </div>
       </header>

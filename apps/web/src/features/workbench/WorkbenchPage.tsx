@@ -169,7 +169,6 @@ export function WorkbenchPage() {
     if (!project) {
       return;
     }
-    const previousProject = project;
     const updated = await correctCell(
       project.id,
       cell.row,
@@ -177,7 +176,7 @@ export function WorkbenchPage() {
       sourceCode,
       targetCode,
     );
-    applyProjectAfterDecision(previousProject, updated, cell);
+    applyProjectAfterCorrection(updated, cell);
   }
 
   function applyProjectAfterDecision(
@@ -190,6 +189,15 @@ export function WorkbenchPage() {
     setSelectedCell(next.cell);
     if (next.shouldLocate && next.cell) {
       setFocusRequest({ cell: next.cell, nonce: Date.now() });
+    }
+  }
+
+  function applyProjectAfterCorrection(updatedProject: BeadProject, correctedCell: Cell) {
+    const updatedSameCell = findUpdatedCell(updatedProject, correctedCell);
+    setProject(updatedProject);
+    setSelectedCell(updatedSameCell);
+    if (updatedSameCell) {
+      setFocusRequest({ cell: updatedSameCell, nonce: Date.now() });
     }
   }
 

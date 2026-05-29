@@ -315,8 +315,23 @@ export function ComparisonPreview({
     changeZoom(side, event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
   }
 
+  function canPan(side: PreviewSide) {
+    if (views[side].zoom > MIN_ZOOM) {
+      return true;
+    }
+    const content = contentRefs.current[side];
+    const viewport = viewportRefs.current[side];
+    const fallbackSize = contentSizes[side] ?? { width: 0, height: 0 };
+    const contentSize = measuredContentSize(content, fallbackSize);
+    const viewportSize = measuredElementSize(viewport, contentSize);
+    return (
+      contentSize.width > viewportSize.width + 1 ||
+      contentSize.height > viewportSize.height + 1
+    );
+  }
+
   function handlePointerDown(side: PreviewSide, event: PointerEvent<HTMLDivElement>) {
-    if (views[side].zoom <= MIN_ZOOM) {
+    if (!canPan(side)) {
       return;
     }
     const point = pointerPoint(event);
@@ -428,7 +443,7 @@ export function ComparisonPreview({
   function viewportProps(side: PreviewSide) {
     return {
       dragging: draggingSide === side,
-      pannable: views[side].zoom > MIN_ZOOM,
+      pannable: canPan(side),
       transform: views[side],
       onViewportPointerCancel: (event: PointerEvent<HTMLDivElement>) =>
         handlePointerEnd(side, event),

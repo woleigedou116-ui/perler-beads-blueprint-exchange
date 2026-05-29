@@ -105,6 +105,23 @@ function projectAfterConfirmingGroup(sourceCode: string) {
   };
 }
 
+function projectAfterCorrectingCell(column: number, sourceCode: string, targetCode: string) {
+  return {
+    ...projectWithThreeReviewGroups,
+    cells: projectWithThreeReviewGroups.cells.map((cell) =>
+      cell.column === column
+        ? {
+            ...cell,
+            confirmed_source_code: sourceCode,
+            target_code: targetCode,
+            status: "confirmed" as const,
+            issue_reasons: ["user-corrected"],
+          }
+        : cell,
+    ),
+  };
+}
+
 describe("WorkbenchPage", () => {
   afterEach(() => {
     cleanup();
@@ -149,6 +166,26 @@ describe("WorkbenchPage", () => {
     await importPattern();
 
     expect(await screen.findByAltText("上传原图")).toHaveAttribute(
+      "src",
+      "blob:source-pattern",
+    );
+  });
+
+  it("keeps the current source preview when reopening the file picker is canceled", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:source-pattern"),
+      revokeObjectURL: vi.fn(),
+    });
+
+    await importPattern();
+    fireEvent.change(screen.getByLabelText("上传图纸"), { target: { files: [] } });
+
+    expect(await screen.findByAltText("上传原图")).toHaveAttribute(
+      "src",
+      "blob:source-pattern",
+    );
+    expect(screen.getByAltText("上传图纸预览")).toHaveAttribute(
       "src",
       "blob:source-pattern",
     );
@@ -223,6 +260,25 @@ describe("WorkbenchPage", () => {
 
     expect(await screen.findByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
     expect(document.querySelectorAll(".focused-cell")).toHaveLength(0);
+  });
+
+  it("keeps a manually corrected cell selected and refreshes the redraw preview", async () => {
+    vi.mocked(correctCell).mockResolvedValue(projectAfterCorrectingCell(1, "F14", "K07"));
+    await importPattern(projectWithThreeReviewGroups);
+
+    const middleGroup = await screen.findByLabelText("MARD B1 到 COCO T2，涉及 1 格");
+    await userEvent.click(middleGroup);
+    await userEvent.clear(screen.getByLabelText("来源色号"));
+    await userEvent.type(screen.getByLabelText("来源色号"), "F14");
+    await userEvent.clear(screen.getByLabelText("目标色号"));
+    await userEvent.type(screen.getByLabelText("目标色号"), "K07");
+    await userEvent.click(screen.getByRole("button", { name: "修正选中格" }));
+
+    expect(correctCell).toHaveBeenCalledWith("pattern-1", 0, 1, "F14", "K07");
+    expect(await screen.findByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "选中格 1, 3" })).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "COCO 重绘预览" })).toHaveTextContent("K07");
+    expect(screen.getByLabelText("目标色号")).toHaveValue("K07");
   });
 
   it("keeps manual source-cell selection editable and visually focused", async () => {

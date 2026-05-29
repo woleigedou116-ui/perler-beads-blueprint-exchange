@@ -245,6 +245,7 @@ p {
 }
 
 .preview-card-actions,
+.preview-card-title-row,
 .preview-controls {
   align-items: center;
   display: flex;
@@ -271,20 +272,35 @@ p {
   padding: 0.75rem;
 }
 
-.preview-card header {
-  align-items: center;
-  display: flex;
-  justify-content: space-between;
+.preview-card-header {
+  align-items: flex-start;
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: auto minmax(0, 1fr);
 }
 
-.preview-card h3 {
+.preview-card-title-row {
+  flex-wrap: nowrap;
+  min-height: 2rem;
+}
+
+.preview-card-title {
   font-size: 0.94rem;
+  line-height: 1.25;
+  margin-bottom: 0;
+  white-space: nowrap;
 }
 
-.preview-card span {
+.preview-card-actions {
+  justify-content: flex-end;
+  min-height: 2rem;
+}
+
+.preview-standard-pill {
   background: #f0f5f2;
   border-radius: 16px;
   color: #49706b;
+  flex: 0 0 auto;
   font-size: 0.75rem;
   padding: 0.28rem 0.5rem;
 }
