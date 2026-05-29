@@ -89,11 +89,17 @@ Last updated: 2026-05-29
 - `scripts/ocr_benchmark.py` now supports filename filtering, OCR-only/full
   preprocessing experiments, and an optional slower watermark OCR profile for
   future comparison work.
-- Current six-sample benchmark after the empty-cell tuning: the four non-
-  watermarked samples remain at `0` pending reviews; `有水印版.jpg` improves from
-  `1589` to `557` pending reviews, and
-  `洛克王国｜恶魔狼_2_玉米大盗_来自小红书网页版_有水印.jpg` improves from `1327` to `282`.
-- Latest backend verification on 2026-05-30: backend tests pass with 55 tests.
+- The palette RGB display data was refreshed from the local
+  `拼豆色卡对照_1` image after the floating reference exposed several red and
+  brown mappings that had been sampled as near-white. The source/target code
+  mappings were not changed.
+- Current six-sample benchmark after the RGB refresh and OCR conflict threshold
+  adjustment: the four non-watermarked samples remain at `0` pending reviews;
+  `有水印版.jpg` is at `576`, and
+  `洛克王国｜恶魔狼_2_玉米大盗_来自小红书网页版_有水印.jpg` is at `770`. The second watermarked
+  sample now keeps more white/light beads as reviewable suggestions instead of
+  silently treating them as empty.
+- Latest backend verification on 2026-05-30: backend tests pass with 56 tests.
 
 ## Remaining Checkpoints
 

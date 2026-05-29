@@ -23,7 +23,7 @@ from bead_converter.vision.ocr import OcrProvider
 
 COLOR_CLUSTER_DISTANCE = 6.0
 FUZZY_OCR_MAX_DISTANCE = 1
-OCR_COLOR_CONFLICT_REVIEW_CONFIDENCE = 0.9
+OCR_COLOR_CONFLICT_REVIEW_CONFIDENCE = 0.85
 
 
 def _nearest_source_mapping(
@@ -108,7 +108,7 @@ def _valid_ocr_candidate(candidates: list[OcrCandidate]) -> OcrCandidate | None:
     return max(valid, key=lambda candidate: candidate.confidence, default=None)
 
 
-def _may_contain_bead(crop: Image.Image) -> bool:
+def _cell_visual_evidence(crop: Image.Image) -> tuple[bool, bool]:
     width, height = crop.size
     inset_x = max(1, round(width * 0.18))
     inset_y = max(1, round(height * 0.18))
@@ -123,12 +123,18 @@ def _may_contain_bead(crop: Image.Image) -> bool:
     median_chroma = float(np.median(chroma))
     dark_ink_ratio = float(np.mean(brightness < 165))
     printed_ink_ratio = float(np.mean(brightness < 210))
-    return bool(
+    may_contain_bead = bool(
         median_brightness < 225
         or median_chroma > 24
         or dark_ink_ratio > 0.006
         or printed_ink_ratio > 0.04
     )
+    has_printed_ink = bool(dark_ink_ratio > 0.03 or printed_ink_ratio > 0.08)
+    return may_contain_bead, has_printed_ink
+
+
+def _may_contain_bead(crop: Image.Image) -> bool:
+    return _cell_visual_evidence(crop)[0]
 
 
 def _cluster_indices(indices: list[int], colors: list[RGB]) -> list[list[int]]:
@@ -185,7 +191,9 @@ def recognize_pattern(
         for crop_box in crop_boxes
     ]
     sampled_colors = [sample_cell_color(crop) for crop in crops]
-    may_contain_bead = [_may_contain_bead(crop) for crop in crops]
+    visual_evidence = [_cell_visual_evidence(crop) for crop in crops]
+    may_contain_bead = [evidence[0] for evidence in visual_evidence]
+    has_printed_ink = [evidence[1] for evidence in visual_evidence]
     ocr_indices = [
         index for index, contains_bead in enumerate(may_contain_bead) if contains_bead
     ]
@@ -208,7 +216,11 @@ def recognize_pattern(
         text_choice = _valid_ocr_candidate(candidates)
         nearest, color_distance = _nearest_source_mapping(sampled, palette)
         if text_choice is None and (
-            not may_contain_bead[index] or min(sampled.r, sampled.g, sampled.b) >= 245
+            not may_contain_bead[index]
+            or (
+                min(sampled.r, sampled.g, sampled.b) >= 245
+                and not has_printed_ink[index]
+            )
         ):
             cells.append(
                 Cell(

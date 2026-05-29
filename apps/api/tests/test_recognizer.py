@@ -101,6 +101,23 @@ def test_high_confidence_ocr_is_not_blocked_by_color_conflict() -> None:
     assert "ocr-color-conflict" not in cell.issue_reasons
 
 
+def test_moderate_confidence_ocr_is_not_blocked_by_palette_color_variance() -> None:
+    image = make_grid_with_cell_fill((9, 140, 121))
+
+    project = recognize_pattern(
+        image,
+        "屏幕色差 OCR 优先",
+        PaletteRepository.load_default(),
+        FirstCellOcr("B7", confidence=0.868),
+    )
+
+    cell = project.cells[0]
+    assert cell.detected_source_code == "B7"
+    assert cell.target_code == "G05"
+    assert cell.status == CellStatus.confirmed
+    assert "ocr-color-conflict" not in cell.issue_reasons
+
+
 def test_unverified_palette_mapping_requires_review() -> None:
     image = make_grid_with_cell_fill((252, 160, 117))
     palette = PaletteRepository(
@@ -148,14 +165,17 @@ def test_color_only_match_is_a_reviewable_suggestion() -> None:
 
 
 def test_invalid_ocr_text_guides_ambiguous_color_suggestion() -> None:
-    image = make_grid_with_cell_fill((244, 228, 235))
+    palette = PaletteRepository.load_default()
+    e20 = palette.convert("E20", "MARD", "COCO")
+    assert e20.source_rgb is not None
+    image = make_grid_with_cell_fill(e20.source_rgb)
     draw = ImageDraw.Draw(image)
     draw.text((15, 17), "E28", fill=(90, 90, 90))
 
     project = recognize_pattern(
         image,
         "E20 近似色纠错",
-        PaletteRepository.load_default(),
+        palette,
         RawTextOcr("E28"),
     )
 
@@ -189,14 +209,17 @@ def test_faint_watermark_on_empty_grid_stays_empty() -> None:
 
 
 def test_light_bead_with_unread_ink_gets_color_suggestion() -> None:
-    image = make_grid_with_cell_fill((246, 245, 239))
+    palette = PaletteRepository.load_default()
+    h2 = palette.convert("H2", "MARD", "COCO")
+    assert h2.source_rgb is not None
+    image = make_grid_with_cell_fill(h2.source_rgb)
     draw = ImageDraw.Draw(image)
     draw.text((15, 17), "H2", fill=(90, 90, 90))
 
     project = recognize_pattern(
         image,
         "白色珠子未读字",
-        PaletteRepository.load_default(),
+        palette,
         FirstCellOcr(None),
     )
 

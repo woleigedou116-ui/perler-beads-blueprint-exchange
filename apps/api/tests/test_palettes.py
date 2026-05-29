@@ -33,6 +33,18 @@ def test_mapping_includes_display_colors_for_recognition_and_redraw() -> None:
     assert result.target_rgb is not None
 
 
+def test_display_colors_are_not_blank_for_colored_reference_rows() -> None:
+    repo = PaletteRepository.load_default()
+
+    f2 = repo.convert("F2", "MARD", "COCO")
+    f5 = repo.convert("F5", "MARD", "COCO")
+    f6 = repo.convert("F6", "MARD", "COCO")
+
+    assert f2.source_rgb is not None and min(f2.source_rgb) < 245
+    assert f5.source_rgb is not None and min(f5.source_rgb) < 245
+    assert f6.target_rgb is not None and min(f6.target_rgb) < 245
+
+
 def test_unknown_mapping_returns_review_candidate_not_silent_conversion() -> None:
     result = PaletteRepository.load_default().convert("UNKNOWN", "MARD", "COCO")
 
