@@ -193,7 +193,12 @@ export function GridPreview({
                   viewBox={`0 0 ${sourceSize.width} ${sourceSize.height}`}
                 >
                   {project.cells
-                    .filter((cell) => cell.status === "review-required")
+                    .filter(
+                      (cell) =>
+                        cell.status === "review-required" ||
+                        (focusedCell?.row === cell.row &&
+                          focusedCell.column === cell.column),
+                    )
                     .map((cell) => (
                       <rect
                         key={`${cell.row}-${cell.column}`}
@@ -204,6 +209,32 @@ export function GridPreview({
                             ? "focused-cell"
                             : "",
                         ].filter(Boolean).join(" ")}
+                        x={project.grid.x_lines[cell.column]}
+                        y={project.grid.y_lines[cell.row]}
+                        width={
+                          project.grid.x_lines[cell.column + 1] -
+                          project.grid.x_lines[cell.column]
+                        }
+                        height={
+                          project.grid.y_lines[cell.row + 1] -
+                          project.grid.y_lines[cell.row]
+                        }
+                      />
+                    ))}
+                </svg>
+              ) : null}
+              {sourceSize ? (
+                <svg
+                  aria-label="原图格子选择层"
+                  className="source-hit-overlay"
+                  viewBox={`0 0 ${sourceSize.width} ${sourceSize.height}`}
+                >
+                  {project.cells
+                    .filter((cell) => cell.status !== "empty")
+                    .map((cell) => (
+                      <rect
+                        key={`${cell.row}-${cell.column}`}
+                        className="source-hit-cell"
                         x={project.grid.x_lines[cell.column]}
                         y={project.grid.y_lines[cell.row]}
                         width={

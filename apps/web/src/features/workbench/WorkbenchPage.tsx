@@ -15,6 +15,7 @@ import { UploadPanel } from "../upload/UploadPanel";
 import { ComparisonPreview } from "./ComparisonPreview";
 import { PaletteReference } from "./PaletteReference";
 import { ReviewPanel } from "./ReviewPanel";
+import { buildReviewGroups, reviewGroupKey } from "./reviewGroups";
 import { StatisticsPanel } from "./StatisticsPanel";
 
 type ExportKind = "clean.png" | "overlay.png" | "mapping.csv" | "project.beadproject";
@@ -41,6 +42,7 @@ export function WorkbenchPage() {
   const [recognitionProgress, setRecognitionProgress] =
     useState<RecognitionProgress | null>(null);
   const [isReviewFullscreen, setIsReviewFullscreen] = useState(false);
+  const [autoLocateAfterDecision, setAutoLocateAfterDecision] = useState(true);
 
   useEffect(() => {
     if (!file || typeof URL.createObjectURL !== "function") {
@@ -144,19 +146,20 @@ export function WorkbenchPage() {
     if (!project || !cell.detected_source_code || !cell.target_code) {
       return;
     }
+    const previousProject = project;
     const updated = await confirmMapping(
       project.id,
       cell.detected_source_code,
       cell.target_code,
     );
-    setProject(updated);
-    setSelectedCell(updated.cells.find((next) => next.status === "review-required") ?? null);
+    applyProjectAfterDecision(previousProject, updated, cell);
   }
 
   async function handleCorrectCell(cell: Cell, sourceCode: string, targetCode: string) {
     if (!project) {
       return;
     }
+    const previousProject = project;
     const updated = await correctCell(
       project.id,
       cell.row,
@@ -164,12 +167,57 @@ export function WorkbenchPage() {
       sourceCode,
       targetCode,
     );
-    setProject(updated);
-    setSelectedCell(
-      updated.cells.find(
+    applyProjectAfterDecision(previousProject, updated, cell);
+  }
+
+  function applyProjectAfterDecision(
+    previousProject: BeadProject,
+    updatedProject: BeadProject,
+    decidedCell: Cell,
+  ) {
+    const next = cellAfterDecision(previousProject, updatedProject, decidedCell);
+    setProject(updatedProject);
+    setSelectedCell(next.cell);
+    if (next.shouldLocate && next.cell) {
+      setFocusRequest({ cell: next.cell, nonce: Date.now() });
+    }
+  }
+
+  function findUpdatedCell(updatedProject: BeadProject, cell: Cell) {
+    return (
+      updatedProject.cells.find(
         (next) => next.row === cell.row && next.column === cell.column,
-      ) ?? null,
+      ) ?? null
     );
+  }
+
+  function cellAfterDecision(
+    previousProject: BeadProject,
+    updatedProject: BeadProject,
+    decidedCell: Cell,
+  ): { cell: Cell | null; shouldLocate: boolean } {
+    const updatedSameCell = findUpdatedCell(updatedProject, decidedCell);
+    if (!autoLocateAfterDecision) {
+      return { cell: updatedSameCell, shouldLocate: false };
+    }
+
+    const previousGroups = buildReviewGroups(
+      previousProject.cells.filter((cell) => cell.status === "review-required"),
+    );
+    const updatedGroups = buildReviewGroups(
+      updatedProject.cells.filter((cell) => cell.status === "review-required"),
+    );
+    const decidedGroupIndex = previousGroups.findIndex(
+      (group) => group.key === reviewGroupKey(decidedCell),
+    );
+
+    if (updatedGroups.length > 0) {
+      const fallbackIndex = decidedGroupIndex >= 0 ? decidedGroupIndex : 0;
+      const nextGroup = updatedGroups[Math.min(fallbackIndex, updatedGroups.length - 1)];
+      return { cell: nextGroup.cells[0], shouldLocate: true };
+    }
+
+    return { cell: updatedSameCell, shouldLocate: false };
   }
 
   async function handleSaveAttribution() {
@@ -244,9 +292,11 @@ export function WorkbenchPage() {
       </section>
       {project ? (
         <ReviewPanel
+          autoLocateAfterDecision={autoLocateAfterDecision}
           paletteMappings={paletteMappings}
           project={project}
           selectedCell={selectedCell}
+          onAutoLocateAfterDecisionChange={setAutoLocateAfterDecision}
           onConfirmMapping={handleConfirmMapping}
           onCorrectCell={handleCorrectCell}
           onLocateCell={(cell) => setFocusRequest({ cell, nonce: Date.now() })}

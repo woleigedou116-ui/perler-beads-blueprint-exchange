@@ -1,40 +1,38 @@
 import { useEffect, useMemo, useState } from "react";
 
 import type { BeadProject, Cell, PaletteMapping, RGB } from "../../domain/types";
+import { buildReviewGroups, compareCodes } from "./reviewGroups";
 
 interface ReviewPanelProps {
+  autoLocateAfterDecision: boolean;
   paletteMappings?: PaletteMapping[];
   project: BeadProject;
   selectedCell: Cell | null;
+  onAutoLocateAfterDecisionChange: (enabled: boolean) => void;
   onConfirmMapping: (cell: Cell) => void;
   onCorrectCell: (cell: Cell, sourceCode: string, targetCode: string) => void;
   onLocateCell?: (cell: Cell) => void;
   onSelectCell: (cell: Cell) => void;
 }
 
-interface ReviewGroup {
-  key: string;
-  source: string;
-  target: string;
-  issueReasons: string[];
-  cells: Cell[];
-}
-
 export function ReviewPanel({
+  autoLocateAfterDecision,
   paletteMappings = [],
   project,
   selectedCell,
+  onAutoLocateAfterDecisionChange,
   onConfirmMapping,
   onCorrectCell,
   onLocateCell,
   onSelectCell,
 }: ReviewPanelProps) {
   const reviewCells = project.cells.filter((cell) => cell.status === "review-required");
-  const reviewGroups = groupReviewCells(reviewCells);
+  const reviewGroups = buildReviewGroups(reviewCells);
   const [sourceCode, setSourceCode] = useState("");
   const [targetCode, setTargetCode] = useState("");
   const [candidateGroupKey, setCandidateGroupKey] = useState<string | null>(null);
   const [expandedPaletteGroupKey, setExpandedPaletteGroupKey] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const sortedSourceMappings = useMemo(
     () =>
       [...paletteMappings]
@@ -93,7 +91,38 @@ export function ReviewPanel({
     <aside className="panel review-panel" aria-label="待确认事项">
       <div className="panel-heading">
         <h2>校对</h2>
-        <strong>待确认 {reviewCells.length} 格 / {reviewGroups.length} 组</strong>
+        <div className="review-heading-actions">
+          <strong>待确认 {reviewCells.length} 格 / {reviewGroups.length} 组</strong>
+          <div className="review-settings-anchor">
+            <button
+              type="button"
+              aria-expanded={showSettings}
+              aria-label="校对设置"
+              onClick={() => setShowSettings((current) => !current)}
+            >
+              设置
+            </button>
+            {showSettings ? (
+              <div
+                aria-label="校对设置"
+                className="review-settings-popover"
+                role="dialog"
+              >
+                <label className="review-setting-toggle">
+                  <input
+                    aria-label="处理后自动定位下一组或上一组"
+                    checked={autoLocateAfterDecision}
+                    type="checkbox"
+                    onChange={(event) =>
+                      onAutoLocateAfterDecisionChange(event.currentTarget.checked)
+                    }
+                  />
+                  处理后自动定位下一组/上一组
+                </label>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
       <div className="review-list">
         {reviewGroups.map((group) => {
@@ -209,14 +238,6 @@ export function ReviewPanel({
   );
 }
 
-function sourceForGroup(cell: Cell) {
-  return cell.confirmed_source_code ?? cell.detected_source_code ?? "?";
-}
-
-function targetForGroup(cell: Cell) {
-  return cell.target_code ?? "?";
-}
-
 const ISSUE_REASON_LABELS: Record<string, string> = {
   "mapping-missing": "缺少对应色号",
   "mapping-unverified": "对照表未核验",
@@ -230,42 +251,4 @@ const ISSUE_REASON_LABELS: Record<string, string> = {
 
 function issueReasonLabel(reason: string) {
   return ISSUE_REASON_LABELS[reason] ?? reason;
-}
-
-function compareCodes(left: string, right: string) {
-  return left.localeCompare(right, "zh-CN", {
-    numeric: true,
-    sensitivity: "base",
-  });
-}
-
-function groupReviewCells(cells: Cell[]): ReviewGroup[] {
-  const groups = new Map<string, ReviewGroup>();
-  for (const cell of cells) {
-    const source = sourceForGroup(cell);
-    const target = targetForGroup(cell);
-    const reasons = [...cell.issue_reasons].sort();
-    const key = `${source}->${target}`;
-    const existing = groups.get(key);
-    if (existing) {
-      existing.cells.push(cell);
-      existing.issueReasons = Array.from(
-        new Set([...existing.issueReasons, ...reasons]),
-      ).sort();
-    } else {
-      groups.set(key, {
-        key,
-        source,
-        target,
-        issueReasons: reasons,
-        cells: [cell],
-      });
-    }
-  }
-  return Array.from(groups.values()).sort((left, right) => {
-    if (right.cells.length !== left.cells.length) {
-      return right.cells.length - left.cells.length;
-    }
-    return left.key.localeCompare(right.key);
-  });
 }

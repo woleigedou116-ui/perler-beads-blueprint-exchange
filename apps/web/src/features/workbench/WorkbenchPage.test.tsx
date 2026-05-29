@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -16,6 +16,7 @@ import {
   projectAfterMappingConfirmation,
   projectWithOneReviewCell,
 } from "./test-data";
+import type { BeadProject } from "../../domain/types";
 
 vi.mock("../../api/client", () => ({
   confirmMapping: vi.fn(),
@@ -48,8 +49,8 @@ const paletteMappings = [
   },
 ];
 
-async function importPattern() {
-  vi.mocked(importImage).mockResolvedValue(projectWithOneReviewCell);
+async function importPattern(project: BeadProject = projectWithOneReviewCell) {
+  vi.mocked(importImage).mockResolvedValue(project);
   vi.mocked(getPalette).mockResolvedValue({
     version: "mard-coco.v1",
     mappings: paletteMappings,
@@ -57,6 +58,51 @@ async function importPattern() {
   render(<WorkbenchPage />);
   await userEvent.upload(screen.getByLabelText("上传图纸"), patternFile);
   await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
+}
+
+const projectWithThreeReviewGroups: BeadProject = {
+  ...projectWithOneReviewCell,
+  grid: {
+    ...projectWithOneReviewCell.grid,
+    columns: 3,
+    x_lines: [0, 32, 64, 96],
+  },
+  cells: [
+    {
+      ...projectWithOneReviewCell.cells[0],
+      column: 0,
+      detected_source_code: "A1",
+      target_code: "T1",
+    },
+    {
+      ...projectWithOneReviewCell.cells[0],
+      column: 1,
+      detected_source_code: "B1",
+      target_code: "T2",
+    },
+    {
+      ...projectWithOneReviewCell.cells[0],
+      column: 2,
+      detected_source_code: "C1",
+      target_code: "T3",
+    },
+  ],
+};
+
+function projectAfterConfirmingGroup(sourceCode: string) {
+  return {
+    ...projectWithThreeReviewGroups,
+    cells: projectWithThreeReviewGroups.cells.map((cell) =>
+      cell.detected_source_code === sourceCode
+        ? {
+            ...cell,
+            confirmed_source_code: sourceCode,
+            status: "confirmed" as const,
+            issue_reasons: ["user-confirmed-mapping"],
+          }
+        : cell,
+    ),
+  };
 }
 
 describe("WorkbenchPage", () => {
@@ -132,6 +178,51 @@ describe("WorkbenchPage", () => {
 
     expect(confirmMapping).toHaveBeenCalledWith("pattern-1", "H7", "B09");
     expect(await screen.findByText("待确认 0 格 / 0 组")).toBeInTheDocument();
+  });
+
+  it("automatically locates the next review group after confirming a middle group", async () => {
+    vi.mocked(confirmMapping).mockResolvedValue(projectAfterConfirmingGroup("B1"));
+    await importPattern(projectWithThreeReviewGroups);
+
+    const middleGroup = await screen.findByLabelText("MARD B1 到 COCO T2，涉及 1 格");
+    await userEvent.click(within(middleGroup).getByRole("button", { name: "确认" }));
+
+    expect(confirmMapping).toHaveBeenCalledWith("pattern-1", "B1", "T2");
+    expect(await screen.findByRole("heading", { name: "选中格 1, 3" })).toBeInTheDocument();
+    expect(
+      Array.from(document.querySelectorAll(".focused-cell")).some((element) =>
+        element.textContent?.includes("C1"),
+      ),
+    ).toBe(true);
+  });
+
+  it("automatically locates the previous review group after confirming the last group", async () => {
+    vi.mocked(confirmMapping).mockResolvedValue(projectAfterConfirmingGroup("C1"));
+    await importPattern(projectWithThreeReviewGroups);
+
+    const lastGroup = await screen.findByLabelText("MARD C1 到 COCO T3，涉及 1 格");
+    await userEvent.click(within(lastGroup).getByRole("button", { name: "确认" }));
+
+    expect(await screen.findByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
+    expect(
+      Array.from(document.querySelectorAll(".focused-cell")).some((element) =>
+        element.textContent?.includes("B1"),
+      ),
+    ).toBe(true);
+  });
+
+  it("can keep the corrected cell selected when automatic review locating is disabled", async () => {
+    vi.mocked(confirmMapping).mockResolvedValue(projectAfterConfirmingGroup("B1"));
+    await importPattern(projectWithThreeReviewGroups);
+
+    await userEvent.click(await screen.findByRole("button", { name: "校对设置" }));
+    await userEvent.click(screen.getByLabelText("处理后自动定位下一组或上一组"));
+
+    const middleGroup = screen.getByLabelText("MARD B1 到 COCO T2，涉及 1 格");
+    await userEvent.click(within(middleGroup).getByRole("button", { name: "确认" }));
+
+    expect(await screen.findByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
+    expect(document.querySelectorAll(".focused-cell")).toHaveLength(0);
   });
 
   it("locates a review cell and offers palette-backed correction candidates", async () => {

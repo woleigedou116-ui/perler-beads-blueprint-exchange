@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import { GridPreview } from "./GridPreview";
-import { projectWithOneReviewCell } from "./test-data";
+import { projectAfterMappingConfirmation, projectWithOneReviewCell } from "./test-data";
 
 afterEach(() => {
   cleanup();
@@ -56,6 +56,31 @@ it("prevents the source image from starting native browser drags", () => {
   const sourceImage = screen.getByAltText("上传原图");
   expect(sourceImage).toHaveAttribute("draggable", "false");
   expect(fireEvent.dragStart(sourceImage)).toBe(false);
+});
+
+it("allows selecting confirmed cells from the uploaded source image", () => {
+  const onSelectCell = vi.fn();
+  render(
+    <GridPreview
+      project={projectAfterMappingConfirmation}
+      sourceImageUrl="blob:source-pattern"
+      target={false}
+      title="识别叠加视图"
+      onSelectCell={onSelectCell}
+    />,
+  );
+
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+  fireEvent.load(sourceImage);
+
+  const hitCells = screen.getByLabelText("原图格子选择层").querySelectorAll("rect");
+  expect(hitCells).toHaveLength(2);
+
+  fireEvent.click(hitCells[1]);
+
+  expect(onSelectCell).toHaveBeenCalledWith(projectAfterMappingConfirmation.cells[1]);
 });
 
 it("uses contrasting stroked label colors for dark and light cells", () => {

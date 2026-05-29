@@ -397,12 +397,12 @@ p {
 .source-review-overlay {
   height: 100%;
   inset: 0;
+  pointer-events: none;
   position: absolute;
   width: 100%;
 }
 
 .source-review-overlay .review-overlay-cell {
-  cursor: pointer;
   fill: rgba(226, 151, 32, 0.2);
   stroke: #e29720;
   stroke-width: 3;
@@ -412,6 +412,18 @@ p {
   fill: rgba(8, 127, 120, 0.2);
   stroke: #087f78;
   stroke-width: 5;
+}
+
+.source-hit-overlay {
+  height: 100%;
+  inset: 0;
+  position: absolute;
+  width: 100%;
+}
+
+.source-hit-cell {
+  cursor: pointer;
+  fill: transparent;
 }
 
 .grid-preview rect {
@@ -442,6 +454,45 @@ p {
 .panel-heading strong {
   color: #c36d00;
   font-size: 0.88rem;
+}
+
+.review-heading-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.review-settings-anchor {
+  display: inline-flex;
+  position: relative;
+}
+
+.review-settings-anchor > button {
+  font-size: 0.78rem;
+  padding: 0.32rem 0.55rem;
+}
+
+.review-settings-popover {
+  background: #fff;
+  border: 1px solid #e4d0b7;
+  border-radius: 12px;
+  box-shadow: 0 14px 38px rgba(92, 66, 38, 0.18);
+  min-width: 230px;
+  padding: 0.7rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.42rem);
+  z-index: 16;
+}
+
+.review-setting-toggle {
+  align-items: center;
+  color: #5e503d;
+  display: flex;
+  font-size: 0.82rem;
+  gap: 0.45rem;
 }
 
 .review-panel {

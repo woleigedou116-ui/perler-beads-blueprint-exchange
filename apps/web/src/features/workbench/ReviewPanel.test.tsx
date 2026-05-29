@@ -63,9 +63,11 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
 
   render(
     <ReviewPanel
+      autoLocateAfterDecision
       paletteMappings={paletteMappings}
       project={projectWithOneReviewCell}
       selectedCell={projectWithOneReviewCell.cells[0]}
+      onAutoLocateAfterDecisionChange={vi.fn()}
       onConfirmMapping={onConfirmMapping}
       onCorrectCell={onCorrectCell}
       onLocateCell={onLocateCell}
@@ -136,9 +138,11 @@ it("chooses correction candidates from the uploaded source recognition colors", 
 
   render(
     <ReviewPanel
+      autoLocateAfterDecision
       paletteMappings={misleadingTargetPalette}
       project={projectWithOneReviewCell}
       selectedCell={projectWithOneReviewCell.cells[0]}
+      onAutoLocateAfterDecisionChange={vi.fn()}
       onConfirmMapping={vi.fn()}
       onCorrectCell={vi.fn()}
       onLocateCell={vi.fn()}
@@ -195,9 +199,11 @@ it("groups repeated review cells by mapping so large patterns stay reviewable", 
 
   render(
     <ReviewPanel
+      autoLocateAfterDecision
       paletteMappings={paletteMappings}
       project={repeatedReviewProject}
       selectedCell={null}
+      onAutoLocateAfterDecisionChange={vi.fn()}
       onConfirmMapping={onConfirmMapping}
       onCorrectCell={onCorrectCell}
       onLocateCell={onLocateCell}
