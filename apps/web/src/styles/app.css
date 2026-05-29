@@ -243,7 +243,13 @@ p {
   align-items: center;
   display: flex;
   gap: 0.55rem;
+  justify-content: space-between;
+}
+
+.comparison-toolbar-actions {
+  display: flex;
   justify-content: flex-end;
+  margin-left: auto;
 }
 
 .preview-card-actions,
@@ -629,38 +635,12 @@ p {
   width: 100%;
 }
 
-.stats-panel {
-  align-items: center;
-  border-top: 1px solid #e5e9e5;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-  margin-top: auto;
-  padding-top: 1rem;
-}
-
-.chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-}
-
-.chip {
-  background: #eef5f2;
-  border-radius: 16px;
-  color: #385d58;
-  font-size: 0.84rem;
-  padding: 0.35rem 0.65rem;
-}
-
-.chip strong {
-  margin-left: 0.25rem;
-}
-
 .export-actions {
+  align-items: center;
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+  justify-content: flex-end;
 }
 
 .export-option {

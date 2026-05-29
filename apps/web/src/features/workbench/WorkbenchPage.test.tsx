@@ -140,6 +140,22 @@ describe("WorkbenchPage", () => {
     expect(screen.getByRole("button", { name: "导出图纸" })).toBeEnabled();
   });
 
+  it("moves export actions into the preview toolbar without the bottom color summary", async () => {
+    await importPattern();
+
+    const toolbar = await screen.findByLabelText("预览工具栏");
+
+    expect(within(toolbar).getByRole("button", { name: "全屏查看" })).toBeInTheDocument();
+    expect(within(toolbar).getByRole("button", { name: "保存项目" })).toBeInTheDocument();
+    expect(within(toolbar).getByRole("button", { name: "导出图纸" })).toBeInTheDocument();
+    expect(within(toolbar).getByRole("button", { name: "导出检查图" })).toBeInTheDocument();
+    expect(within(toolbar).getByRole("button", { name: "导出清单" })).toBeInTheDocument();
+    expect(within(toolbar).getByLabelText("导出时附带色块统计")).toBeInTheDocument();
+    expect(screen.queryByLabelText("统计与导出")).not.toBeInTheDocument();
+    expect(document.querySelector(".stats-panel")).not.toBeInTheDocument();
+    expect(document.querySelector(".chips")).not.toBeInTheDocument();
+  });
+
   it("shows staged recognition progress while image import is pending", async () => {
     vi.mocked(getPalette).mockResolvedValue({
       version: "mard-coco.v1",

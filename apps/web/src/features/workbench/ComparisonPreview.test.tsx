@@ -203,6 +203,8 @@ it("uses shared preview rows so both drawing panes align under wrapped controls"
   expect(cssBlockFor(".preview-viewport")).toContain("grid-row: 2;");
   expect(cssBlockFor(".preview-viewport")).toContain("margin-top: 0;");
   expect(cssBlockFor(".target-color-stats")).toContain("grid-row: 3;");
+  expect(cssBlockFor(".comparison-toolbar")).toContain("justify-content: space-between;");
+  expect(cssBlockFor(".comparison-toolbar-actions")).toContain("margin-left: auto;");
 });
 
 it("allows zooming deep enough for detailed bead review", async () => {

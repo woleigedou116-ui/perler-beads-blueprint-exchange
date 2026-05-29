@@ -1,4 +1,11 @@
-import { useEffect, useRef, useState, type PointerEvent, type WheelEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent,
+  type ReactNode,
+  type WheelEvent,
+} from "react";
 
 import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
 import { buildTargetColorStats, type ColorStatSort } from "./colorStats";
@@ -21,6 +28,7 @@ interface ComparisonPreviewProps {
   project: BeadProject;
   paletteMappings?: PaletteMapping[];
   sourceImageUrl: string | null;
+  toolbarActions?: ReactNode;
   onFullscreenChange: (next: boolean) => void;
   onSelectCell: (cell: Cell) => void;
 }
@@ -196,6 +204,7 @@ export function ComparisonPreview({
   paletteMappings = [],
   project,
   sourceImageUrl,
+  toolbarActions = null,
   onFullscreenChange,
   onSelectCell,
 }: ComparisonPreviewProps) {
@@ -467,6 +476,9 @@ export function ComparisonPreview({
         >
           {fullscreen ? "退出全屏" : "全屏查看"}
         </button>
+        {toolbarActions ? (
+          <div className="comparison-toolbar-actions">{toolbarActions}</div>
+        ) : null}
       </div>
       <div className="preview-row">
         <GridPreview

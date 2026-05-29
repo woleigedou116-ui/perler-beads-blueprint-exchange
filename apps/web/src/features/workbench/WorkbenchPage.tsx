@@ -14,10 +14,10 @@ import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
 import { UploadPanel } from "../upload/UploadPanel";
 import { ComparisonPreview } from "./ComparisonPreview";
 import type { ColorStatSort } from "./colorStats";
+import { ExportActions } from "./ExportActions";
 import { PaletteReference } from "./PaletteReference";
 import { ReviewPanel } from "./ReviewPanel";
 import { buildReviewGroups, reviewGroupKey } from "./reviewGroups";
-import { StatisticsPanel } from "./StatisticsPanel";
 
 type ExportKind = "clean.png" | "overlay.png" | "mapping.csv" | "project.beadproject";
 type ExportOptions = { includeColorStats?: boolean };
@@ -297,13 +297,9 @@ export function WorkbenchPage() {
               paletteMappings={paletteMappings}
               project={project}
               sourceImageUrl={previewUrl}
+              toolbarActions={<ExportActions onExport={handleExport} />}
               onFullscreenChange={setIsReviewFullscreen}
               onSelectCell={handleSelectCell}
-            />
-            <StatisticsPanel
-              paletteMappings={paletteMappings}
-              project={project}
-              onExport={handleExport}
             />
             <PaletteReference paletteMappings={paletteMappings} project={project} />
           </>
