@@ -44,3 +44,11 @@ cd ..\..
 ```powershell
 .\.venv\Scripts\python scripts\ocr_probe.py ..\..\拼豆样例图
 ```
+
+批量评测当前 OCR 转换链路：
+
+```powershell
+.\.venv\Scripts\python scripts\ocr_benchmark.py ..\..\拼豆样例图
+```
+
+默认输出到 `.data\ocr-benchmark\rapidocr-summary.csv` 和 `.json`，包含每张图的网格尺寸、待复核数量、复核原因、常见原始 OCR 文本、目标色号统计和耗时。后续接入 PaddleOCR、Tesseract 等候选引擎时，用同一份样例跑报告即可横向比较。
