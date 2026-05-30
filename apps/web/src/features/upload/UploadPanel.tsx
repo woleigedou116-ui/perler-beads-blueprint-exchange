@@ -3,13 +3,11 @@ import type { BeadProject } from "../../domain/types";
 interface UploadPanelProps {
   attribution: string;
   file: File | null;
+  lastRecognitionDurationMs?: number | null;
   previewUrl: string | null;
   processing: boolean;
   project: BeadProject | null;
-  recognitionProgress?: {
-    label: string;
-    value: number;
-  } | null;
+  recognitionElapsedMs?: number | null;
   onAttributionChange: (value: string) => void;
   onImport: () => void;
   onOpenProject: (file: File) => void;
@@ -20,10 +18,11 @@ interface UploadPanelProps {
 export function UploadPanel({
   attribution,
   file,
+  lastRecognitionDurationMs = null,
   previewUrl,
   processing,
   project,
-  recognitionProgress = null,
+  recognitionElapsedMs = null,
   onAttributionChange,
   onImport,
   onOpenProject,
@@ -69,23 +68,19 @@ export function UploadPanel({
       <button className="primary-button" disabled={!file || processing} onClick={onImport}>
         {processing ? "识别中..." : "开始识别"}
       </button>
-      {recognitionProgress ? (
-        <div className="recognition-progress">
+      {processing && recognitionElapsedMs !== null ? (
+        <div className="recognition-progress" aria-live="polite">
           <div className="recognition-progress-heading">
-            <span>{recognitionProgress.label}</span>
-            <strong>{recognitionProgress.value}%</strong>
+            <span>正在识别图纸</span>
+            <strong>已用时 {formatDuration(recognitionElapsedMs)}</strong>
           </div>
-          <div
-            aria-label="识别进度"
-            aria-valuemax={100}
-            aria-valuemin={0}
-            aria-valuenow={recognitionProgress.value}
-            className="recognition-progress-bar"
-            role="progressbar"
-          >
-            <span style={{ width: `${recognitionProgress.value}%` }} />
-          </div>
+          <p>水印、低清或文字较多的图纸会更久，请稍等。</p>
         </div>
+      ) : null}
+      {!processing && lastRecognitionDurationMs !== null ? (
+        <p className="recognition-duration">
+          本次识别用时 {formatDuration(lastRecognitionDurationMs)}
+        </p>
       ) : null}
       <label className="project-file-field">
         <span>打开项目</span>
@@ -119,4 +114,8 @@ export function UploadPanel({
       ) : null}
     </section>
   );
+}
+
+function formatDuration(durationMs: number): string {
+  return `${(Math.max(0, durationMs) / 1000).toFixed(1)} 秒`;
 }

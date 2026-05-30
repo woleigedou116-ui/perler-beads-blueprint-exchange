@@ -289,6 +289,7 @@ const projectAfterMarkingRegionUnwanted: BeadProject = {
 describe("WorkbenchPage", () => {
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     vi.clearAllMocks();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
@@ -320,7 +321,8 @@ describe("WorkbenchPage", () => {
     expect(document.querySelector(".chips")).not.toBeInTheDocument();
   });
 
-  it("shows staged recognition progress while image import is pending", async () => {
+  it("shows honest elapsed recognition time while image import is pending", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.mocked(getPalette).mockResolvedValue({
       version: "mard-coco.v1",
       mappings: paletteMappings,
@@ -331,9 +333,37 @@ describe("WorkbenchPage", () => {
     await userEvent.upload(screen.getByLabelText("上传图纸"), patternFile);
     await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
 
-    const progress = await screen.findByRole("progressbar", { name: "识别进度" });
-    expect(progress).toHaveAttribute("aria-valuenow", "12");
-    expect(screen.getByText("上传图纸中")).toBeInTheDocument();
+    expect(await screen.findByText("正在识别图纸")).toBeInTheDocument();
+    expect(screen.getByText("已用时 0.0 秒")).toBeInTheDocument();
+    expect(screen.queryByRole("progressbar", { name: "识别进度" })).not.toBeInTheDocument();
+
+    vi.advanceTimersByTime(2400);
+    expect(await screen.findByText("已用时 2.4 秒")).toBeInTheDocument();
+    expect(screen.queryByText("上传图纸中")).not.toBeInTheDocument();
+    expect(screen.queryByText("生成项目中")).not.toBeInTheDocument();
+  });
+
+  it("shows the final recognition duration after image import completes", async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    vi.mocked(getPalette).mockResolvedValue({
+      version: "mard-coco.v1",
+      mappings: paletteMappings,
+    });
+    let resolveImport: (project: BeadProject) => void = () => undefined;
+    vi.mocked(importImage).mockReturnValue(
+      new Promise((resolve) => {
+        resolveImport = resolve;
+      }),
+    );
+    render(<WorkbenchPage />);
+
+    await userEvent.upload(screen.getByLabelText("上传图纸"), patternFile);
+    await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
+    vi.advanceTimersByTime(15600);
+    resolveImport(projectWithOneReviewCell);
+
+    expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
+    expect(screen.getByText("本次识别用时 15.6 秒")).toBeInTheDocument();
   });
 
   it("uses the uploaded image behind the recognition overlay", async () => {
@@ -743,7 +773,7 @@ describe("WorkbenchPage", () => {
 
     await userEvent.upload(screen.getByLabelText("上传图纸"), patternFile);
     await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
-    expect(await screen.findByText("上传图纸中")).toBeInTheDocument();
+    expect(await screen.findByText("正在识别图纸")).toBeInTheDocument();
 
     resolveImport(projectWithOneReviewCell);
     expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
@@ -753,7 +783,7 @@ describe("WorkbenchPage", () => {
     );
 
     expect(openProject).toHaveBeenCalled();
-    expect(screen.queryByRole("progressbar", { name: "识别进度" })).not.toBeInTheDocument();
-    expect(screen.queryByText("上传图纸中")).not.toBeInTheDocument();
+    expect(screen.queryByText("正在识别图纸")).not.toBeInTheDocument();
+    expect(screen.queryByText(/本次识别用时/)).not.toBeInTheDocument();
   });
 });

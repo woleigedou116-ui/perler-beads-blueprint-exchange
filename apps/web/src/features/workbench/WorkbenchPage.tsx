@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   confirmMapping,
@@ -25,15 +25,7 @@ import type { CellRegionBounds } from "./GridPreview";
 
 type ExportKind = "clean.png" | "overlay.png" | "mapping.csv" | "project.beadproject";
 type ExportOptions = { includeColorStats?: boolean };
-type RecognitionProgress = { label: string; value: number };
 type RegionSelection = { start: Cell | null; end: Cell | null };
-
-const RECOGNITION_STAGES: RecognitionProgress[] = [
-  { label: "上传图纸中", value: 12 },
-  { label: "检测网格中", value: 38 },
-  { label: "OCR 与颜色匹配中", value: 68 },
-  { label: "生成项目中", value: 88 },
-];
 
 const DEFAULT_COLOR_STAT_SORT: ColorStatSort = {
   sortBy: "code",
@@ -50,8 +42,11 @@ export function WorkbenchPage() {
   const [focusRequest, setFocusRequest] = useState<{ cell: Cell; nonce: number } | null>(null);
   const [paletteMappings, setPaletteMappings] = useState<PaletteMapping[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [recognitionProgress, setRecognitionProgress] =
-    useState<RecognitionProgress | null>(null);
+  const recognitionStartedAt = useRef<number | null>(null);
+  const [recognitionElapsedMs, setRecognitionElapsedMs] = useState<number | null>(null);
+  const [lastRecognitionDurationMs, setLastRecognitionDurationMs] = useState<number | null>(
+    null,
+  );
   const [isReviewFullscreen, setIsReviewFullscreen] = useState(false);
   const [autoLocateAfterDecision, setAutoLocateAfterDecision] = useState(true);
   const [regionSelection, setRegionSelection] = useState<RegionSelection | null>(null);
@@ -88,15 +83,15 @@ export function WorkbenchPage() {
   }, []);
 
   useEffect(() => {
-    if (!processing) {
+    if (!processing || recognitionStartedAt.current === null) {
       return;
     }
-    let stageIndex = 0;
-    setRecognitionProgress(RECOGNITION_STAGES[stageIndex]);
+    setRecognitionElapsedMs(Date.now() - recognitionStartedAt.current);
     const timer = window.setInterval(() => {
-      stageIndex = Math.min(stageIndex + 1, RECOGNITION_STAGES.length - 1);
-      setRecognitionProgress(RECOGNITION_STAGES[stageIndex]);
-    }, 800);
+      if (recognitionStartedAt.current !== null) {
+        setRecognitionElapsedMs(Date.now() - recognitionStartedAt.current);
+      }
+    }, 100);
     return () => window.clearInterval(timer);
   }, [processing]);
 
@@ -135,16 +130,22 @@ export function WorkbenchPage() {
     if (!file) {
       return;
     }
+    const startedAt = Date.now();
+    recognitionStartedAt.current = startedAt;
+    setRecognitionElapsedMs(0);
+    setLastRecognitionDurationMs(null);
     setProcessing(true);
     setError(null);
     try {
       const imported = await importImage(file);
       loadProject(imported);
+      setLastRecognitionDurationMs(Date.now() - startedAt);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "识别失败");
     } finally {
+      recognitionStartedAt.current = null;
       setProcessing(false);
-      setRecognitionProgress(null);
+      setRecognitionElapsedMs(null);
     }
   }
 
@@ -161,6 +162,9 @@ export function WorkbenchPage() {
   }
 
   async function handleOpenProject(archive: File) {
+    recognitionStartedAt.current = null;
+    setRecognitionElapsedMs(null);
+    setLastRecognitionDurationMs(null);
     setProcessing(true);
     setError(null);
     try {
@@ -171,7 +175,6 @@ export function WorkbenchPage() {
       setError(caught instanceof Error ? caught.message : "项目打开失败");
     } finally {
       setProcessing(false);
-      setRecognitionProgress(null);
     }
   }
 
@@ -362,7 +365,8 @@ export function WorkbenchPage() {
         previewUrl={previewUrl}
         processing={processing}
         project={project}
-        recognitionProgress={recognitionProgress}
+        recognitionElapsedMs={recognitionElapsedMs}
+        lastRecognitionDurationMs={lastRecognitionDurationMs}
         onAttributionChange={setAttribution}
         onImport={handleImport}
         onOpenProject={handleOpenProject}

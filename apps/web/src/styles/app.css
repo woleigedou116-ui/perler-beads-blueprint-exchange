@@ -706,17 +706,21 @@ p {
   margin-bottom: 0.35rem;
 }
 
-.recognition-progress-bar {
-  background: #e9f0ec;
-  border-radius: 999px;
-  height: 0.7rem;
-  overflow: hidden;
+.recognition-progress p,
+.recognition-duration {
+  color: #607871;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  margin: 0;
 }
 
-.recognition-progress-bar span {
-  background: linear-gradient(90deg, #087f78, #f0af45);
-  display: block;
-  height: 100%;
+.recognition-duration {
+  background: #f4faf7;
+  border: 1px solid #dcebe5;
+  border-radius: 8px;
+  color: #2f6259;
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.65rem;
 }
 
 .target-color-stats {
