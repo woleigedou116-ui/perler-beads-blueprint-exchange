@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import json
-from pathlib import Path
+
+from bead_converter.settings import palette_file_path
 
 
 @dataclass(frozen=True)
@@ -19,12 +20,7 @@ class PaletteRepository:
 
     @classmethod
     def load_default(cls) -> "PaletteRepository":
-        root = Path(__file__).resolve().parents[5]
-        payload = json.loads(
-            (root / "data" / "palettes" / "mard-coco.v1.json").read_text(
-                encoding="utf-8"
-            )
-        )
+        payload = json.loads(palette_file_path().read_text(encoding="utf-8"))
         mappings = {
             row["sourceCode"]: ConversionResult(
                 source_code=row["sourceCode"],
