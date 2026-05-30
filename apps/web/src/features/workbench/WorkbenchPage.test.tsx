@@ -566,4 +566,34 @@ describe("WorkbenchPage", () => {
     expect(openProject).toHaveBeenCalledWith(projectFile);
     expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
   });
+
+  it("clears the recognition progress after reopening a saved project", async () => {
+    vi.mocked(getPalette).mockResolvedValue({
+      version: "mard-coco.v1",
+      mappings: paletteMappings,
+    });
+    let resolveImport: (project: BeadProject) => void = () => undefined;
+    vi.mocked(importImage).mockReturnValue(
+      new Promise((resolve) => {
+        resolveImport = resolve;
+      }),
+    );
+    vi.mocked(openProject).mockResolvedValue(projectWithOneReviewCell);
+    render(<WorkbenchPage />);
+
+    await userEvent.upload(screen.getByLabelText("上传图纸"), patternFile);
+    await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
+    expect(await screen.findByText("上传图纸中")).toBeInTheDocument();
+
+    resolveImport(projectWithOneReviewCell);
+    expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
+    await userEvent.upload(
+      screen.getByLabelText("打开项目"),
+      new File(["saved"], "pattern.beadproject"),
+    );
+
+    expect(openProject).toHaveBeenCalled();
+    expect(screen.queryByRole("progressbar", { name: "识别进度" })).not.toBeInTheDocument();
+    expect(screen.queryByText("上传图纸中")).not.toBeInTheDocument();
+  });
 });

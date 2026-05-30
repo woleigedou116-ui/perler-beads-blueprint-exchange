@@ -168,6 +168,7 @@ export function WorkbenchPage() {
       setError(caught instanceof Error ? caught.message : "项目打开失败");
     } finally {
       setProcessing(false);
+      setRecognitionProgress(null);
     }
   }
 
