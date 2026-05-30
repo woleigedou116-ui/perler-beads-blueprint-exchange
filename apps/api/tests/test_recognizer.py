@@ -53,6 +53,70 @@ class InspectingOcr:
         return [[OcrCandidate(text="H7", normalized_code="H7", confidence=0.99)]]
 
 
+class PaletteWithoutNearestScan:
+    version = "no-nearest-scan"
+
+    def known_source_codes(self) -> set[str]:
+        return {"H7"}
+
+    def convert(
+        self,
+        code: str,
+        source_standard: str,
+        target_standard: str,
+    ) -> ConversionResult:
+        assert code == "H7"
+        assert source_standard == "MARD"
+        assert target_standard == "COCO"
+        return ConversionResult(
+            source_code="H7",
+            source_rgb=(14, 14, 14),
+            target_code="B09",
+            target_rgb=(14, 14, 14),
+            requires_review=False,
+        )
+
+    def all_mappings(self) -> list[ConversionResult]:
+        raise AssertionError("nearest color scan should not run for confirmed or empty cells")
+
+
+class CountingPalette:
+    version = "counting-palette"
+
+    def __init__(self) -> None:
+        self.all_mappings_calls = 0
+
+    def known_source_codes(self) -> set[str]:
+        return set()
+
+    def convert(
+        self,
+        code: str,
+        source_standard: str,
+        target_standard: str,
+    ) -> ConversionResult:
+        raise AssertionError("no OCR text should be converted in this test")
+
+    def all_mappings(self) -> list[ConversionResult]:
+        self.all_mappings_calls += 1
+        return [
+            ConversionResult(
+                source_code="H7",
+                source_rgb=(14, 14, 14),
+                target_code="B09",
+                target_rgb=(14, 14, 14),
+                requires_review=False,
+            ),
+            ConversionResult(
+                source_code="F14",
+                source_rgb=(247, 152, 158),
+                target_code="K07",
+                target_rgb=(247, 152, 158),
+                requires_review=False,
+            ),
+        ]
+
+
 def test_matching_ocr_and_color_confirms_cell() -> None:
     image = make_grid_with_cell_fill((14, 14, 14))
 
@@ -268,3 +332,39 @@ def test_ocr_image_is_used_only_for_ocr_crops() -> None:
     )
     assert project.grid.rows == 3
     assert project.grid.columns == 3
+
+
+def test_confirmed_and_empty_cells_skip_nearest_color_scan() -> None:
+    image = make_grid_with_cell_fill((14, 14, 14))
+
+    project = recognize_pattern(
+        image,
+        "已确认和空白格不扫全色表",
+        PaletteWithoutNearestScan(),
+        FirstCellOcr("H7"),
+    )
+
+    assert project.cells[0].status == CellStatus.confirmed
+    assert {cell.status for cell in project.cells[1:]} == {CellStatus.empty}
+
+
+def test_palette_mappings_are_loaded_once_for_color_suggestions() -> None:
+    image = make_grid_with_cell_fill(
+        (247, 152, 158),
+        filled_cells=[(0, 0), (0, 1), (1, 0), (1, 1)],
+    )
+    palette = CountingPalette()
+
+    project = recognize_pattern(
+        image,
+        "颜色建议复用色表",
+        palette,
+        FirstCellOcr(None),
+    )
+
+    assert palette.all_mappings_calls == 1
+    assert [
+        cell.detected_source_code
+        for cell in project.cells
+        if cell.status == CellStatus.review_required
+    ] == ["F14", "F14", "F14", "F14"]

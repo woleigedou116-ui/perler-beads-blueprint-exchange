@@ -1,5 +1,6 @@
 from uuid import uuid4
 
+import cv2
 import numpy as np
 from PIL import Image
 
@@ -25,27 +26,34 @@ COLOR_CLUSTER_DISTANCE = 6.0
 FUZZY_OCR_MAX_DISTANCE = 1
 OCR_COLOR_CONFLICT_REVIEW_CONFIDENCE = 0.85
 
+SourceColorCandidate = tuple[ConversionResult, np.ndarray]
+
+
+def _rgb_to_lab(rgb: tuple[int, int, int]) -> np.ndarray:
+    return cv2.cvtColor(np.asarray([[rgb]], dtype=np.uint8), cv2.COLOR_RGB2LAB).astype(
+        float
+    )[0, 0]
+
+
+def _rgb_model_to_lab(rgb: RGB) -> np.ndarray:
+    return _rgb_to_lab((rgb.r, rgb.g, rgb.b))
+
+
+def _lab_distance(left: np.ndarray, right: np.ndarray) -> float:
+    return float(np.linalg.norm(left - right))
+
 
 def _nearest_source_mapping(
-    sampled: RGB,
-    palette: PaletteRepository,
+    sampled_lab: np.ndarray,
+    candidates: list[SourceColorCandidate],
 ) -> tuple[ConversionResult | None, float]:
-    candidates = [
-        mapping for mapping in palette.all_mappings() if mapping.source_rgb is not None
-    ]
     if not candidates:
         return None, float("inf")
-    mapping = min(
+    mapping, mapping_lab = min(
         candidates,
-        key=lambda item: delta_e(
-            (sampled.r, sampled.g, sampled.b),
-            item.source_rgb or (0, 0, 0),
-        ),
+        key=lambda item: _lab_distance(sampled_lab, item[1]),
     )
-    distance = delta_e(
-        (sampled.r, sampled.g, sampled.b),
-        mapping.source_rgb or (0, 0, 0),
-    )
+    distance = _lab_distance(sampled_lab, mapping_lab)
     return mapping, distance
 
 
@@ -73,27 +81,23 @@ def _edit_distance(left: str, right: str) -> int:
 
 def _fuzzy_ocr_color_mapping(
     candidates: list[OcrCandidate],
-    sampled: RGB,
-    palette: PaletteRepository,
+    sampled_lab: np.ndarray,
+    mappings: list[SourceColorCandidate],
 ) -> tuple[ConversionResult | None, float]:
-    sampled_tuple = (sampled.r, sampled.g, sampled.b)
     ranked: list[tuple[int, float, str, ConversionResult]] = []
-    mappings = [
-        mapping
-        for mapping in palette.all_mappings()
-        if mapping.source_rgb is not None and mapping.target_code is not None
-    ]
     for candidate in candidates:
         raw_code = _normalized_ocr_text(candidate.text)
         if not raw_code:
             continue
-        for mapping in mappings:
+        for mapping, mapping_lab in mappings:
+            if mapping.target_code is None:
+                continue
             if raw_code[0] != mapping.source_code[0]:
                 continue
             text_distance = _edit_distance(raw_code, mapping.source_code)
             if text_distance > FUZZY_OCR_MAX_DISTANCE:
                 continue
-            color_distance = delta_e(sampled_tuple, mapping.source_rgb or (0, 0, 0))
+            color_distance = _lab_distance(sampled_lab, mapping_lab)
             ranked.append(
                 (text_distance, color_distance, mapping.source_code, mapping)
             )
@@ -209,12 +213,22 @@ def recognize_pattern(
     }
     cells: list[Cell] = []
     decisions: dict[str, MappingDecision] = {}
+    source_color_mappings: list[SourceColorCandidate] | None = None
+
+    def get_source_color_mappings() -> list[SourceColorCandidate]:
+        nonlocal source_color_mappings
+        if source_color_mappings is None:
+            source_color_mappings = [
+                (mapping, _rgb_to_lab(mapping.source_rgb))
+                for mapping in palette.all_mappings()
+                if mapping.source_rgb is not None
+            ]
+        return source_color_mappings
 
     for index, sampled in enumerate(sampled_colors):
         candidates = ocr_by_index.get(index, [])
         row, column = divmod(index, grid.columns)
         text_choice = _valid_ocr_candidate(candidates)
-        nearest, color_distance = _nearest_source_mapping(sampled, palette)
         if text_choice is None and (
             not may_contain_bead[index]
             or (
@@ -282,10 +296,16 @@ def recognize_pattern(
                 )
             continue
 
+        source_color_candidates = get_source_color_mappings()
+        sampled_lab = _rgb_model_to_lab(sampled)
+        nearest, color_distance = _nearest_source_mapping(
+            sampled_lab,
+            source_color_candidates,
+        )
         fuzzy, fuzzy_color_distance = _fuzzy_ocr_color_mapping(
             candidates,
-            sampled,
-            palette,
+            sampled_lab,
+            source_color_candidates,
         )
         if fuzzy and fuzzy_color_distance < COLOR_MATCH_STRONG:
             cells.append(

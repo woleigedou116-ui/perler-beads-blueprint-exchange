@@ -59,6 +59,8 @@ npm run build
 - Claude Code subagent prompts live in `.claude/agents/`.
 - If using Claude Code through DeepSeek, credentials and routing should remain in
   local environment/config files, not this repository.
+- For packaging/release builds, delegate the noisy build and zip verification to
+  a release packager agent using `docs/agent-workflow/release-packager-task.md`.
 
 ## Lessons To Preserve
 
