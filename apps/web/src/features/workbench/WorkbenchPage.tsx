@@ -206,9 +206,8 @@ export function WorkbenchPage() {
     if (!project || cell.status === "empty") {
       return;
     }
-    const previousProject = project;
     const updated = await markCellUnwanted(project.id, cell.row, cell.column);
-    applyProjectAfterUnwanted(previousProject, updated, cell);
+    applyProjectAfterUnwanted(updated, cell);
   }
 
   async function handleApplyRegionUnwanted() {
@@ -250,17 +249,13 @@ export function WorkbenchPage() {
   }
 
   function applyProjectAfterUnwanted(
-    previousProject: BeadProject,
     updatedProject: BeadProject,
     unwantedCell: Cell,
   ) {
-    const next = cellAfterDecision(previousProject, updatedProject, unwantedCell);
-    const fallbackCell = next.cell?.status === "empty"
-      ? nonEmptyFallbackCell(updatedProject, unwantedCell)
-      : next.cell;
+    const fallbackCell = nearestNonEmptyCell(updatedProject, unwantedCell);
     setProject(updatedProject);
     setSelectedCell(fallbackCell);
-    if (next.shouldLocate && fallbackCell) {
+    if (fallbackCell) {
       setFocusRequest({ cell: fallbackCell, nonce: Date.now() });
     }
   }
@@ -273,7 +268,7 @@ export function WorkbenchPage() {
     const fallbackCell =
       updatedSameCell?.status && updatedSameCell.status !== "empty"
         ? updatedSameCell
-        : firstNonEmptyCellOutsideRegion(updatedProject, bounds);
+        : nearestNonEmptyCell(updatedProject, bounds);
     setProject(updatedProject);
     setSelectedCell(fallbackCell);
     if (fallbackCell) {
@@ -313,33 +308,19 @@ export function WorkbenchPage() {
     );
   }
 
-  function nonEmptyFallbackCell(updatedProject: BeadProject, cell: Cell) {
-    const sortedCells = [...updatedProject.cells].sort(
-      (left, right) => left.row - right.row || left.column - right.column,
-    );
-    const currentIndex = sortedCells.findIndex(
-      (next) => next.row === cell.row && next.column === cell.column,
-    );
-    return (
-      sortedCells
-        .slice(Math.max(currentIndex, 0) + 1)
-        .find((next) => next.status !== "empty") ??
-      sortedCells
-        .slice(0, Math.max(currentIndex, 0))
-        .reverse()
-        .find((next) => next.status !== "empty") ??
-      null
-    );
-  }
-
-  function firstNonEmptyCellOutsideRegion(
+  function nearestNonEmptyCell(
     updatedProject: BeadProject,
-    bounds: CellRegionBounds,
+    origin: Cell | CellRegionBounds,
   ) {
     return (
       [...updatedProject.cells]
-        .sort((left, right) => left.row - right.row || left.column - right.column)
-        .find((cell) => cell.status !== "empty" && !cellInRegion(cell, bounds)) ?? null
+        .filter((cell) => cell.status !== "empty")
+        .sort(
+          (left, right) =>
+            distanceFromOrigin(left, origin) - distanceFromOrigin(right, origin) ||
+            left.row - right.row ||
+            left.column - right.column,
+        )[0] ?? null
     );
   }
 
@@ -488,4 +469,23 @@ function cellInRegion(cell: Cell, bounds: CellRegionBounds) {
     cell.column >= bounds.startColumn &&
     cell.column <= bounds.endColumn
   );
+}
+
+function distanceFromOrigin(cell: Cell, origin: Cell | CellRegionBounds) {
+  if ("row" in origin) {
+    return Math.hypot(cell.row - origin.row, cell.column - origin.column);
+  }
+  const rowDistance =
+    cell.row < origin.startRow
+      ? origin.startRow - cell.row
+      : cell.row > origin.endRow
+        ? cell.row - origin.endRow
+        : 0;
+  const columnDistance =
+    cell.column < origin.startColumn
+      ? origin.startColumn - cell.column
+      : cell.column > origin.endColumn
+        ? cell.column - origin.endColumn
+        : 0;
+  return Math.hypot(rowDistance, columnDistance);
 }

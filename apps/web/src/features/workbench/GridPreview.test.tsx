@@ -101,6 +101,47 @@ it("allows selecting confirmed cells from the uploaded source image", () => {
   expect(onSelectCell).toHaveBeenCalledWith(projectAfterMappingConfirmation.cells[1]);
 });
 
+it("allows selecting empty cells from the uploaded source image", () => {
+  const onSelectCell = vi.fn();
+  const projectWithEmptyCell = {
+    ...projectAfterMappingConfirmation,
+    cells: projectAfterMappingConfirmation.cells.map((cell, index) =>
+      index === 0
+        ? {
+            ...cell,
+            sampled_color: null,
+            detected_source_code: null,
+            confirmed_source_code: null,
+            target_code: null,
+            confidence: 0,
+            status: "empty" as const,
+          }
+        : cell,
+    ),
+  };
+  render(
+    <GridPreview
+      project={projectWithEmptyCell}
+      sourceImageUrl="blob:source-pattern"
+      target={false}
+      title="识别叠加视图"
+      onSelectCell={onSelectCell}
+    />,
+  );
+
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+  fireEvent.load(sourceImage);
+
+  const hitCells = screen.getByLabelText("原图格子选择层").querySelectorAll("rect");
+  expect(hitCells).toHaveLength(2);
+
+  fireEvent.click(hitCells[0]);
+
+  expect(onSelectCell).toHaveBeenCalledWith(projectWithEmptyCell.cells[0]);
+});
+
 it("uses contrasting stroked label colors for dark and light cells", () => {
   const { container } = render(
     <GridPreview

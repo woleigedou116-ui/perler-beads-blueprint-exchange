@@ -257,27 +257,25 @@ export function GridPreview({
                   className="source-hit-overlay"
                   viewBox={`0 0 ${sourceSize.width} ${sourceSize.height}`}
                 >
-                  {project.cells
-                    .filter((cell) => cell.status !== "empty")
-                    .map((cell) => (
-                      <rect
-                        key={`${cell.row}-${cell.column}`}
-                        data-cell-column={cell.column}
-                        data-cell-row={cell.row}
-                        className="source-hit-cell"
-                        x={project.grid.x_lines[cell.column]}
-                        y={project.grid.y_lines[cell.row]}
-                        width={
-                          project.grid.x_lines[cell.column + 1] -
-                          project.grid.x_lines[cell.column]
-                        }
-                        height={
-                          project.grid.y_lines[cell.row + 1] -
-                          project.grid.y_lines[cell.row]
-                        }
-                        onClick={() => onSelectCell(cell)}
-                      />
-                    ))}
+                  {project.cells.map((cell) => (
+                    <rect
+                      key={`${cell.row}-${cell.column}`}
+                      data-cell-column={cell.column}
+                      data-cell-row={cell.row}
+                      className="source-hit-cell"
+                      x={project.grid.x_lines[cell.column]}
+                      y={project.grid.y_lines[cell.row]}
+                      width={
+                        project.grid.x_lines[cell.column + 1] -
+                        project.grid.x_lines[cell.column]
+                      }
+                      height={
+                        project.grid.y_lines[cell.row + 1] -
+                        project.grid.y_lines[cell.row]
+                      }
+                      onClick={() => onSelectCell(cell)}
+                    />
+                  ))}
                 </svg>
               ) : null}
             </div>

@@ -148,6 +148,103 @@ const projectAfterMarkingFirstCellUnwanted: BeadProject = {
   ),
 };
 
+const sparseUnwantedProject: BeadProject = {
+  ...projectWithOneReviewCell,
+  grid: {
+    ...projectWithOneReviewCell.grid,
+    rows: 3,
+    columns: 4,
+    bounds: [0, 0, 128, 96],
+    x_lines: [0, 32, 64, 96, 128],
+    y_lines: [0, 32, 64, 96],
+  },
+  cells: Array.from({ length: 12 }, (_, index) => {
+    const row = Math.floor(index / 4);
+    const column = index % 4;
+    return {
+      ...projectWithOneReviewCell.cells[0],
+      row,
+      column,
+      detected_source_code: `A${index + 1}`,
+      target_code: `T${index + 1}`,
+    };
+  }),
+};
+
+const sparseAfterMarkingCenterUnwanted: BeadProject = {
+  ...sparseUnwantedProject,
+  cells: sparseUnwantedProject.cells.map((cell) =>
+    cell.row === 1 && cell.column === 1
+      ? {
+          ...cell,
+          sampled_color: null,
+          detected_source_code: null,
+          confirmed_source_code: null,
+          target_code: null,
+          confidence: 0,
+          status: "empty" as const,
+          issue_reasons: ["user-marked-unwanted"],
+        }
+      : cell.row === 1 && cell.column === 0
+        ? {
+            ...cell,
+            status: "confirmed" as const,
+            issue_reasons: [],
+          }
+        : cell.row === 2 && cell.column === 3
+          ? {
+              ...cell,
+              status: "review-required" as const,
+              issue_reasons: ["color-only-suggestion"],
+            }
+        : {
+            ...cell,
+            status: "empty" as const,
+            detected_source_code: null,
+            confirmed_source_code: null,
+            target_code: null,
+            issue_reasons: ["user-marked-unwanted"],
+          },
+  ),
+};
+
+const sparseAfterMarkingRegionUnwanted: BeadProject = {
+  ...sparseUnwantedProject,
+  cells: sparseUnwantedProject.cells.map((cell) =>
+    cell.row === 1 && cell.column === 1
+      ? {
+          ...cell,
+          sampled_color: null,
+          detected_source_code: null,
+          confirmed_source_code: null,
+          target_code: null,
+          confidence: 0,
+          status: "empty" as const,
+          issue_reasons: ["user-marked-unwanted"],
+        }
+      : cell.row === 0 && cell.column === 0
+        ? {
+            ...cell,
+            status: "confirmed" as const,
+            issue_reasons: [],
+          }
+        : cell.row === 1 && cell.column === 2
+          ? {
+              ...cell,
+              status: "confirmed" as const,
+              issue_reasons: [],
+            }
+          : {
+              ...cell,
+              status: "empty" as const,
+              detected_source_code: null,
+              confirmed_source_code: null,
+              target_code: null,
+              issue_reasons: ["user-marked-unwanted"],
+            },
+  ),
+};
+
 const projectWithRegionReviewCells: BeadProject = {
   ...projectWithOneReviewCell,
   grid: {
@@ -378,6 +475,18 @@ describe("WorkbenchPage", () => {
     expect(screen.getByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
   });
 
+  it("selects the nearest remaining bead after marking one cell as not a bead", async () => {
+    vi.mocked(markCellUnwanted).mockResolvedValue(sparseAfterMarkingCenterUnwanted);
+    await importPattern(sparseUnwantedProject);
+
+    const centerGroup = await screen.findByLabelText("MARD A6 到 COCO T6，涉及 1 格");
+    await userEvent.click(centerGroup);
+    await userEvent.click(screen.getByRole("button", { name: "标记为非拼豆" }));
+
+    expect(markCellUnwanted).toHaveBeenCalledWith("pattern-1", 1, 1);
+    expect(await screen.findByRole("heading", { name: "选中格 2, 1" })).toBeInTheDocument();
+  });
+
   it("selects, cancels, and applies a normalized unwanted grid-cell region", async () => {
     vi.mocked(markRegionUnwanted).mockResolvedValue(projectAfterMarkingRegionUnwanted);
     await importPattern(projectWithRegionReviewCells);
@@ -412,6 +521,23 @@ describe("WorkbenchPage", () => {
     expect(screen.queryByLabelText("MARD H7 到 COCO B09，涉及 4 格")).not.toBeInTheDocument();
     expect(screen.getByLabelText("MARD F14 到 COCO K07，涉及 2 格")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "COCO 重绘预览" })).not.toHaveTextContent("B09");
+  });
+
+  it("selects the nearest remaining bead after marking a region as not beads", async () => {
+    vi.mocked(markRegionUnwanted).mockResolvedValue(sparseAfterMarkingRegionUnwanted);
+    await importPattern(sparseUnwantedProject);
+
+    await userEvent.click(await screen.findByRole("button", { name: "框选非拼豆区域" }));
+
+    const targetCells = screen
+      .getByRole("img", { name: "COCO 重绘预览" })
+      .querySelectorAll<SVGGElement>("[data-cell-row][data-cell-column]");
+    fireEvent.click(targetCells[5]);
+    fireEvent.click(targetCells[5]);
+    await userEvent.click(screen.getByRole("button", { name: "应用框选区域" }));
+
+    expect(markRegionUnwanted).toHaveBeenCalledWith("pattern-1", 1, 1, 1, 1);
+    expect(await screen.findByRole("heading", { name: "选中格 2, 3" })).toBeInTheDocument();
   });
 
   it("keeps manual source-cell selection editable and visually focused", async () => {
