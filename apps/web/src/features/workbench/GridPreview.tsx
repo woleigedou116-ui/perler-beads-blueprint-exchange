@@ -27,6 +27,13 @@ export interface PreviewContentSize {
   height: number;
 }
 
+export interface CellRegionBounds {
+  startRow: number;
+  startColumn: number;
+  endRow: number;
+  endColumn: number;
+}
+
 interface GridPreviewProps {
   actions?: ReactNode;
   colorStats?: TargetColorStat[];
@@ -38,6 +45,7 @@ interface GridPreviewProps {
   showReviewOverlay?: boolean;
   showColorStats?: boolean;
   sourceImageUrl?: string | null;
+  selectedRegionBounds?: CellRegionBounds | null;
   transform?: PreviewTransform;
   dragging?: boolean;
   pannable?: boolean;
@@ -68,6 +76,16 @@ function labelStyle(rgb: { r: number; g: number; b: number } | null) {
   };
 }
 
+function cellInRegion(cell: Cell, bounds: CellRegionBounds | null) {
+  return (
+    bounds !== null &&
+    cell.row >= bounds.startRow &&
+    cell.row <= bounds.endRow &&
+    cell.column >= bounds.startColumn &&
+    cell.column <= bounds.endColumn
+  );
+}
+
 export function GridPreview({
   actions = null,
   colorStats = [],
@@ -76,6 +94,7 @@ export function GridPreview({
   onContentSizeChange,
   onSourceImageSizeChange,
   project,
+  selectedRegionBounds = null,
   showColorStats = false,
   showReviewOverlay = true,
   sourceImageUrl = null,
@@ -188,7 +207,7 @@ export function GridPreview({
                 onDragStart={(event) => event.preventDefault()}
                 onLoad={(event) => updateSourceSize(event.currentTarget)}
               />
-              {showReviewOverlay && sourceSize ? (
+              {(showReviewOverlay || selectedRegionBounds) && sourceSize ? (
                 <svg
                   aria-label="待复核标记叠加层"
                   className="source-review-overlay"
@@ -197,32 +216,39 @@ export function GridPreview({
                   {project.cells
                     .filter(
                       (cell) =>
-                        cell.status === "review-required" ||
-                        (focusedCell?.row === cell.row &&
+                        (showReviewOverlay && cell.status === "review-required") ||
+                        cellInRegion(cell, selectedRegionBounds) ||
+                        (showReviewOverlay &&
+                          focusedCell?.row === cell.row &&
                           focusedCell.column === cell.column),
                     )
-                    .map((cell) => (
-                      <rect
-                        key={`${cell.row}-${cell.column}`}
-                        className={[
-                          "review-overlay-cell",
-                          focusedCell?.row === cell.row &&
-                          focusedCell.column === cell.column
-                            ? "focused-cell"
-                            : "",
-                        ].filter(Boolean).join(" ")}
-                        x={project.grid.x_lines[cell.column]}
-                        y={project.grid.y_lines[cell.row]}
-                        width={
-                          project.grid.x_lines[cell.column + 1] -
-                          project.grid.x_lines[cell.column]
-                        }
-                        height={
-                          project.grid.y_lines[cell.row + 1] -
-                          project.grid.y_lines[cell.row]
-                        }
-                      />
-                    ))}
+                    .map((cell) => {
+                      const isFocused =
+                        focusedCell?.row === cell.row &&
+                        focusedCell.column === cell.column;
+                      return (
+                        <rect
+                          key={`${cell.row}-${cell.column}`}
+                          className={[
+                            "review-overlay-cell",
+                            cellInRegion(cell, selectedRegionBounds)
+                              ? "region-selected-cell"
+                              : "",
+                            isFocused ? "focused-cell" : "",
+                          ].filter(Boolean).join(" ")}
+                          x={project.grid.x_lines[cell.column]}
+                          y={project.grid.y_lines[cell.row]}
+                          width={
+                            project.grid.x_lines[cell.column + 1] -
+                            project.grid.x_lines[cell.column]
+                          }
+                          height={
+                            project.grid.y_lines[cell.row + 1] -
+                            project.grid.y_lines[cell.row]
+                          }
+                        />
+                      );
+                    })}
                 </svg>
               ) : null}
               {sourceSize ? (
@@ -285,6 +311,9 @@ export function GridPreview({
                       focusedCell?.row === cell.row &&
                       focusedCell.column === cell.column
                         ? "focused-cell"
+                        : "",
+                      cellInRegion(cell, selectedRegionBounds)
+                        ? "region-selected-cell"
                         : "",
                     ].filter(Boolean).join(" ")}
                     onClick={() => onSelectCell(cell)}

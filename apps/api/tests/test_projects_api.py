@@ -74,6 +74,114 @@ def test_correct_cell_records_user_edit(client, synthetic_png: bytes) -> None:
     assert "user-corrected" in cell["issue_reasons"]
 
 
+def test_mark_single_cell_unwanted_clears_recognized_bead(
+    client,
+    synthetic_png: bytes,
+) -> None:
+    created = client.post(
+        "/api/projects/import",
+        files={"image": ("pattern.png", synthetic_png, "image/png")},
+    ).json()
+
+    response = client.patch(
+        f"/api/projects/{created['id']}/cells/unwanted",
+        json={"row": 0, "column": 0},
+    )
+
+    cell = response.json()["cells"][0]
+    assert response.status_code == 200
+    assert cell["status"] == "empty"
+    assert cell["detected_source_code"] is None
+    assert cell["confirmed_source_code"] is None
+    assert cell["target_code"] is None
+    assert cell["confidence"] == 0
+    assert cell["ocr_candidates"] == []
+    assert "user-marked-unwanted" in cell["issue_reasons"]
+
+
+def test_mark_cell_range_unwanted_clears_all_cells_in_rectangle(
+    client,
+    synthetic_png: bytes,
+) -> None:
+    created = client.post(
+        "/api/projects/import",
+        files={"image": ("pattern.png", synthetic_png, "image/png")},
+    ).json()
+
+    response = client.patch(
+        f"/api/projects/{created['id']}/cells/unwanted",
+        json={
+            "start_row": 0,
+            "start_column": 0,
+            "end_row": 1,
+            "end_column": 1,
+        },
+    )
+
+    assert response.status_code == 200
+    cells = {
+        (cell["row"], cell["column"]): cell
+        for cell in response.json()["cells"]
+        if cell["row"] in {0, 1} and cell["column"] in {0, 1}
+    }
+    assert set(cells) == {(0, 0), (0, 1), (1, 0), (1, 1)}
+    assert all(cell["status"] == "empty" for cell in cells.values())
+    assert all(cell["detected_source_code"] is None for cell in cells.values())
+    assert all(cell["confirmed_source_code"] is None for cell in cells.values())
+    assert all(cell["target_code"] is None for cell in cells.values())
+    assert all(cell["confidence"] == 0 for cell in cells.values())
+    assert all(cell["ocr_candidates"] == [] for cell in cells.values())
+    assert all(
+        "user-marked-unwanted" in cell["issue_reasons"]
+        for cell in cells.values()
+    )
+
+
+def test_mark_unwanted_out_of_bounds_range_is_rejected(
+    client,
+    synthetic_png: bytes,
+) -> None:
+    created = client.post(
+        "/api/projects/import",
+        files={"image": ("pattern.png", synthetic_png, "image/png")},
+    ).json()
+
+    response = client.patch(
+        f"/api/projects/{created['id']}/cells/unwanted",
+        json={
+            "start_row": 0,
+            "start_column": 0,
+            "end_row": 3,
+            "end_column": 1,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_unwanted_cells_are_preserved_when_project_is_reopened(
+    client,
+    synthetic_png: bytes,
+) -> None:
+    created = client.post(
+        "/api/projects/import",
+        files={"image": ("pattern.png", synthetic_png, "image/png")},
+    ).json()
+    client.patch(
+        f"/api/projects/{created['id']}/cells/unwanted",
+        json={"row": 0, "column": 0},
+    )
+
+    response = client.get(f"/api/projects/{created['id']}")
+
+    cell = response.json()["cells"][0]
+    assert response.status_code == 200
+    assert cell["status"] == "empty"
+    assert cell["target_code"] is None
+    assert cell["ocr_candidates"] == []
+    assert "user-marked-unwanted" in cell["issue_reasons"]
+
+
 def test_source_attribution_can_be_saved(client, synthetic_png: bytes) -> None:
     created = client.post(
         "/api/projects/import",

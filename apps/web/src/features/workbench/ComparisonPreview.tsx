@@ -11,6 +11,7 @@ import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
 import { buildTargetColorStats, type ColorStatSort } from "./colorStats";
 import {
   GridPreview,
+  type CellRegionBounds,
   type PreviewContentSize,
   type PreviewTransform,
   type SourceImageSize,
@@ -27,6 +28,7 @@ interface ComparisonPreviewProps {
   fullscreen: boolean;
   project: BeadProject;
   paletteMappings?: PaletteMapping[];
+  selectedRegionBounds?: CellRegionBounds | null;
   sourceImageUrl: string | null;
   toolbarActions?: ReactNode;
   onFullscreenChange: (next: boolean) => void;
@@ -203,6 +205,7 @@ export function ComparisonPreview({
   fullscreen,
   paletteMappings = [],
   project,
+  selectedRegionBounds = null,
   sourceImageUrl,
   toolbarActions = null,
   onFullscreenChange,
@@ -493,6 +496,7 @@ export function ComparisonPreview({
             setContentSizes((current) => ({ ...current, source: size }))
           }
           project={project}
+          selectedRegionBounds={selectedRegionBounds}
           showReviewOverlay={showReviewOverlay}
           sourceImageUrl={sourceImageUrl}
           target={false}
@@ -514,6 +518,7 @@ export function ComparisonPreview({
             setContentSizes((current) => ({ ...current, target: size }))
           }
           project={project}
+          selectedRegionBounds={selectedRegionBounds}
           showColorStats={showColorStats}
           showReviewOverlay={showTargetReviewOverlay}
           target

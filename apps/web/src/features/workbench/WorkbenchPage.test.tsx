@@ -8,6 +8,8 @@ import {
   exportUrl,
   getPalette,
   importImage,
+  markCellUnwanted,
+  markRegionUnwanted,
   openProject,
 } from "../../api/client";
 import { saveExport } from "../../api/exports";
@@ -24,6 +26,8 @@ vi.mock("../../api/client", () => ({
   exportUrl: vi.fn(() => "/download"),
   getPalette: vi.fn(),
   importImage: vi.fn(),
+  markCellUnwanted: vi.fn(),
+  markRegionUnwanted: vi.fn(),
   openProject: vi.fn(),
   saveAttribution: vi.fn(),
 }));
@@ -121,6 +125,65 @@ function projectAfterCorrectingCell(column: number, sourceCode: string, targetCo
     ),
   };
 }
+
+const projectAfterMarkingFirstCellUnwanted: BeadProject = {
+  ...projectWithOneReviewCell,
+  cells: projectWithOneReviewCell.cells.map((cell) =>
+    cell.row === 0 && cell.column === 0
+      ? {
+          ...cell,
+          sampled_color: null,
+          detected_source_code: null,
+          confirmed_source_code: null,
+          target_code: null,
+          confidence: 0,
+          status: "empty" as const,
+          issue_reasons: [],
+        }
+      : cell,
+  ),
+};
+
+const projectWithRegionReviewCells: BeadProject = {
+  ...projectWithOneReviewCell,
+  grid: {
+    ...projectWithOneReviewCell.grid,
+    rows: 2,
+    columns: 3,
+    bounds: [0, 0, 96, 64],
+    x_lines: [0, 32, 64, 96],
+    y_lines: [0, 32, 64],
+  },
+  cells: Array.from({ length: 6 }, (_, index) => {
+    const row = Math.floor(index / 3);
+    const column = index % 3;
+    return {
+      ...projectWithOneReviewCell.cells[0],
+      row,
+      column,
+      detected_source_code: column === 2 ? "F14" : "H7",
+      target_code: column === 2 ? "K07" : "B09",
+    };
+  }),
+};
+
+const projectAfterMarkingRegionUnwanted: BeadProject = {
+  ...projectWithRegionReviewCells,
+  cells: projectWithRegionReviewCells.cells.map((cell) =>
+    cell.row <= 1 && cell.column <= 1
+      ? {
+          ...cell,
+          sampled_color: null,
+          detected_source_code: null,
+          confirmed_source_code: null,
+          target_code: null,
+          confidence: 0,
+          status: "empty" as const,
+          issue_reasons: [],
+        }
+      : cell,
+  ),
+};
 
 describe("WorkbenchPage", () => {
   afterEach(() => {
@@ -296,6 +359,55 @@ describe("WorkbenchPage", () => {
     expect(screen.queryByRole("heading", { name: "选中格 1, 3" })).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "COCO 重绘预览" })).toHaveTextContent("K07");
     expect(screen.getByLabelText("目标色号")).toHaveValue("K07");
+  });
+
+  it("marks the selected review cell as not a bead and removes it from review and redraw", async () => {
+    vi.mocked(markCellUnwanted).mockResolvedValue(projectAfterMarkingFirstCellUnwanted);
+    await importPattern();
+
+    await userEvent.click(await screen.findByRole("button", { name: "标记为非拼豆" }));
+
+    expect(markCellUnwanted).toHaveBeenCalledWith("pattern-1", 0, 0);
+    expect(await screen.findByText("待确认 0 格 / 0 组")).toBeInTheDocument();
+    expect(screen.queryByLabelText("MARD H7 到 COCO B09，涉及 1 格")).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "COCO 重绘预览" })).not.toHaveTextContent("B09");
+    expect(screen.getByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
+  });
+
+  it("selects, cancels, and applies a normalized unwanted grid-cell region", async () => {
+    vi.mocked(markRegionUnwanted).mockResolvedValue(projectAfterMarkingRegionUnwanted);
+    await importPattern(projectWithRegionReviewCells);
+
+    await userEvent.click(await screen.findByRole("button", { name: "框选非拼豆区域" }));
+
+    const targetCells = screen
+      .getByRole("img", { name: "COCO 重绘预览" })
+      .querySelectorAll<SVGGElement>("[data-cell-row][data-cell-column]");
+    fireEvent.click(targetCells[4]);
+    fireEvent.click(targetCells[0]);
+
+    expect(screen.getByText("已选择 1, 1 到 2, 2")).toBeInTheDocument();
+    expect(
+      screen
+        .getByRole("img", { name: "COCO 重绘预览" })
+        .querySelectorAll(".region-selected-cell"),
+    ).toHaveLength(4);
+
+    await userEvent.click(screen.getByRole("button", { name: "取消框选" }));
+
+    expect(markRegionUnwanted).not.toHaveBeenCalled();
+    expect(document.querySelectorAll(".region-selected-cell")).toHaveLength(0);
+
+    await userEvent.click(screen.getByRole("button", { name: "框选非拼豆区域" }));
+    fireEvent.click(targetCells[4]);
+    fireEvent.click(targetCells[0]);
+    await userEvent.click(screen.getByRole("button", { name: "应用框选区域" }));
+
+    expect(markRegionUnwanted).toHaveBeenCalledWith("pattern-1", 0, 0, 1, 1);
+    expect(await screen.findByText("待确认 2 格 / 1 组")).toBeInTheDocument();
+    expect(screen.queryByLabelText("MARD H7 到 COCO B09，涉及 4 格")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("MARD F14 到 COCO K07，涉及 2 格")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "COCO 重绘预览" })).not.toHaveTextContent("B09");
   });
 
   it("keeps manual source-cell selection editable and visually focused", async () => {

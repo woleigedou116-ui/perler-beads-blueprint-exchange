@@ -255,3 +255,26 @@ it("can hide review overlay markers while keeping the source image visible", () 
   expect(screen.getByAltText("上传原图")).toHaveAttribute("src", "blob:source-pattern");
   expect(screen.queryByLabelText("待复核标记叠加层")).not.toBeInTheDocument();
 });
+
+it("keeps source region selection visible when review overlay markers are hidden", () => {
+  render(
+    <GridPreview
+      project={projectWithOneReviewCell}
+      sourceImageUrl="blob:source-pattern"
+      selectedRegionBounds={{ startRow: 0, startColumn: 0, endRow: 0, endColumn: 0 }}
+      showReviewOverlay={false}
+      target={false}
+      title="识别叠加视图"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+  fireEvent.load(sourceImage);
+
+  const overlay = screen.getByLabelText("待复核标记叠加层");
+  const selectedCells = overlay.querySelectorAll(".region-selected-cell");
+  expect(selectedCells).toHaveLength(1);
+});

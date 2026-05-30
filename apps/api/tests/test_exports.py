@@ -15,6 +15,7 @@ from bead_converter.exports.csv_export import export_mapping_csv
 from bead_converter.exports.image_export import (
     CELL_SIZE,
     PADDING,
+    STAT_LINE_HEIGHT,
     render_clean_pattern,
     render_overlay_pattern,
 )
@@ -72,12 +73,34 @@ def confirmed_project() -> BeadProject:
     )
 
 
+def project_with_unwanted_cell() -> BeadProject:
+    project = confirmed_project()
+    unwanted = project.cells[1]
+    unwanted.status = CellStatus.empty
+    unwanted.detected_source_code = None
+    unwanted.confirmed_source_code = None
+    unwanted.target_code = None
+    unwanted.confidence = 0
+    unwanted.ocr_candidates = []
+    unwanted.issue_reasons.append("user-marked-unwanted")
+    return project
+
+
 def test_csv_export_summarizes_target_bead_counts() -> None:
     data = export_mapping_csv(confirmed_project()).decode("utf-8-sig")
 
     assert "来源色号,目标色号,数量,确认状态" in data
     assert "H7,B09,1,confirmed" in data
     assert "F14,K07,1,confirmed" in data
+
+
+def test_csv_export_excludes_unwanted_cells_from_counts() -> None:
+    data = export_mapping_csv(project_with_unwanted_cell()).decode("utf-8-sig")
+
+    assert "H7,B09,1,confirmed" in data
+    assert "F14" not in data
+    assert "K07" not in data
+    assert "user-marked-unwanted" not in data
 
 
 def test_clean_and_overlay_exports_render_images() -> None:
@@ -91,6 +114,49 @@ def test_clean_and_overlay_exports_render_images() -> None:
 
     assert clean.size[0] > 0
     assert overlay.getpixel((45, 15)) != (255, 255, 255)
+
+
+def test_clean_and_overlay_exports_do_not_render_unwanted_as_bead_cells() -> None:
+    project = project_with_unwanted_cell()
+    project.cells[0].status = CellStatus.review_required
+
+    clean = render_clean_pattern(
+        project,
+        PaletteRepository.load_default(),
+        include_color_stats=False,
+    )
+    overlay = render_overlay_pattern(
+        project,
+        Image.new("RGB", (60, 30), "white"),
+    )
+
+    assert clean.getpixel((PADDING + CELL_SIZE + CELL_SIZE // 2, PADDING + CELL_SIZE // 2)) == (
+        255,
+        255,
+        255,
+    )
+    assert overlay.getpixel((15, 15)) != (255, 255, 255)
+    assert overlay.getpixel((45, 15)) == (255, 255, 255)
+
+
+def test_color_statistics_exclude_unwanted_cells() -> None:
+    project = project_with_unwanted_cell()
+    expected_one_color_stats_height = PADDING * 2 + STAT_LINE_HEIGHT * 2
+
+    clean = render_clean_pattern(
+        project,
+        PaletteRepository.load_default(),
+        include_color_stats=True,
+    )
+    overlay = render_overlay_pattern(
+        project,
+        Image.new("RGB", (60, 30), "white"),
+        PaletteRepository.load_default(),
+        include_color_stats=True,
+    )
+
+    assert clean.height == expected_one_color_stats_height
+    assert overlay.height == expected_one_color_stats_height
 
 
 def test_clean_export_can_hide_color_statistics() -> None:
@@ -203,6 +269,26 @@ def test_beadproject_archive_reopens_with_source_image(tmp_path: Path) -> None:
     ).read_bytes() == b"source-bytes"
 
 
+def test_beadproject_archive_preserves_unwanted_cells(tmp_path: Path) -> None:
+    store = ProjectStore(tmp_path / "original")
+    project = project_with_unwanted_cell()
+    store.save(project)
+    store.save_source_image(project.id, "source.png", b"source-bytes")
+
+    archive = store.export_archive(project.id)
+    restored_store = ProjectStore(tmp_path / "restored")
+    restored = restored_store.import_archive(archive)
+
+    unwanted = restored.cells[1]
+    assert unwanted.status == CellStatus.empty
+    assert unwanted.detected_source_code is None
+    assert unwanted.confirmed_source_code is None
+    assert unwanted.target_code is None
+    assert unwanted.confidence == 0
+    assert unwanted.ocr_candidates == []
+    assert "user-marked-unwanted" in unwanted.issue_reasons
+
+
 def test_beadproject_archive_rejects_unknown_format_version(tmp_path: Path) -> None:
     project = confirmed_project()
     project.format_version = 2
@@ -259,6 +345,18 @@ def test_export_endpoints_download_results(client, synthetic_png: bytes) -> None
 
 def test_export_warns_when_review_required_cells_remain(client) -> None:
     project = confirmed_project()
+    project.cells[0].status = CellStatus.review_required
+    client.app.state.store.save(project)
+    client.app.state.store.save_source_image(project.id, "source.png", b"source")
+
+    response = client.get(f"/api/projects/{project.id}/exports/mapping.csv")
+
+    assert response.status_code == 200
+    assert response.headers["X-Bead-Warnings"] == "1"
+
+
+def test_export_warning_count_excludes_unwanted_cells(client) -> None:
+    project = project_with_unwanted_cell()
     project.cells[0].status = CellStatus.review_required
     client.app.state.store.save(project)
     client.app.state.store.save_source_image(project.id, "source.png", b"source")

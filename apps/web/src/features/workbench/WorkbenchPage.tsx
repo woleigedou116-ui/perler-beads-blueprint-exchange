@@ -6,6 +6,8 @@ import {
   exportUrl,
   getPalette,
   importImage,
+  markCellUnwanted,
+  markRegionUnwanted,
   openProject,
   saveAttribution,
 } from "../../api/client";
@@ -18,10 +20,12 @@ import { ExportActions } from "./ExportActions";
 import { PaletteReference } from "./PaletteReference";
 import { ReviewPanel } from "./ReviewPanel";
 import { buildReviewGroups, reviewGroupKey } from "./reviewGroups";
+import type { CellRegionBounds } from "./GridPreview";
 
 type ExportKind = "clean.png" | "overlay.png" | "mapping.csv" | "project.beadproject";
 type ExportOptions = { includeColorStats?: boolean };
 type RecognitionProgress = { label: string; value: number };
+type RegionSelection = { start: Cell | null; end: Cell | null };
 
 const RECOGNITION_STAGES: RecognitionProgress[] = [
   { label: "上传图纸中", value: 12 },
@@ -49,6 +53,7 @@ export function WorkbenchPage() {
     useState<RecognitionProgress | null>(null);
   const [isReviewFullscreen, setIsReviewFullscreen] = useState(false);
   const [autoLocateAfterDecision, setAutoLocateAfterDecision] = useState(true);
+  const [regionSelection, setRegionSelection] = useState<RegionSelection | null>(null);
   const [colorStatSort, setColorStatSort] = useState<ColorStatSort>(
     DEFAULT_COLOR_STAT_SORT,
   );
@@ -111,6 +116,19 @@ export function WorkbenchPage() {
     () => project?.cells.filter((cell) => cell.status === "review-required").length ?? 0,
     [project],
   );
+  const selectedRegionBounds = useMemo(
+    () =>
+      regionSelection?.start
+        ? normalizeRegionBounds(
+            regionSelection.start,
+            regionSelection.end ?? regionSelection.start,
+          )
+        : null,
+    [regionSelection],
+  );
+  const regionSelectionLabel = selectedRegionBounds
+    ? `已选择 ${selectedRegionBounds.startRow + 1}, ${selectedRegionBounds.startColumn + 1} 到 ${selectedRegionBounds.endRow + 1}, ${selectedRegionBounds.endColumn + 1}`
+    : null;
 
   async function handleImport() {
     if (!file) {
@@ -138,6 +156,7 @@ export function WorkbenchPage() {
         opened.cells[0] ??
         null,
     );
+    setRegionSelection(null);
   }
 
   async function handleOpenProject(archive: File) {
@@ -179,6 +198,31 @@ export function WorkbenchPage() {
     applyProjectAfterCorrection(updated, cell);
   }
 
+  async function handleMarkCellUnwanted(cell: Cell) {
+    if (!project || cell.status === "empty") {
+      return;
+    }
+    const previousProject = project;
+    const updated = await markCellUnwanted(project.id, cell.row, cell.column);
+    applyProjectAfterUnwanted(previousProject, updated, cell);
+  }
+
+  async function handleApplyRegionUnwanted() {
+    if (!project || !regionSelection?.start || !regionSelection.end) {
+      return;
+    }
+    const bounds = normalizeRegionBounds(regionSelection.start, regionSelection.end);
+    const updated = await markRegionUnwanted(
+      project.id,
+      bounds.startRow,
+      bounds.startColumn,
+      bounds.endRow,
+      bounds.endColumn,
+    );
+    applyProjectAfterRegionUnwanted(updated, bounds);
+    setRegionSelection(null);
+  }
+
   function applyProjectAfterDecision(
     previousProject: BeadProject,
     updatedProject: BeadProject,
@@ -201,9 +245,60 @@ export function WorkbenchPage() {
     }
   }
 
+  function applyProjectAfterUnwanted(
+    previousProject: BeadProject,
+    updatedProject: BeadProject,
+    unwantedCell: Cell,
+  ) {
+    const next = cellAfterDecision(previousProject, updatedProject, unwantedCell);
+    const fallbackCell = next.cell?.status === "empty"
+      ? nonEmptyFallbackCell(updatedProject, unwantedCell)
+      : next.cell;
+    setProject(updatedProject);
+    setSelectedCell(fallbackCell);
+    if (next.shouldLocate && fallbackCell) {
+      setFocusRequest({ cell: fallbackCell, nonce: Date.now() });
+    }
+  }
+
+  function applyProjectAfterRegionUnwanted(
+    updatedProject: BeadProject,
+    bounds: CellRegionBounds,
+  ) {
+    const updatedSameCell = selectedCell ? findUpdatedCell(updatedProject, selectedCell) : null;
+    const fallbackCell =
+      updatedSameCell?.status && updatedSameCell.status !== "empty"
+        ? updatedSameCell
+        : firstNonEmptyCellOutsideRegion(updatedProject, bounds);
+    setProject(updatedProject);
+    setSelectedCell(fallbackCell);
+    if (fallbackCell) {
+      setFocusRequest({ cell: fallbackCell, nonce: Date.now() });
+    }
+  }
+
   function handleSelectCell(cell: Cell) {
+    if (regionSelection !== null) {
+      setRegionSelection((current) => {
+        if (!current) {
+          return current;
+        }
+        if (!current.start || current.end) {
+          return { start: cell, end: null };
+        }
+        return { start: current.start, end: cell };
+      });
+    }
     setSelectedCell(cell);
     setFocusRequest({ cell, nonce: Date.now() });
+  }
+
+  function handleStartRegionUnwanted() {
+    setRegionSelection({ start: null, end: null });
+  }
+
+  function handleCancelRegionUnwanted() {
+    setRegionSelection(null);
   }
 
   function findUpdatedCell(updatedProject: BeadProject, cell: Cell) {
@@ -211,6 +306,36 @@ export function WorkbenchPage() {
       updatedProject.cells.find(
         (next) => next.row === cell.row && next.column === cell.column,
       ) ?? null
+    );
+  }
+
+  function nonEmptyFallbackCell(updatedProject: BeadProject, cell: Cell) {
+    const sortedCells = [...updatedProject.cells].sort(
+      (left, right) => left.row - right.row || left.column - right.column,
+    );
+    const currentIndex = sortedCells.findIndex(
+      (next) => next.row === cell.row && next.column === cell.column,
+    );
+    return (
+      sortedCells
+        .slice(Math.max(currentIndex, 0) + 1)
+        .find((next) => next.status !== "empty") ??
+      sortedCells
+        .slice(0, Math.max(currentIndex, 0))
+        .reverse()
+        .find((next) => next.status !== "empty") ??
+      null
+    );
+  }
+
+  function firstNonEmptyCellOutsideRegion(
+    updatedProject: BeadProject,
+    bounds: CellRegionBounds,
+  ) {
+    return (
+      [...updatedProject.cells]
+        .sort((left, right) => left.row - right.row || left.column - right.column)
+        .find((cell) => cell.status !== "empty" && !cellInRegion(cell, bounds)) ?? null
     );
   }
 
@@ -296,6 +421,7 @@ export function WorkbenchPage() {
               fullscreen={isReviewFullscreen}
               paletteMappings={paletteMappings}
               project={project}
+              selectedRegionBounds={selectedRegionBounds}
               sourceImageUrl={previewUrl}
               toolbarActions={<ExportActions onExport={handleExport} />}
               onFullscreenChange={setIsReviewFullscreen}
@@ -316,12 +442,19 @@ export function WorkbenchPage() {
           colorStatSort={colorStatSort}
           paletteMappings={paletteMappings}
           project={project}
+          regionSelectionActive={regionSelection !== null}
+          regionSelectionComplete={Boolean(regionSelection?.start && regionSelection.end)}
+          regionSelectionLabel={regionSelectionLabel}
           selectedCell={selectedCell}
           onAutoLocateAfterDecisionChange={setAutoLocateAfterDecision}
+          onApplyRegionUnwanted={handleApplyRegionUnwanted}
+          onCancelRegionUnwanted={handleCancelRegionUnwanted}
           onColorStatSortChange={setColorStatSort}
           onConfirmMapping={handleConfirmMapping}
           onCorrectCell={handleCorrectCell}
           onLocateCell={(cell) => setFocusRequest({ cell, nonce: Date.now() })}
+          onMarkCellUnwanted={handleMarkCellUnwanted}
+          onStartRegionUnwanted={handleStartRegionUnwanted}
           onSelectCell={handleSelectCell}
         />
       ) : (
@@ -331,5 +464,23 @@ export function WorkbenchPage() {
         </aside>
       )}
     </div>
+  );
+}
+
+function normalizeRegionBounds(start: Cell, end: Cell): CellRegionBounds {
+  return {
+    startRow: Math.min(start.row, end.row),
+    startColumn: Math.min(start.column, end.column),
+    endRow: Math.max(start.row, end.row),
+    endColumn: Math.max(start.column, end.column),
+  };
+}
+
+function cellInRegion(cell: Cell, bounds: CellRegionBounds) {
+  return (
+    cell.row >= bounds.startRow &&
+    cell.row <= bounds.endRow &&
+    cell.column >= bounds.startColumn &&
+    cell.column <= bounds.endColumn
   );
 }

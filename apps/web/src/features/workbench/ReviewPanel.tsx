@@ -9,12 +9,19 @@ interface ReviewPanelProps {
   colorStatSort?: ColorStatSort;
   paletteMappings?: PaletteMapping[];
   project: BeadProject;
+  regionSelectionActive?: boolean;
+  regionSelectionComplete?: boolean;
+  regionSelectionLabel?: string | null;
   selectedCell: Cell | null;
   onAutoLocateAfterDecisionChange: (enabled: boolean) => void;
+  onApplyRegionUnwanted?: () => void;
+  onCancelRegionUnwanted?: () => void;
   onColorStatSortChange?: (sort: ColorStatSort) => void;
   onConfirmMapping: (cell: Cell) => void;
   onCorrectCell: (cell: Cell, sourceCode: string, targetCode: string) => void;
   onLocateCell?: (cell: Cell) => void;
+  onMarkCellUnwanted?: (cell: Cell) => void;
+  onStartRegionUnwanted?: () => void;
   onSelectCell: (cell: Cell) => void;
 }
 
@@ -32,12 +39,19 @@ export function ReviewPanel({
   colorStatSort = DEFAULT_COLOR_STAT_SORT,
   paletteMappings = [],
   project,
+  regionSelectionActive = false,
+  regionSelectionComplete = false,
+  regionSelectionLabel = null,
   selectedCell,
   onAutoLocateAfterDecisionChange,
+  onApplyRegionUnwanted = () => undefined,
+  onCancelRegionUnwanted = () => undefined,
   onColorStatSortChange = () => undefined,
   onConfirmMapping,
   onCorrectCell,
   onLocateCell,
+  onMarkCellUnwanted = () => undefined,
+  onStartRegionUnwanted = () => undefined,
   onSelectCell,
 }: ReviewPanelProps) {
   const reviewCells = project.cells.filter((cell) => cell.status === "review-required");
@@ -149,6 +163,11 @@ export function ReviewPanel({
         <h2>校对</h2>
         <div className="review-heading-actions">
           <strong>待确认 {reviewCells.length} 格 / {reviewGroups.length} 组</strong>
+          {!regionSelectionActive ? (
+            <button type="button" onClick={onStartRegionUnwanted}>
+              框选非拼豆区域
+            </button>
+          ) : null}
           <div className="review-settings-anchor" ref={settingsRef}>
             <button
               type="button"
@@ -241,6 +260,23 @@ export function ReviewPanel({
           </div>
         </div>
       </div>
+      {regionSelectionActive ? (
+        <div className="region-mode-panel" aria-label="框选非拼豆区域">
+          <p>{regionSelectionLabel ?? "选择起点格，再选择终点格"}</p>
+          <div className="review-actions">
+            <button type="button" onClick={onCancelRegionUnwanted}>
+              取消框选
+            </button>
+            <button
+              disabled={!regionSelectionComplete}
+              type="button"
+              onClick={onApplyRegionUnwanted}
+            >
+              应用框选区域
+            </button>
+          </div>
+        </div>
+      ) : null}
       <div className="review-list">
         {reviewGroups.map((group) => {
           const representative = group.cells[0];
@@ -370,6 +406,14 @@ export function ReviewPanel({
           <button disabled={!sourceCode.trim() || !targetCode.trim()} type="submit">
             修正选中格
           </button>
+          {selectedCell.status !== "empty" ? (
+            <button
+              type="button"
+              onClick={() => onMarkCellUnwanted(selectedCell)}
+            >
+              标记为非拼豆
+            </button>
+          ) : null}
         </form>
       ) : null}
     </aside>

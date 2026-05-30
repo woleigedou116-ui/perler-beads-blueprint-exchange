@@ -420,6 +420,13 @@ p {
   stroke-width: 5;
 }
 
+.source-review-overlay .review-overlay-cell.region-selected-cell {
+  fill: rgba(186, 49, 75, 0.25);
+  stroke: #ba314b;
+  stroke-dasharray: 7 4;
+  stroke-width: 5;
+}
+
 .source-hit-overlay {
   height: 100%;
   inset: 0;
@@ -449,6 +456,12 @@ p {
 
 .grid-preview .focused-cell rect {
   stroke: #087f78;
+  stroke-width: 5;
+}
+
+.grid-preview .region-selected-cell rect {
+  stroke: #ba314b;
+  stroke-dasharray: 7 4;
   stroke-width: 5;
 }
 
@@ -519,6 +532,21 @@ p {
 .review-list {
   overflow-y: auto;
   padding-right: 0.2rem;
+}
+
+.region-mode-panel {
+  background: #fff4f5;
+  border: 1px solid #efc2ca;
+  border-radius: 8px;
+  margin: 0.75rem 0;
+  padding: 0.65rem;
+}
+
+.region-mode-panel p {
+  color: #8a2e3f;
+  font-size: 0.86rem;
+  font-weight: 600;
+  margin: 0 0 0.55rem;
 }
 
 .review-list article {

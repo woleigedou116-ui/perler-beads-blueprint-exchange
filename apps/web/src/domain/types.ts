@@ -40,6 +40,18 @@ export interface MappingDecision {
   confidence: number;
 }
 
+export interface MarkCellUnwantedRequest {
+  row: number;
+  column: number;
+}
+
+export interface MarkRegionUnwantedRequest {
+  start_row: number;
+  start_column: number;
+  end_row: number;
+  end_column: number;
+}
+
 export interface BeadProject {
   id: string;
   name: string;

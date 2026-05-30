@@ -25,6 +25,15 @@ class CellUpdate(BaseModel):
     target_code: str
 
 
+class UnwantedCellsUpdate(BaseModel):
+    row: int | None = None
+    column: int | None = None
+    start_row: int | None = None
+    start_column: int | None = None
+    end_row: int | None = None
+    end_column: int | None = None
+
+
 class AttributionUpdate(BaseModel):
     source_attribution: str
 
@@ -56,6 +65,40 @@ def _export_response(
             "X-Bead-Warnings": str(unresolved),
         },
     )
+
+
+def _unwanted_bounds(update: UnwantedCellsUpdate) -> tuple[int, int, int, int]:
+    single_cell_fields = (update.row, update.column)
+    range_fields = (
+        update.start_row,
+        update.start_column,
+        update.end_row,
+        update.end_column,
+    )
+    if all(value is not None for value in single_cell_fields) and all(
+        value is None for value in range_fields
+    ):
+        row = update.row
+        column = update.column
+        assert row is not None and column is not None
+        return row, column, row, column
+    if all(value is not None for value in range_fields) and all(
+        value is None for value in single_cell_fields
+    ):
+        start_row = update.start_row
+        start_column = update.start_column
+        end_row = update.end_row
+        end_column = update.end_column
+        assert (
+            start_row is not None
+            and start_column is not None
+            and end_row is not None
+            and end_column is not None
+        )
+        if start_row > end_row or start_column > end_column:
+            raise HTTPException(status_code=422, detail="无效的格子范围")
+        return start_row, start_column, end_row, end_column
+    raise HTTPException(status_code=422, detail="请提供单个格子或矩形范围")
 
 
 @router.post("/import", response_model=BeadProject, status_code=status.HTTP_201_CREATED)
@@ -133,6 +176,45 @@ def confirm_mapping(
             cell.status = CellStatus.confirmed
             if "user-confirmed-mapping" not in cell.issue_reasons:
                 cell.issue_reasons.append("user-confirmed-mapping")
+    request.app.state.store.save(project)
+    return project
+
+
+@router.patch("/{project_id}/cells/unwanted", response_model=BeadProject)
+def mark_unwanted_cells(
+    request: Request,
+    project_id: str,
+    update: UnwantedCellsUpdate,
+) -> BeadProject:
+    project = _project(request, project_id)
+    start_row, start_column, end_row, end_column = _unwanted_bounds(update)
+    if (
+        start_row < 0
+        or start_column < 0
+        or end_row >= project.grid.rows
+        or end_column >= project.grid.columns
+    ):
+        raise HTTPException(status_code=422, detail="格子范围超出图纸")
+
+    cells_by_position = {(cell.row, cell.column): cell for cell in project.cells}
+    selected_positions = [
+        (row, column)
+        for row in range(start_row, end_row + 1)
+        for column in range(start_column, end_column + 1)
+    ]
+    if any(position not in cells_by_position for position in selected_positions):
+        raise HTTPException(status_code=404, detail="格子不存在")
+
+    for position in selected_positions:
+        cell = cells_by_position[position]
+        cell.status = CellStatus.empty
+        cell.detected_source_code = None
+        cell.confirmed_source_code = None
+        cell.target_code = None
+        cell.confidence = 0
+        cell.ocr_candidates = []
+        if "user-marked-unwanted" not in cell.issue_reasons:
+            cell.issue_reasons.append("user-marked-unwanted")
     request.app.state.store.save(project)
     return project
 

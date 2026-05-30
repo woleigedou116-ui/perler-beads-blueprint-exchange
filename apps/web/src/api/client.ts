@@ -1,4 +1,10 @@
-import type { BeadProject, PaletteMapping, RGB } from "../domain/types";
+import type {
+  BeadProject,
+  MarkCellUnwantedRequest,
+  MarkRegionUnwantedRequest,
+  PaletteMapping,
+  RGB,
+} from "../domain/types";
 
 export interface PaletteResponse {
   version: string;
@@ -105,6 +111,43 @@ export async function correctCell(
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ source_code: sourceCode, target_code: targetCode }),
+    }),
+  );
+}
+
+export async function markCellUnwanted(
+  projectId: string,
+  row: number,
+  column: number,
+): Promise<BeadProject> {
+  const payload: MarkCellUnwantedRequest = { row, column };
+  return projectResponse(
+    await fetch(`/api/projects/${projectId}/cells/unwanted`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }),
+  );
+}
+
+export async function markRegionUnwanted(
+  projectId: string,
+  startRow: number,
+  startColumn: number,
+  endRow: number,
+  endColumn: number,
+): Promise<BeadProject> {
+  const payload: MarkRegionUnwantedRequest = {
+    start_row: startRow,
+    start_column: startColumn,
+    end_row: endRow,
+    end_column: endColumn,
+  };
+  return projectResponse(
+    await fetch(`/api/projects/${projectId}/cells/unwanted`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
     }),
   );
 }
