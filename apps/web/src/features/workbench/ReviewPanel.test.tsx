@@ -2,6 +2,7 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
+import appStyles from "../../styles/app.css?inline";
 import type { BeadProject, PaletteMapping } from "../../domain/types";
 import { ReviewPanel } from "./ReviewPanel";
 import { projectWithOneReviewCell } from "./test-data";
@@ -54,6 +55,35 @@ const paletteMappings: PaletteMapping[] = [
     requires_review: false,
   },
 ];
+
+function cssBlockFor(selector: string) {
+  const escapedSelector = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = appStyles.match(
+    new RegExp(`(?:^|})\\s*${escapedSelector}\\s*\\{([^}]+)\\}`, "m"),
+  );
+  return match?.[1] ?? "";
+}
+
+it("keeps the review panel title from wrapping vertically beside dense actions", () => {
+  render(
+    <ReviewPanel
+      autoLocateAfterDecision
+      paletteMappings={paletteMappings}
+      project={projectWithOneReviewCell}
+      selectedCell={projectWithOneReviewCell.cells[0]}
+      onAutoLocateAfterDecisionChange={vi.fn()}
+      onConfirmMapping={vi.fn()}
+      onCorrectCell={vi.fn()}
+      onLocateCell={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByRole("heading", { name: "校对" })).toBeInTheDocument();
+  expect(cssBlockFor(".panel-heading h2")).toContain("white-space: nowrap;");
+  expect(cssBlockFor(".panel-heading h2")).toContain("flex: 0 0 auto;");
+  expect(cssBlockFor(".review-heading-actions")).toContain("min-width: 0;");
+});
 
 it("locates, confirms, and corrects a review cell from nearest color candidates", async () => {
   const onConfirmMapping = vi.fn();
