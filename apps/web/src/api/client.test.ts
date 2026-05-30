@@ -1,6 +1,11 @@
 import { afterEach, expect, it, vi } from "vitest";
 
-import { getPalette, markCellUnwanted, markRegionUnwanted } from "./client";
+import {
+  getPalette,
+  markCellUnwanted,
+  markRegionUnwanted,
+  projectSourceImageUrl,
+} from "./client";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -84,5 +89,11 @@ it("marks a rectangular grid region as unwanted", async () => {
         end_column: 5,
       }),
     },
+  );
+});
+
+it("builds a source image URL for reopened projects", () => {
+  expect(projectSourceImageUrl("project-1")).toBe(
+    "/api/projects/project-1/source-image",
   );
 });

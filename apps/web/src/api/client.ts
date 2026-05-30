@@ -180,3 +180,7 @@ export function exportUrl(
   const query = params.toString();
   return `/api/projects/${projectId}/exports/${kind}${query ? `?${query}` : ""}`;
 }
+
+export function projectSourceImageUrl(projectId: string): string {
+  return `/api/projects/${projectId}/source-image`;
+}

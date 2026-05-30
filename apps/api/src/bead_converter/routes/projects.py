@@ -14,6 +14,12 @@ from bead_converter.vision.recognizer import recognize_pattern
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/webp"}
+SOURCE_IMAGE_MEDIA_TYPES = {
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".webp": "image/webp",
+}
 
 
 class MappingUpdate(BaseModel):
@@ -148,6 +154,22 @@ async def open_project(request: Request, archive: UploadFile = File(...)) -> Bea
 @router.get("/{project_id}", response_model=BeadProject)
 def get_project(request: Request, project_id: str) -> BeadProject:
     return _project(request, project_id)
+
+
+@router.get("/{project_id}/source-image")
+def get_source_image(request: Request, project_id: str) -> Response:
+    try:
+        source_image = request.app.state.store.source_image_path(project_id)
+        content = source_image.read_bytes()
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=404, detail="原始图片不存在") from exc
+    return Response(
+        content,
+        media_type=SOURCE_IMAGE_MEDIA_TYPES.get(
+            source_image.suffix.lower(),
+            "application/octet-stream",
+        ),
+    )
 
 
 @router.patch("/{project_id}/mappings/{source_code}", response_model=BeadProject)

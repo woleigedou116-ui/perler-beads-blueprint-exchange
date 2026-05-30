@@ -182,6 +182,35 @@ def test_unwanted_cells_are_preserved_when_project_is_reopened(
     assert "user-marked-unwanted" in cell["issue_reasons"]
 
 
+def test_source_image_can_be_loaded_after_project_reopen(
+    client,
+    synthetic_png: bytes,
+) -> None:
+    created = client.post(
+        "/api/projects/import",
+        files={"image": ("pattern.png", synthetic_png, "image/png")},
+    ).json()
+    archive = client.get(
+        f"/api/projects/{created['id']}/exports/project.beadproject"
+    ).content
+    reopened = client.post(
+        "/api/projects/open",
+        files={
+            "archive": (
+                "project.beadproject",
+                archive,
+                "application/octet-stream",
+            )
+        },
+    ).json()
+
+    response = client.get(f"/api/projects/{reopened['id']}/source-image")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "image/png"
+    assert response.content == synthetic_png
+
+
 def test_source_attribution_can_be_saved(client, synthetic_png: bytes) -> None:
     created = client.post(
         "/api/projects/import",

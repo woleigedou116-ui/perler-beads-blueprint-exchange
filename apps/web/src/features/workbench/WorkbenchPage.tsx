@@ -9,6 +9,7 @@ import {
   markCellUnwanted,
   markRegionUnwanted,
   openProject,
+  projectSourceImageUrl,
   saveAttribution,
 } from "../../api/client";
 import { saveExport } from "../../api/exports";
@@ -163,7 +164,9 @@ export function WorkbenchPage() {
     setProcessing(true);
     setError(null);
     try {
-      loadProject(await openProject(archive));
+      const opened = await openProject(archive);
+      loadProject(opened);
+      setPreviewUrl(projectSourceImageUrl(opened.id));
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "项目打开失败");
     } finally {
@@ -380,6 +383,7 @@ export function WorkbenchPage() {
       return;
     }
     if (
+      kind !== "project.beadproject" &&
       reviewCount > 0 &&
       !window.confirm(
         `当前仍有 ${reviewCount} 个待确认格子，导出结果可能使用推荐颜色。仍要导出吗？`,

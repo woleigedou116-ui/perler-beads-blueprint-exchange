@@ -11,6 +11,7 @@ import {
   markCellUnwanted,
   markRegionUnwanted,
   openProject,
+  projectSourceImageUrl,
 } from "../../api/client";
 import { saveExport } from "../../api/exports";
 import { WorkbenchPage } from "./WorkbenchPage";
@@ -29,6 +30,9 @@ vi.mock("../../api/client", () => ({
   markCellUnwanted: vi.fn(),
   markRegionUnwanted: vi.fn(),
   openProject: vi.fn(),
+  projectSourceImageUrl: vi.fn(
+    (projectId: string) => `/api/projects/${projectId}/source-image`,
+  ),
   saveAttribution: vi.fn(),
 }));
 vi.mock("../../api/exports", () => ({
@@ -533,6 +537,21 @@ describe("WorkbenchPage", () => {
     expect(exportUrl).not.toHaveBeenCalled();
   });
 
+  it("saves the project archive without resolving pending review cells", async () => {
+    const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
+    await importPattern();
+
+    await userEvent.click(await screen.findByRole("button", { name: "保存项目" }));
+
+    expect(confirm).not.toHaveBeenCalled();
+    expect(exportUrl).toHaveBeenCalledWith(
+      "pattern-1",
+      "project.beadproject",
+      {},
+    );
+    expect(saveExport).toHaveBeenCalledWith("/download", "project.beadproject");
+  });
+
   it("adds the color-statistics export option to image downloads", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     await importPattern();
@@ -564,7 +583,16 @@ describe("WorkbenchPage", () => {
     await userEvent.upload(screen.getByLabelText("打开项目"), projectFile);
 
     expect(openProject).toHaveBeenCalledWith(projectFile);
+    expect(projectSourceImageUrl).toHaveBeenCalledWith("pattern-1");
     expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
+    expect(screen.getByAltText("上传原图")).toHaveAttribute(
+      "src",
+      "/api/projects/pattern-1/source-image",
+    );
+    expect(screen.getByAltText("上传图纸预览")).toHaveAttribute(
+      "src",
+      "/api/projects/pattern-1/source-image",
+    );
   });
 
   it("clears the recognition progress after reopening a saved project", async () => {
