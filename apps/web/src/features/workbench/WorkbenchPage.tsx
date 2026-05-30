@@ -222,7 +222,7 @@ export function WorkbenchPage() {
       bounds.endRow,
       bounds.endColumn,
     );
-    applyProjectAfterRegionUnwanted(updated, bounds);
+    applyProjectAfterRegionUnwanted(updated);
     setRegionSelection(null);
   }
 
@@ -252,28 +252,16 @@ export function WorkbenchPage() {
     updatedProject: BeadProject,
     unwantedCell: Cell,
   ) {
-    const fallbackCell = nearestNonEmptyCell(updatedProject, unwantedCell);
     setProject(updatedProject);
-    setSelectedCell(fallbackCell);
-    if (fallbackCell) {
-      setFocusRequest({ cell: fallbackCell, nonce: Date.now() });
-    }
+    setSelectedCell(findUpdatedCell(updatedProject, unwantedCell));
   }
 
   function applyProjectAfterRegionUnwanted(
     updatedProject: BeadProject,
-    bounds: CellRegionBounds,
   ) {
     const updatedSameCell = selectedCell ? findUpdatedCell(updatedProject, selectedCell) : null;
-    const fallbackCell =
-      updatedSameCell?.status && updatedSameCell.status !== "empty"
-        ? updatedSameCell
-        : nearestNonEmptyCell(updatedProject, bounds);
     setProject(updatedProject);
-    setSelectedCell(fallbackCell);
-    if (fallbackCell) {
-      setFocusRequest({ cell: fallbackCell, nonce: Date.now() });
-    }
+    setSelectedCell(updatedSameCell);
   }
 
   function handleSelectCell(cell: Cell) {
@@ -305,22 +293,6 @@ export function WorkbenchPage() {
       updatedProject.cells.find(
         (next) => next.row === cell.row && next.column === cell.column,
       ) ?? null
-    );
-  }
-
-  function nearestNonEmptyCell(
-    updatedProject: BeadProject,
-    origin: Cell | CellRegionBounds,
-  ) {
-    return (
-      [...updatedProject.cells]
-        .filter((cell) => cell.status !== "empty")
-        .sort(
-          (left, right) =>
-            distanceFromOrigin(left, origin) - distanceFromOrigin(right, origin) ||
-            left.row - right.row ||
-            left.column - right.column,
-        )[0] ?? null
     );
   }
 
@@ -469,23 +441,4 @@ function cellInRegion(cell: Cell, bounds: CellRegionBounds) {
     cell.column >= bounds.startColumn &&
     cell.column <= bounds.endColumn
   );
-}
-
-function distanceFromOrigin(cell: Cell, origin: Cell | CellRegionBounds) {
-  if ("row" in origin) {
-    return Math.hypot(cell.row - origin.row, cell.column - origin.column);
-  }
-  const rowDistance =
-    cell.row < origin.startRow
-      ? origin.startRow - cell.row
-      : cell.row > origin.endRow
-        ? cell.row - origin.endRow
-        : 0;
-  const columnDistance =
-    cell.column < origin.startColumn
-      ? origin.startColumn - cell.column
-      : cell.column > origin.endColumn
-        ? cell.column - origin.endColumn
-        : 0;
-  return Math.hypot(rowDistance, columnDistance);
 }

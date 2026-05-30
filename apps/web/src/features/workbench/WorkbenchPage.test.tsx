@@ -472,19 +472,23 @@ describe("WorkbenchPage", () => {
     expect(await screen.findByText("待确认 0 格 / 0 组")).toBeInTheDocument();
     expect(screen.queryByLabelText("MARD H7 到 COCO B09，涉及 1 格")).not.toBeInTheDocument();
     expect(screen.getByRole("img", { name: "COCO 重绘预览" })).not.toHaveTextContent("B09");
-    expect(screen.getByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "选中格 1, 1" })).toBeInTheDocument();
   });
 
-  it("selects the nearest remaining bead after marking one cell as not a bead", async () => {
+  it("keeps the marked cell selected without auto-locating after marking one cell as not a bead", async () => {
     vi.mocked(markCellUnwanted).mockResolvedValue(sparseAfterMarkingCenterUnwanted);
     await importPattern(sparseUnwantedProject);
 
     const centerGroup = await screen.findByLabelText("MARD A6 到 COCO T6，涉及 1 格");
     await userEvent.click(centerGroup);
+    expect(await screen.findByRole("heading", { name: "选中格 2, 2" })).toBeInTheDocument();
+
     await userEvent.click(screen.getByRole("button", { name: "标记为非拼豆" }));
 
     expect(markCellUnwanted).toHaveBeenCalledWith("pattern-1", 1, 1);
-    expect(await screen.findByRole("heading", { name: "选中格 2, 1" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "选中格 2, 2" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "选中格 2, 1" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "选中格 3, 4" })).not.toBeInTheDocument();
   });
 
   it("selects, cancels, and applies a normalized unwanted grid-cell region", async () => {
@@ -523,7 +527,7 @@ describe("WorkbenchPage", () => {
     expect(screen.getByRole("img", { name: "COCO 重绘预览" })).not.toHaveTextContent("B09");
   });
 
-  it("selects the nearest remaining bead after marking a region as not beads", async () => {
+  it("keeps the current selection without auto-locating after marking a region as not beads", async () => {
     vi.mocked(markRegionUnwanted).mockResolvedValue(sparseAfterMarkingRegionUnwanted);
     await importPattern(sparseUnwantedProject);
 
@@ -537,7 +541,9 @@ describe("WorkbenchPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "应用框选区域" }));
 
     expect(markRegionUnwanted).toHaveBeenCalledWith("pattern-1", 1, 1, 1, 1);
-    expect(await screen.findByRole("heading", { name: "选中格 2, 3" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "选中格 2, 2" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "选中格 1, 1" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "选中格 2, 3" })).not.toBeInTheDocument();
   });
 
   it("keeps manual source-cell selection editable and visually focused", async () => {
