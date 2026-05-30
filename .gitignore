@@ -5,6 +5,7 @@ __pycache__/
 .pytest_cache/
 .coverage
 .data/
+release/
 apps/web/node_modules/
 apps/web/dist/
 /拼豆样例图/
