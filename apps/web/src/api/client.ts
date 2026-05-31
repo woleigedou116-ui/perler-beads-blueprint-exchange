@@ -19,6 +19,8 @@ export interface ImportTiming {
   recognizeMs: number;
   ocrMs?: number;
   ocrReps?: number;
+  ocrEngineCalls?: number;
+  ocrEngineMaxMs?: number;
   saveMs: number;
 }
 
@@ -98,6 +100,12 @@ function parseImportTiming(header: string | null): ImportTiming | null {
     recognizeMs: values.recognize_ms,
     ocrMs: Number.isFinite(values.ocr_ms) ? values.ocr_ms : undefined,
     ocrReps: Number.isFinite(values.ocr_reps) ? values.ocr_reps : undefined,
+    ocrEngineCalls: Number.isFinite(values.ocr_engine_calls)
+      ? values.ocr_engine_calls
+      : undefined,
+    ocrEngineMaxMs: Number.isFinite(values.ocr_engine_max_ms)
+      ? values.ocr_engine_max_ms
+      : undefined,
     saveMs: Number.isFinite(values.save_ms) ? values.save_ms : 0,
   };
 }

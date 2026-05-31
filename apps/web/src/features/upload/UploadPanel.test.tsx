@@ -39,6 +39,8 @@ function renderPanelWithTiming() {
         recognizeMs: 5760,
         ocrMs: 3900,
         ocrReps: 9,
+        ocrEngineCalls: 9,
+        ocrEngineMaxMs: 620,
         saveMs: 12,
       }}
       previewUrl={null}
@@ -89,4 +91,6 @@ it("shows OCR representative cell diagnostics after recognition", () => {
   expect(screen.getByText("9 格")).toBeInTheDocument();
   expect(screen.getByText("OCR调用耗时")).toBeInTheDocument();
   expect(screen.getByText("3.9 秒")).toBeInTheDocument();
+  expect(screen.getByText("OCR最慢单次")).toBeInTheDocument();
+  expect(screen.getByText("0.6 秒")).toBeInTheDocument();
 });

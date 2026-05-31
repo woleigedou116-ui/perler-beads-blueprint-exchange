@@ -29,6 +29,8 @@ def test_upload_reports_import_timing_header(client, synthetic_png: bytes) -> No
     assert "recognize_ms=" in timing
     assert "ocr_ms=" in timing
     assert "ocr_reps=" in timing
+    assert "ocr_engine_calls=" in timing
+    assert "ocr_engine_max_ms=" in timing
     assert "save_ms=" in timing
 
 

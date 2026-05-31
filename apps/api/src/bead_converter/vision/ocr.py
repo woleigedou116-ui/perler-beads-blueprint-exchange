@@ -3,6 +3,7 @@ import hashlib
 from pathlib import Path
 import subprocess
 import tempfile
+from time import perf_counter
 from typing import Protocol
 
 import numpy as np
@@ -72,6 +73,7 @@ class RapidOcrProvider:
         self._profile = profile
         self._cache_enabled = cache_enabled
         self._cache: dict[tuple[str, tuple[str, ...]], list[OcrCandidate]] = {}
+        self.last_engine_call_durations_ms: list[float] = []
 
     def recognize_cells(
         self,
@@ -80,6 +82,7 @@ class RapidOcrProvider:
     ) -> list[list[OcrCandidate]]:
         results: list[list[OcrCandidate]] = []
         known_codes_key = tuple(sorted(known_codes))
+        self.last_engine_call_durations_ms = []
         for cell in cell_images:
             candidates_by_key: dict[tuple[str, str | None], OcrCandidate] = {}
             for prepared in self._prepare_cell_variants(cell):
@@ -94,7 +97,12 @@ class RapidOcrProvider:
                                 (candidate.text, candidate.normalized_code)
                             ] = candidate
                         continue
-                lines = _result_lines(self._engine(np.asarray(rgb_prepared)))
+                engine_start = perf_counter()
+                raw_result = self._engine(np.asarray(rgb_prepared))
+                self.last_engine_call_durations_ms.append(
+                    round((perf_counter() - engine_start) * 1000, 1)
+                )
+                lines = _result_lines(raw_result)
                 prepared_candidates: list[OcrCandidate] = []
                 for text, score in lines:
                     candidate = OcrCandidate(

@@ -3,6 +3,7 @@ from types import SimpleNamespace
 
 from PIL import Image
 
+from bead_converter.vision import ocr as ocr_module
 from bead_converter.vision.ocr import RapidOcrProvider, TesseractOcrProvider, normalize_code
 
 
@@ -67,6 +68,28 @@ def test_provider_limits_default_onnx_runtime_threads(monkeypatch) -> None:
 
     assert captured_params["EngineConfig.onnxruntime.intra_op_num_threads"] == 4
     assert captured_params["EngineConfig.onnxruntime.inter_op_num_threads"] == 1
+
+
+def test_provider_records_engine_call_durations(monkeypatch) -> None:
+    ticks = iter([1.0, 1.125, 2.0, 2.25])
+
+    def fake_engine(_image):
+        return ([[[], " h7 ", 0.93]], 0.01)
+
+    monkeypatch.setattr(
+        ocr_module,
+        "perf_counter",
+        lambda: next(ticks),
+        raising=False,
+    )
+    provider = RapidOcrProvider(engine=fake_engine)
+
+    provider.recognize_cells(
+        [Image.new("RGB", (24, 24), "white"), Image.new("RGB", (24, 24), "white")],
+        {"H7"},
+    )
+
+    assert provider.last_engine_call_durations_ms == [125.0, 250.0]
 
 
 def test_provider_can_reuse_cached_result_for_identical_cell_image() -> None:

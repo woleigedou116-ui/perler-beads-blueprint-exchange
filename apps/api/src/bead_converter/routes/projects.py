@@ -179,6 +179,12 @@ async def import_project(
     request.app.state.store.save(project)
     save_seconds = perf_counter() - save_start
     total_seconds = perf_counter() - total_start
+    ocr_engine_durations = getattr(
+        request.app.state.ocr,
+        "last_engine_call_durations_ms",
+        [],
+    )
+    ocr_engine_max_ms = max(ocr_engine_durations, default=0.0)
     timing = (
         f"total_ms={total_seconds * 1000:.1f}; "
         f"read_ms={read_seconds * 1000:.1f}; "
@@ -187,6 +193,8 @@ async def import_project(
         f"recognize_ms={recognize_seconds * 1000:.1f}; "
         f"ocr_ms={timing_ocr.elapsed_seconds * 1000:.1f}; "
         f"ocr_reps={timing_ocr.cell_count}; "
+        f"ocr_engine_calls={len(ocr_engine_durations)}; "
+        f"ocr_engine_max_ms={ocr_engine_max_ms:.1f}; "
         f"save_ms={save_seconds * 1000:.1f}"
     )
     return JSONResponse(

@@ -135,6 +135,12 @@ export function UploadPanel({
                   <dd>{formatDuration(lastRecognitionTiming.ocrMs)}</dd>
                 </div>
               ) : null}
+              {lastRecognitionTiming.ocrEngineMaxMs !== undefined ? (
+                <div>
+                  <dt>OCR最慢单次</dt>
+                  <dd>{formatDuration(lastRecognitionTiming.ocrEngineMaxMs)}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt>等待/渲染差值</dt>
                 <dd>
