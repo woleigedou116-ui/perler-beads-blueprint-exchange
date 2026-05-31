@@ -30,10 +30,13 @@ export function UploadPanel({
   onSelectFile,
 }: UploadPanelProps) {
   const [recognitionElapsedMs, setRecognitionElapsedMs] = useState<number | null>(null);
+  const [importSubmitted, setImportSubmitted] = useState(false);
+  const importLocked = processing || importSubmitted;
 
   useEffect(() => {
     if (!processing) {
       setRecognitionElapsedMs(null);
+      setImportSubmitted(false);
       return;
     }
 
@@ -82,8 +85,18 @@ export function UploadPanel({
           </select>
         </label>
       </div>
-      <button className="primary-button" disabled={!file || processing} onClick={onImport}>
-        {processing ? "识别中..." : "开始识别"}
+      <button
+        className="primary-button"
+        disabled={!file || importLocked}
+        onClick={() => {
+          if (!file || importLocked) {
+            return;
+          }
+          setImportSubmitted(true);
+          onImport();
+        }}
+      >
+        {importLocked ? "识别中..." : "开始识别"}
       </button>
       {processing && recognitionElapsedMs !== null ? (
         <div className="recognition-progress" aria-live="polite">
