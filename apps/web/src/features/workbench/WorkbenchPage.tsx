@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   confirmMapping,
@@ -42,8 +42,6 @@ export function WorkbenchPage() {
   const [focusRequest, setFocusRequest] = useState<{ cell: Cell; nonce: number } | null>(null);
   const [paletteMappings, setPaletteMappings] = useState<PaletteMapping[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const recognitionStartedAt = useRef<number | null>(null);
-  const [recognitionElapsedMs, setRecognitionElapsedMs] = useState<number | null>(null);
   const [lastRecognitionDurationMs, setLastRecognitionDurationMs] = useState<number | null>(
     null,
   );
@@ -83,19 +81,6 @@ export function WorkbenchPage() {
   }, []);
 
   useEffect(() => {
-    if (!processing || recognitionStartedAt.current === null) {
-      return;
-    }
-    setRecognitionElapsedMs(Date.now() - recognitionStartedAt.current);
-    const timer = window.setInterval(() => {
-      if (recognitionStartedAt.current !== null) {
-        setRecognitionElapsedMs(Date.now() - recognitionStartedAt.current);
-      }
-    }, 100);
-    return () => window.clearInterval(timer);
-  }, [processing]);
-
-  useEffect(() => {
     if (!isReviewFullscreen) {
       return;
     }
@@ -131,8 +116,6 @@ export function WorkbenchPage() {
       return;
     }
     const startedAt = Date.now();
-    recognitionStartedAt.current = startedAt;
-    setRecognitionElapsedMs(0);
     setLastRecognitionDurationMs(null);
     setProcessing(true);
     setError(null);
@@ -143,9 +126,7 @@ export function WorkbenchPage() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "识别失败");
     } finally {
-      recognitionStartedAt.current = null;
       setProcessing(false);
-      setRecognitionElapsedMs(null);
     }
   }
 
@@ -162,8 +143,6 @@ export function WorkbenchPage() {
   }
 
   async function handleOpenProject(archive: File) {
-    recognitionStartedAt.current = null;
-    setRecognitionElapsedMs(null);
     setLastRecognitionDurationMs(null);
     setProcessing(true);
     setError(null);
@@ -365,7 +344,6 @@ export function WorkbenchPage() {
         previewUrl={previewUrl}
         processing={processing}
         project={project}
-        recognitionElapsedMs={recognitionElapsedMs}
         lastRecognitionDurationMs={lastRecognitionDurationMs}
         onAttributionChange={setAttribution}
         onImport={handleImport}

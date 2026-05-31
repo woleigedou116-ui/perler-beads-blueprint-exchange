@@ -1,7 +1,8 @@
 from io import BytesIO
+from time import perf_counter
 
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, status
-from fastapi.responses import Response
+from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from PIL import Image, UnidentifiedImageError
 
@@ -119,13 +120,22 @@ async def import_project(
         raise HTTPException(status_code=422, detail="仅支持 JPG、PNG 或 WebP 图片")
     if source_standard != "MARD" or target_standard != "COCO":
         raise HTTPException(status_code=422, detail="首版仅支持 MARD 转 COCO")
+    total_start = perf_counter()
+    read_start = perf_counter()
     data = await image.read()
+    read_seconds = perf_counter() - read_start
+    decode_start = perf_counter()
     try:
         source_image = Image.open(BytesIO(data)).convert("RGB")
     except UnidentifiedImageError as exc:
         raise HTTPException(status_code=422, detail="无法读取上传图片") from exc
+    decode_seconds = perf_counter() - decode_start
+    ocr_init_seconds = 0.0
     if request.app.state.ocr is None:
+        ocr_init_start = perf_counter()
         request.app.state.ocr = RapidOcrProvider()
+        ocr_init_seconds = perf_counter() - ocr_init_start
+    recognize_start = perf_counter()
     try:
         project = recognize_pattern(
             source_image,
@@ -137,10 +147,26 @@ async def import_project(
         )
     except GridNotFoundError as exc:
         raise HTTPException(status_code=422, detail="未检测到规则网格，请选择清晰网格图") from exc
+    recognize_seconds = perf_counter() - recognize_start
     project.source_image_name = image.filename or "source-image"
+    save_start = perf_counter()
     request.app.state.store.save_source_image(project.id, image.filename or "source.png", data)
     request.app.state.store.save(project)
-    return project
+    save_seconds = perf_counter() - save_start
+    total_seconds = perf_counter() - total_start
+    timing = (
+        f"total_ms={total_seconds * 1000:.1f}; "
+        f"read_ms={read_seconds * 1000:.1f}; "
+        f"decode_ms={decode_seconds * 1000:.1f}; "
+        f"ocr_init_ms={ocr_init_seconds * 1000:.1f}; "
+        f"recognize_ms={recognize_seconds * 1000:.1f}; "
+        f"save_ms={save_seconds * 1000:.1f}"
+    )
+    return JSONResponse(
+        content=project.model_dump(mode="json"),
+        status_code=status.HTTP_201_CREATED,
+        headers={"X-Bead-Timing": timing},
+    )
 
 
 @router.post("/open", response_model=BeadProject, status_code=status.HTTP_201_CREATED)

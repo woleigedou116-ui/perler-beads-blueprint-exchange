@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import type { BeadProject } from "../../domain/types";
 
 interface UploadPanelProps {
@@ -7,7 +9,6 @@ interface UploadPanelProps {
   previewUrl: string | null;
   processing: boolean;
   project: BeadProject | null;
-  recognitionElapsedMs?: number | null;
   onAttributionChange: (value: string) => void;
   onImport: () => void;
   onOpenProject: (file: File) => void;
@@ -22,13 +23,29 @@ export function UploadPanel({
   previewUrl,
   processing,
   project,
-  recognitionElapsedMs = null,
   onAttributionChange,
   onImport,
   onOpenProject,
   onSaveAttribution,
   onSelectFile,
 }: UploadPanelProps) {
+  const [recognitionElapsedMs, setRecognitionElapsedMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!processing) {
+      setRecognitionElapsedMs(null);
+      return;
+    }
+
+    const startedAt = Date.now();
+    setRecognitionElapsedMs(0);
+    const timer = window.setInterval(() => {
+      setRecognitionElapsedMs(Date.now() - startedAt);
+    }, 100);
+
+    return () => window.clearInterval(timer);
+  }, [processing]);
+
   return (
     <section className="panel upload-panel" aria-label="上传与参数">
       <h2>上传与参数</h2>

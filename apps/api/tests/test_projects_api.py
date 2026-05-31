@@ -15,6 +15,21 @@ def test_upload_defaults_to_mard_and_returns_reviewable_project(
     assert payload["cells"][0]["target_code"] == "B09"
 
 
+def test_upload_reports_import_timing_header(client, synthetic_png: bytes) -> None:
+    response = client.post(
+        "/api/projects/import",
+        files={"image": ("pattern.png", synthetic_png, "image/png")},
+        data={"target_standard": "COCO"},
+    )
+
+    assert response.status_code == 201
+    timing = response.headers["X-Bead-Timing"]
+    assert "total_ms=" in timing
+    assert "read_ms=" in timing
+    assert "recognize_ms=" in timing
+    assert "save_ms=" in timing
+
+
 def test_confirm_mapping_updates_matching_cells(client, synthetic_png: bytes) -> None:
     created = client.post(
         "/api/projects/import",
