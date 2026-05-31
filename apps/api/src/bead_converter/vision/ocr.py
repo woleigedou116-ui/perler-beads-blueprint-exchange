@@ -55,6 +55,7 @@ class RapidOcrProvider:
         self,
         engine: Callable[[np.ndarray], object] | None = None,
         profile: str = "standard",
+        cache_enabled: bool = False,
     ) -> None:
         if engine is None:
             from rapidocr import RapidOCR
@@ -64,6 +65,7 @@ class RapidOcrProvider:
         if profile not in {"standard", "watermark"}:
             raise ValueError(f"Unsupported RapidOCR profile: {profile}")
         self._profile = profile
+        self._cache_enabled = cache_enabled
         self._cache: dict[tuple[str, tuple[str, ...]], list[OcrCandidate]] = {}
 
     def recognize_cells(
@@ -77,12 +79,16 @@ class RapidOcrProvider:
             candidates_by_key: dict[tuple[str, str | None], OcrCandidate] = {}
             for prepared in self._prepare_cell_variants(cell):
                 rgb_prepared = prepared.convert("RGB")
-                cache_key = (_image_cache_key(rgb_prepared), known_codes_key)
-                cached = self._cache.get(cache_key)
-                if cached is not None:
-                    for candidate in cached:
-                        candidates_by_key[(candidate.text, candidate.normalized_code)] = candidate
-                    continue
+                cache_key: tuple[str, tuple[str, ...]] | None = None
+                if self._cache_enabled:
+                    cache_key = (_image_cache_key(rgb_prepared), known_codes_key)
+                    cached = self._cache.get(cache_key)
+                    if cached is not None:
+                        for candidate in cached:
+                            candidates_by_key[
+                                (candidate.text, candidate.normalized_code)
+                            ] = candidate
+                        continue
                 lines = _result_lines(self._engine(np.asarray(rgb_prepared)))
                 prepared_candidates: list[OcrCandidate] = []
                 for text, score in lines:
@@ -96,7 +102,8 @@ class RapidOcrProvider:
                     previous = candidates_by_key.get(key)
                     if previous is None or candidate.confidence > previous.confidence:
                         candidates_by_key[key] = candidate
-                self._cache[cache_key] = prepared_candidates
+                if cache_key is not None:
+                    self._cache[cache_key] = prepared_candidates
             results.append(
                 sorted(
                     candidates_by_key.values(),
