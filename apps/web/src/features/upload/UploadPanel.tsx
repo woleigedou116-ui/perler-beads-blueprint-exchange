@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 
+import type { ImportTiming } from "../../api/client";
 import type { BeadProject } from "../../domain/types";
 
 interface UploadPanelProps {
   attribution: string;
   file: File | null;
   lastRecognitionDurationMs?: number | null;
+  lastRecognitionTiming?: ImportTiming | null;
   previewUrl: string | null;
   processing: boolean;
   project: BeadProject | null;
@@ -20,6 +22,7 @@ export function UploadPanel({
   attribution,
   file,
   lastRecognitionDurationMs = null,
+  lastRecognitionTiming = null,
   previewUrl,
   processing,
   project,
@@ -108,9 +111,27 @@ export function UploadPanel({
         </div>
       ) : null}
       {!processing && lastRecognitionDurationMs !== null ? (
-        <p className="recognition-duration">
-          本次识别用时 {formatDuration(lastRecognitionDurationMs)}
-        </p>
+        <div className="recognition-duration">
+          <p>本次识别用时 {formatDuration(lastRecognitionDurationMs)}</p>
+          {lastRecognitionTiming ? (
+            <dl className="recognition-timing" aria-label="识别耗时诊断">
+              <div>
+                <dt>服务端总耗时</dt>
+                <dd>{formatDuration(lastRecognitionTiming.totalMs)}</dd>
+              </div>
+              <div>
+                <dt>OCR识别</dt>
+                <dd>{formatDuration(lastRecognitionTiming.recognizeMs)}</dd>
+              </div>
+              <div>
+                <dt>等待/渲染差值</dt>
+                <dd>
+                  {formatDuration(lastRecognitionDurationMs - lastRecognitionTiming.totalMs)}
+                </dd>
+              </div>
+            </dl>
+          ) : null}
+        </div>
       ) : null}
       <label className="project-file-field">
         <span>打开项目</span>

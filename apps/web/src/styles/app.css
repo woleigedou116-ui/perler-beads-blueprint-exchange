@@ -723,6 +723,36 @@ p {
   padding: 0.55rem 0.65rem;
 }
 
+.recognition-duration p {
+  margin: 0;
+}
+
+.recognition-timing {
+  display: grid;
+  gap: 0.25rem;
+  margin: 0.45rem 0 0;
+}
+
+.recognition-timing div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.recognition-timing dt,
+.recognition-timing dd {
+  margin: 0;
+}
+
+.recognition-timing dt {
+  color: #607871;
+}
+
+.recognition-timing dd {
+  color: #244d46;
+  font-weight: 700;
+}
+
 .target-color-stats {
   align-content: start;
   border-top: 1px solid #edf0ed;

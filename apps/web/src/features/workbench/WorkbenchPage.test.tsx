@@ -8,6 +8,8 @@ import {
   exportUrl,
   getPalette,
   importImage,
+  type ImportImageResult,
+  type ImportTiming,
   markCellUnwanted,
   markRegionUnwanted,
   openProject,
@@ -58,7 +60,7 @@ const paletteMappings = [
 ];
 
 async function importPattern(project: BeadProject = projectWithOneReviewCell) {
-  vi.mocked(importImage).mockResolvedValue(project);
+  vi.mocked(importImage).mockResolvedValue(importResult(project));
   vi.mocked(getPalette).mockResolvedValue({
     version: "mard-coco.v1",
     mappings: paletteMappings,
@@ -66,6 +68,13 @@ async function importPattern(project: BeadProject = projectWithOneReviewCell) {
   render(<WorkbenchPage />);
   await userEvent.upload(screen.getByLabelText("上传图纸"), patternFile);
   await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
+}
+
+function importResult(
+  project: BeadProject,
+  timing: ImportTiming | null = null,
+): ImportImageResult {
+  return { project, timing };
 }
 
 const projectWithThreeReviewGroups: BeadProject = {
@@ -349,7 +358,7 @@ describe("WorkbenchPage", () => {
       version: "mard-coco.v1",
       mappings: paletteMappings,
     });
-    let resolveImport: (project: BeadProject) => void = () => undefined;
+    let resolveImport: (result: ImportImageResult) => void = () => undefined;
     vi.mocked(importImage).mockReturnValue(
       new Promise((resolve) => {
         resolveImport = resolve;
@@ -360,10 +369,26 @@ describe("WorkbenchPage", () => {
     await userEvent.upload(screen.getByLabelText("上传图纸"), patternFile);
     await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
     vi.advanceTimersByTime(15600);
-    resolveImport(projectWithOneReviewCell);
+    resolveImport(
+      importResult(projectWithOneReviewCell, {
+        totalMs: 5300,
+        readMs: 0.2,
+        decodeMs: 12.3,
+        ocrInitMs: 700,
+        recognizeMs: 4580,
+        saveMs: 8,
+      }),
+    );
 
     expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
     expect(screen.getByText("本次识别用时 15.6 秒")).toBeInTheDocument();
+    const diagnostics = screen.getByLabelText("识别耗时诊断");
+    expect(within(diagnostics).getByText("服务端总耗时")).toBeInTheDocument();
+    expect(within(diagnostics).getByText("5.3 秒")).toBeInTheDocument();
+    expect(within(diagnostics).getByText("OCR识别")).toBeInTheDocument();
+    expect(within(diagnostics).getByText("4.6 秒")).toBeInTheDocument();
+    expect(within(diagnostics).getByText("等待/渲染差值")).toBeInTheDocument();
+    expect(within(diagnostics).getByText("10.3 秒")).toBeInTheDocument();
   });
 
   it("uses the uploaded image behind the recognition overlay", async () => {
@@ -762,7 +787,7 @@ describe("WorkbenchPage", () => {
       version: "mard-coco.v1",
       mappings: paletteMappings,
     });
-    let resolveImport: (project: BeadProject) => void = () => undefined;
+    let resolveImport: (result: ImportImageResult) => void = () => undefined;
     vi.mocked(importImage).mockReturnValue(
       new Promise((resolve) => {
         resolveImport = resolve;
@@ -775,7 +800,7 @@ describe("WorkbenchPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
     expect(await screen.findByText("正在识别图纸")).toBeInTheDocument();
 
-    resolveImport(projectWithOneReviewCell);
+    resolveImport(importResult(projectWithOneReviewCell));
     expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
     await userEvent.upload(
       screen.getByLabelText("打开项目"),

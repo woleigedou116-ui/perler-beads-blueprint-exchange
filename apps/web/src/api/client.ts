@@ -11,6 +11,20 @@ export interface PaletteResponse {
   mappings: PaletteMapping[];
 }
 
+export interface ImportTiming {
+  totalMs: number;
+  readMs: number;
+  decodeMs: number;
+  ocrInitMs: number;
+  recognizeMs: number;
+  saveMs: number;
+}
+
+export interface ImportImageResult {
+  project: BeadProject;
+  timing: ImportTiming | null;
+}
+
 type RawRGB = RGB | [number, number, number] | null;
 
 interface RawPaletteMapping {
@@ -60,13 +74,39 @@ async function projectResponse(response: Response): Promise<BeadProject> {
   return response.json() as Promise<BeadProject>;
 }
 
-export async function importImage(file: File): Promise<BeadProject> {
+function parseImportTiming(header: string | null): ImportTiming | null {
+  if (!header) {
+    return null;
+  }
+  const values = Object.fromEntries(
+    header
+      .split(";")
+      .map((part) => part.trim().split("="))
+      .filter((parts): parts is [string, string] => parts.length === 2)
+      .map(([key, value]) => [key, Number(value)]),
+  );
+  if (!Number.isFinite(values.total_ms) || !Number.isFinite(values.recognize_ms)) {
+    return null;
+  }
+  return {
+    totalMs: values.total_ms,
+    readMs: Number.isFinite(values.read_ms) ? values.read_ms : 0,
+    decodeMs: Number.isFinite(values.decode_ms) ? values.decode_ms : 0,
+    ocrInitMs: Number.isFinite(values.ocr_init_ms) ? values.ocr_init_ms : 0,
+    recognizeMs: values.recognize_ms,
+    saveMs: Number.isFinite(values.save_ms) ? values.save_ms : 0,
+  };
+}
+
+export async function importImage(file: File): Promise<ImportImageResult> {
   const form = new FormData();
   form.append("image", file);
   form.append("target_standard", "COCO");
-  return projectResponse(
-    await fetch("/api/projects/import", { method: "POST", body: form }),
-  );
+  const response = await fetch("/api/projects/import", { method: "POST", body: form });
+  return {
+    project: await projectResponse(response),
+    timing: parseImportTiming(response.headers.get("X-Bead-Timing")),
+  };
 }
 
 export async function getPalette(): Promise<PaletteResponse> {

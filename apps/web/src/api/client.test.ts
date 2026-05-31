@@ -2,6 +2,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import {
   getPalette,
+  importImage,
   markCellUnwanted,
   markRegionUnwanted,
   projectSourceImageUrl,
@@ -42,6 +43,35 @@ it("normalizes palette RGB arrays from the API into UI color objects", async () 
         requires_review: false,
       },
     ],
+  });
+});
+
+it("returns import timing diagnostics from the upload response header", async () => {
+  const project = { id: "project-1" };
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () => ({
+      ok: true,
+      headers: {
+        get: (name: string) =>
+          name === "X-Bead-Timing"
+            ? "total_ms=5300.5; read_ms=0.2; decode_ms=12.3; ocr_init_ms=700.0; recognize_ms=4580.0; save_ms=8.0"
+            : null,
+      },
+      json: async () => project,
+    })),
+  );
+
+  await expect(importImage(new File(["pattern"], "pattern.png"))).resolves.toEqual({
+    project,
+    timing: {
+      totalMs: 5300.5,
+      readMs: 0.2,
+      decodeMs: 12.3,
+      ocrInitMs: 700,
+      recognizeMs: 4580,
+      saveMs: 8,
+    },
   });
 });
 
