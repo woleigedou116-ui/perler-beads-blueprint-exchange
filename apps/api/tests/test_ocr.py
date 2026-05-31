@@ -66,7 +66,7 @@ def test_provider_limits_default_onnx_runtime_threads(monkeypatch) -> None:
 
     RapidOcrProvider()
 
-    assert captured_params["EngineConfig.onnxruntime.intra_op_num_threads"] == 4
+    assert captured_params["EngineConfig.onnxruntime.intra_op_num_threads"] == 2
     assert captured_params["EngineConfig.onnxruntime.inter_op_num_threads"] == 1
 
 

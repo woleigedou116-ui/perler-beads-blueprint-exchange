@@ -12,7 +12,7 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 from bead_converter.domain.models import OcrCandidate
 
 DEFAULT_RAPIDOCR_PARAMS = {
-    "EngineConfig.onnxruntime.intra_op_num_threads": 4,
+    "EngineConfig.onnxruntime.intra_op_num_threads": 2,
     "EngineConfig.onnxruntime.inter_op_num_threads": 1,
 }
 
