@@ -1,4 +1,5 @@
 from collections.abc import Callable
+import hashlib
 from pathlib import Path
 import subprocess
 import tempfile
@@ -63,6 +64,7 @@ class RapidOcrProvider:
         if profile not in {"standard", "watermark"}:
             raise ValueError(f"Unsupported RapidOCR profile: {profile}")
         self._profile = profile
+        self._cache: dict[tuple[str, tuple[str, ...]], list[OcrCandidate]] = {}
 
     def recognize_cells(
         self,
@@ -70,20 +72,31 @@ class RapidOcrProvider:
         known_codes: set[str],
     ) -> list[list[OcrCandidate]]:
         results: list[list[OcrCandidate]] = []
+        known_codes_key = tuple(sorted(known_codes))
         for cell in cell_images:
             candidates_by_key: dict[tuple[str, str | None], OcrCandidate] = {}
             for prepared in self._prepare_cell_variants(cell):
-                lines = _result_lines(self._engine(np.asarray(prepared.convert("RGB"))))
+                rgb_prepared = prepared.convert("RGB")
+                cache_key = (_image_cache_key(rgb_prepared), known_codes_key)
+                cached = self._cache.get(cache_key)
+                if cached is not None:
+                    for candidate in cached:
+                        candidates_by_key[(candidate.text, candidate.normalized_code)] = candidate
+                    continue
+                lines = _result_lines(self._engine(np.asarray(rgb_prepared)))
+                prepared_candidates: list[OcrCandidate] = []
                 for text, score in lines:
                     candidate = OcrCandidate(
                         text=text,
                         normalized_code=normalize_code(text, known_codes),
                         confidence=max(0.0, min(1.0, score)),
                     )
+                    prepared_candidates.append(candidate)
                     key = (candidate.text, candidate.normalized_code)
                     previous = candidates_by_key.get(key)
                     if previous is None or candidate.confidence > previous.confidence:
                         candidates_by_key[key] = candidate
+                self._cache[cache_key] = prepared_candidates
             results.append(
                 sorted(
                     candidates_by_key.values(),
@@ -117,6 +130,14 @@ class RapidOcrProvider:
             sharpened.convert("RGB"),
             threshold.convert("RGB"),
         ]
+
+
+def _image_cache_key(image: Image.Image) -> str:
+    return hashlib.sha256(
+        image.size[0].to_bytes(4, "big")
+        + image.size[1].to_bytes(4, "big")
+        + image.tobytes()
+    ).hexdigest()
 
 
 class TesseractOcrProvider:
