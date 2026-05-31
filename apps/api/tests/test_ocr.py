@@ -1,3 +1,6 @@
+import sys
+from types import SimpleNamespace
+
 from PIL import Image
 
 from bead_converter.vision.ocr import RapidOcrProvider, TesseractOcrProvider, normalize_code
@@ -49,6 +52,21 @@ def test_provider_does_not_cache_cell_results_by_default() -> None:
     assert calls == 2
     assert [candidate.normalized_code for candidate in results[0]] == ["H7"]
     assert [candidate.normalized_code for candidate in results[1]] == ["H7"]
+
+
+def test_provider_limits_default_onnx_runtime_threads(monkeypatch) -> None:
+    captured_params = {}
+
+    class FakeRapidOCR:
+        def __init__(self, params):
+            captured_params.update(params)
+
+    monkeypatch.setitem(sys.modules, "rapidocr", SimpleNamespace(RapidOCR=FakeRapidOCR))
+
+    RapidOcrProvider()
+
+    assert captured_params["EngineConfig.onnxruntime.intra_op_num_threads"] == 4
+    assert captured_params["EngineConfig.onnxruntime.inter_op_num_threads"] == 1
 
 
 def test_provider_can_reuse_cached_result_for_identical_cell_image() -> None:

@@ -10,6 +10,11 @@ from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 from bead_converter.domain.models import OcrCandidate
 
+DEFAULT_RAPIDOCR_PARAMS = {
+    "EngineConfig.onnxruntime.intra_op_num_threads": 4,
+    "EngineConfig.onnxruntime.inter_op_num_threads": 1,
+}
+
 
 def normalize_code(raw_text: str, known_codes: set[str]) -> str | None:
     candidate = raw_text.replace(" ", "").upper()
@@ -60,7 +65,7 @@ class RapidOcrProvider:
         if engine is None:
             from rapidocr import RapidOCR
 
-            engine = RapidOCR()
+            engine = RapidOCR(params=DEFAULT_RAPIDOCR_PARAMS)
         self._engine = engine
         if profile not in {"standard", "watermark"}:
             raise ValueError(f"Unsupported RapidOCR profile: {profile}")
