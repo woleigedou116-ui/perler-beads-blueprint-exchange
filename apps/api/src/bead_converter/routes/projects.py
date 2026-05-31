@@ -6,11 +6,16 @@ from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel
 from PIL import Image, UnidentifiedImageError
 
-from bead_converter.domain.models import BeadProject, CellStatus, MappingDecision
+from bead_converter.domain.models import (
+    BeadProject,
+    CellStatus,
+    MappingDecision,
+    OcrCandidate,
+)
 from bead_converter.exports.csv_export import export_mapping_csv
 from bead_converter.exports.image_export import render_clean_pattern, render_overlay_pattern
 from bead_converter.vision.grid import GridNotFoundError
-from bead_converter.vision.ocr import RapidOcrProvider
+from bead_converter.vision.ocr import OcrProvider, RapidOcrProvider
 from bead_converter.vision.recognizer import recognize_pattern
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -21,6 +26,25 @@ SOURCE_IMAGE_MEDIA_TYPES = {
     ".png": "image/png",
     ".webp": "image/webp",
 }
+
+
+class TimingOcrProvider:
+    def __init__(self, inner: OcrProvider) -> None:
+        self._inner = inner
+        self.cell_count = 0
+        self.elapsed_seconds = 0.0
+
+    def recognize_cells(
+        self,
+        cell_images: list[Image.Image],
+        known_codes: set[str],
+    ) -> list[list[OcrCandidate]]:
+        self.cell_count += len(cell_images)
+        ocr_start = perf_counter()
+        try:
+            return self._inner.recognize_cells(cell_images, known_codes)
+        finally:
+            self.elapsed_seconds += perf_counter() - ocr_start
 
 
 class MappingUpdate(BaseModel):
@@ -135,13 +159,14 @@ async def import_project(
         ocr_init_start = perf_counter()
         request.app.state.ocr = RapidOcrProvider()
         ocr_init_seconds = perf_counter() - ocr_init_start
+    timing_ocr = TimingOcrProvider(request.app.state.ocr)
     recognize_start = perf_counter()
     try:
         project = recognize_pattern(
             source_image,
             project_name,
             request.app.state.palette,
-            request.app.state.ocr,
+            timing_ocr,
             source_standard,
             target_standard,
         )
@@ -160,6 +185,8 @@ async def import_project(
         f"decode_ms={decode_seconds * 1000:.1f}; "
         f"ocr_init_ms={ocr_init_seconds * 1000:.1f}; "
         f"recognize_ms={recognize_seconds * 1000:.1f}; "
+        f"ocr_ms={timing_ocr.elapsed_seconds * 1000:.1f}; "
+        f"ocr_reps={timing_ocr.cell_count}; "
         f"save_ms={save_seconds * 1000:.1f}"
     )
     return JSONResponse(

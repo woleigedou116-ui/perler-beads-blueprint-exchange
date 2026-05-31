@@ -17,6 +17,8 @@ export interface ImportTiming {
   decodeMs: number;
   ocrInitMs: number;
   recognizeMs: number;
+  ocrMs?: number;
+  ocrReps?: number;
   saveMs: number;
 }
 
@@ -94,6 +96,8 @@ function parseImportTiming(header: string | null): ImportTiming | null {
     decodeMs: Number.isFinite(values.decode_ms) ? values.decode_ms : 0,
     ocrInitMs: Number.isFinite(values.ocr_init_ms) ? values.ocr_init_ms : 0,
     recognizeMs: values.recognize_ms,
+    ocrMs: Number.isFinite(values.ocr_ms) ? values.ocr_ms : undefined,
+    ocrReps: Number.isFinite(values.ocr_reps) ? values.ocr_reps : undefined,
     saveMs: Number.isFinite(values.save_ms) ? values.save_ms : 0,
   };
 }

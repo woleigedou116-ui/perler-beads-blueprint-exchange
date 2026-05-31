@@ -123,6 +123,18 @@ export function UploadPanel({
                 <dt>OCR识别</dt>
                 <dd>{formatDuration(lastRecognitionTiming.recognizeMs)}</dd>
               </div>
+              {lastRecognitionTiming.ocrReps !== undefined ? (
+                <div>
+                  <dt>OCR代表格</dt>
+                  <dd>{lastRecognitionTiming.ocrReps} 格</dd>
+                </div>
+              ) : null}
+              {lastRecognitionTiming.ocrMs !== undefined ? (
+                <div>
+                  <dt>OCR调用耗时</dt>
+                  <dd>{formatDuration(lastRecognitionTiming.ocrMs)}</dd>
+                </div>
+              ) : null}
               <div>
                 <dt>等待/渲染差值</dt>
                 <dd>

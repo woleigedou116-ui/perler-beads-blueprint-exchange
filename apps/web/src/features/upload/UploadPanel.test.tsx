@@ -25,6 +25,34 @@ function renderPanel(processing = false, onImport = noop) {
   );
 }
 
+function renderPanelWithTiming() {
+  render(
+    <UploadPanel
+      attribution=""
+      file={patternFile}
+      lastRecognitionDurationMs={6200}
+      lastRecognitionTiming={{
+        totalMs: 5800,
+        readMs: 1,
+        decodeMs: 10,
+        ocrInitMs: 0,
+        recognizeMs: 5760,
+        ocrMs: 3900,
+        ocrReps: 9,
+        saveMs: 12,
+      }}
+      previewUrl={null}
+      processing={false}
+      project={null}
+      onAttributionChange={noop}
+      onImport={noop}
+      onOpenProject={noop}
+      onSaveAttribution={noop}
+      onSelectFile={noop}
+    />,
+  );
+}
+
 afterEach(() => {
   vi.useRealTimers();
 });
@@ -52,4 +80,13 @@ it("ignores duplicate import clicks before the parent processing state updates",
   await userEvent.click(importButton);
 
   expect(onImport).toHaveBeenCalledTimes(1);
+});
+
+it("shows OCR representative cell diagnostics after recognition", () => {
+  renderPanelWithTiming();
+
+  expect(screen.getByText("OCR代表格")).toBeInTheDocument();
+  expect(screen.getByText("9 格")).toBeInTheDocument();
+  expect(screen.getByText("OCR调用耗时")).toBeInTheDocument();
+  expect(screen.getByText("3.9 秒")).toBeInTheDocument();
 });
