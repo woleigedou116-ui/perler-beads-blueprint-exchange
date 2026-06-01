@@ -778,6 +778,22 @@ describe("WorkbenchPage", () => {
     expect(saveExport).toHaveBeenLastCalledWith("/download", "overlay.png");
   });
 
+  it("keeps the option to export image downloads without color statistics", async () => {
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    await importPattern();
+    const exportCommands = screen.getByRole("navigation", { name: "导出命令" });
+
+    await userEvent.click(screen.getByLabelText("导出时附带色块统计"));
+    await userEvent.click(
+      within(exportCommands).getByRole("button", { name: "导出图纸" }),
+    );
+
+    expect(exportUrl).toHaveBeenCalledWith("pattern-1", "clean.png", {
+      includeColorStats: false,
+    });
+    expect(saveExport).toHaveBeenCalledWith("/download", "clean.png");
+  });
+
   it("reopens a saved project file for further review", async () => {
     vi.mocked(openProject).mockResolvedValue(projectWithOneReviewCell);
     vi.mocked(getPalette).mockResolvedValue({

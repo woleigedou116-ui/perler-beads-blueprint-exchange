@@ -348,9 +348,9 @@ export function WorkbenchPage() {
       <WorkbenchCommandBar
         projectLoaded={Boolean(project)}
         reviewCount={reviewCount}
-        onExportClean={() => handleExport("clean.png", { includeColorStats: true })}
+        onExportClean={(options) => handleExport("clean.png", options)}
         onExportMapping={() => handleExport("mapping.csv")}
-        onExportOverlay={() => handleExport("overlay.png", { includeColorStats: true })}
+        onExportOverlay={(options) => handleExport("overlay.png", options)}
         onOpenProject={handleOpenProject}
         onSaveProject={() => handleExport("project.beadproject")}
         onSelectImage={setFile}

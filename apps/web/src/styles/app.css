@@ -108,6 +108,7 @@ p {
 
 .command-brand span,
 .command-review-count,
+.command-export-option,
 .workbench-status-bar span {
   color: #5f716c;
   font-size: 0.82rem;
@@ -124,6 +125,13 @@ p {
 .command-file-button {
   font-size: 0.84rem;
   padding: 0.42rem 0.65rem;
+}
+
+.command-export-option {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.35rem;
+  white-space: nowrap;
 }
 
 .workbench-status-bar {

@@ -1,11 +1,13 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
+
+type ImageExportOptions = { includeColorStats: boolean };
 
 interface WorkbenchCommandBarProps {
   projectLoaded: boolean;
   reviewCount: number;
-  onExportClean: () => void;
+  onExportClean: (options: ImageExportOptions) => void;
   onExportMapping: () => void;
-  onExportOverlay: () => void;
+  onExportOverlay: (options: ImageExportOptions) => void;
   onOpenProject: (file: File) => void;
   onSaveProject: () => void;
   onSelectImage: (file: File) => void;
@@ -21,6 +23,7 @@ export function WorkbenchCommandBar({
   onSaveProject,
   onSelectImage,
 }: WorkbenchCommandBarProps) {
+  const [includeColorStats, setIncludeColorStats] = useState(true);
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const projectInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -77,10 +80,27 @@ export function WorkbenchCommandBar({
       </nav>
       <nav aria-label="导出命令" className="command-group">
         <span className="command-review-count">待确认 {reviewCount}</span>
-        <button disabled={!projectLoaded} type="button" onClick={onExportClean}>
+        <label className="command-export-option">
+          <input
+            aria-label="导出时附带色块统计"
+            checked={includeColorStats}
+            type="checkbox"
+            onChange={(event) => setIncludeColorStats(event.currentTarget.checked)}
+          />
+          导出带色块统计
+        </label>
+        <button
+          disabled={!projectLoaded}
+          type="button"
+          onClick={() => onExportClean({ includeColorStats })}
+        >
           导出图纸
         </button>
-        <button disabled={!projectLoaded} type="button" onClick={onExportOverlay}>
+        <button
+          disabled={!projectLoaded}
+          type="button"
+          onClick={() => onExportOverlay({ includeColorStats })}
+        >
           导出检查图
         </button>
         <button disabled={!projectLoaded} type="button" onClick={onExportMapping}>

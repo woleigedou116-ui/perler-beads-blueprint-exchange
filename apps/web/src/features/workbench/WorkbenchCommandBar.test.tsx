@@ -69,6 +69,27 @@ describe("WorkbenchCommandBar", () => {
     expect(onExportClean).toHaveBeenCalledOnce();
   });
 
+  it("lets image exports opt out of color statistics", async () => {
+    const onExportClean = vi.fn();
+    render(
+      <WorkbenchCommandBar
+        projectLoaded={true}
+        reviewCount={0}
+        onExportClean={onExportClean}
+        onExportMapping={() => undefined}
+        onExportOverlay={() => undefined}
+        onSaveProject={() => undefined}
+        onOpenProject={() => undefined}
+        onSelectImage={() => undefined}
+      />,
+    );
+
+    await userEvent.click(screen.getByLabelText("导出时附带色块统计"));
+    await userEvent.click(screen.getByRole("button", { name: "导出图纸" }));
+
+    expect(onExportClean).toHaveBeenCalledWith({ includeColorStats: false });
+  });
+
   it("opens command-bar file inputs from keyboard activation", async () => {
     render(
       <WorkbenchCommandBar
