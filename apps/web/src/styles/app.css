@@ -155,6 +155,7 @@ p {
   max-width: none;
 }
 
+.desktop-workbench.review-fullscreen .project-sidebar,
 .desktop-workbench.review-fullscreen .upload-panel {
   display: none;
 }
@@ -189,6 +190,27 @@ p {
   display: block;
   margin: 0.55rem 0 0.85rem;
   max-width: 100%;
+}
+
+.project-sidebar {
+  min-width: 0;
+}
+
+.sidebar-section-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.sidebar-section-heading h2 {
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+.sidebar-section-heading span {
+  color: #5f6d69;
+  font-size: 0.78rem;
 }
 
 .upload-placeholder,
@@ -234,6 +256,7 @@ p {
   color: white;
 }
 
+.project-sidebar .primary-button,
 .upload-panel .primary-button {
   width: 100%;
 }

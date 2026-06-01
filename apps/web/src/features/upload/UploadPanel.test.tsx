@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 
@@ -56,7 +56,17 @@ function renderPanelWithTiming() {
 }
 
 afterEach(() => {
+  cleanup();
   vi.useRealTimers();
+});
+
+it("shows project inputs and local processing status", () => {
+  renderPanel();
+
+  expect(screen.getByRole("region", { name: "项目与输入" })).toBeInTheDocument();
+  expect(screen.getByLabelText("上传图纸")).toBeInTheDocument();
+  expect(screen.getByLabelText("打开项目")).toBeInTheDocument();
+  expect(screen.getByText("本地处理")).toBeInTheDocument();
 });
 
 it("updates elapsed recognition time inside the upload panel", async () => {

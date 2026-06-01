@@ -53,8 +53,11 @@ export function UploadPanel({
   }, [processing]);
 
   return (
-    <section className="panel upload-panel" aria-label="上传与参数">
-      <h2>上传与参数</h2>
+    <section className="panel project-sidebar" aria-label="项目与输入">
+      <div className="sidebar-section-heading">
+        <h2>项目</h2>
+        <span>本地处理</span>
+      </div>
       <label className="file-field">
         <span>上传图纸</span>
         <input

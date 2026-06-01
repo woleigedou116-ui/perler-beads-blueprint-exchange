@@ -676,7 +676,7 @@ describe("WorkbenchPage", () => {
 
     expect(statCodes()).toEqual(["K07", "A10", "B09"]);
 
-    await userEvent.click(screen.getByText("上传与参数"));
+    await userEvent.click(screen.getByRole("region", { name: "项目与输入" }));
     expect(screen.queryByRole("dialog", { name: "校对设置" })).not.toBeInTheDocument();
   });
 
@@ -804,7 +804,7 @@ describe("WorkbenchPage", () => {
     const projectFile = new File(["saved"], "pattern.beadproject");
 
     await userEvent.upload(
-      within(screen.getByRole("region", { name: "上传与参数" })).getByLabelText(
+      within(screen.getByRole("region", { name: "项目与输入" })).getByLabelText(
         "打开项目",
       ),
       projectFile,
@@ -844,7 +844,7 @@ describe("WorkbenchPage", () => {
     resolveImport(importResult(projectWithOneReviewCell));
     expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
     await userEvent.upload(
-      within(screen.getByRole("region", { name: "上传与参数" })).getByLabelText(
+      within(screen.getByRole("region", { name: "项目与输入" })).getByLabelText(
         "打开项目",
       ),
       new File(["saved"], "pattern.beadproject"),
