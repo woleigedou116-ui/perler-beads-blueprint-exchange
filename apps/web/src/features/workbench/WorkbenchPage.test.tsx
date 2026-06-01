@@ -326,6 +326,30 @@ describe("WorkbenchPage", () => {
     ).toBeEnabled();
   });
 
+  it("does not highlight the review queue until a review cell is manually selected", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi.fn(() => "blob:source-pattern"),
+      revokeObjectURL: vi.fn(),
+    });
+    await importPattern();
+
+    const reviewGroup = await screen.findByLabelText("MARD H7 到 COCO B09，涉及 1 格");
+    expect(reviewGroup).not.toHaveAttribute("aria-current");
+    expect(reviewGroup).not.toHaveClass("is-selected-review-group");
+
+    const sourceImage = await screen.findByAltText("上传原图");
+    Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+    Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+    fireEvent.load(sourceImage);
+
+    const hitCells = screen.getByLabelText("原图格子选择层").querySelectorAll("rect");
+    fireEvent.click(hitCells[0]);
+
+    expect(reviewGroup).toHaveAttribute("aria-current", "true");
+    expect(reviewGroup).toHaveClass("is-selected-review-group");
+  });
+
   it("has CSS rules for the desktop workbench shell", () => {
     expect(appCss).toContain(".desktop-workbench");
     expect(appCss).toContain(".workbench-body");

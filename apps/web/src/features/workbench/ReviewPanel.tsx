@@ -7,6 +7,7 @@ import { buildReviewGroups, compareCodes, reviewGroupKey } from "./reviewGroups"
 interface ReviewPanelProps {
   autoLocateAfterDecision: boolean;
   colorStatSort?: ColorStatSort;
+  highlightSelectedReviewGroup?: boolean;
   paletteMappings?: PaletteMapping[];
   project: BeadProject;
   regionSelectionActive?: boolean;
@@ -37,6 +38,7 @@ function normalizeCode(code: string) {
 export function ReviewPanel({
   autoLocateAfterDecision,
   colorStatSort = DEFAULT_COLOR_STAT_SORT,
+  highlightSelectedReviewGroup = true,
   paletteMappings = [],
   project,
   regionSelectionActive = false,
@@ -161,7 +163,9 @@ export function ReviewPanel({
   const candidateGroup = reviewGroups.find((group) => group.key === candidateGroupKey);
   const candidateRepresentative = candidateGroup?.cells[0];
   const selectedReviewGroupKey =
-    selectedCell?.status === "review-required" ? reviewGroupKey(selectedCell) : null;
+    highlightSelectedReviewGroup && selectedCell?.status === "review-required"
+      ? reviewGroupKey(selectedCell)
+      : null;
   const candidateGroupMatchesSelectedCell = candidateGroup?.cells.some(
     (cell) =>
       selectedCell &&

@@ -38,6 +38,7 @@ export function WorkbenchPage() {
   const [file, setFile] = useState<File | null>(null);
   const [project, setProject] = useState<BeadProject | null>(null);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
+  const [highlightSelectedReviewGroup, setHighlightSelectedReviewGroup] = useState(false);
   const [attribution, setAttribution] = useState("");
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +146,7 @@ export function WorkbenchPage() {
         opened.cells[0] ??
         null,
     );
+    setHighlightSelectedReviewGroup(false);
     setRegionSelection(null);
   }
 
@@ -223,6 +225,9 @@ export function WorkbenchPage() {
     const next = cellAfterDecision(previousProject, updatedProject, decidedCell);
     setProject(updatedProject);
     setSelectedCell(next.cell);
+    setHighlightSelectedReviewGroup(
+      Boolean(next.shouldLocate && next.cell?.status === "review-required"),
+    );
     if (next.shouldLocate && next.cell) {
       setFocusRequest({ cell: next.cell, nonce: Date.now() });
     }
@@ -232,6 +237,7 @@ export function WorkbenchPage() {
     const updatedSameCell = findUpdatedCell(updatedProject, correctedCell);
     setProject(updatedProject);
     setSelectedCell(updatedSameCell);
+    setHighlightSelectedReviewGroup(false);
     if (updatedSameCell) {
       setFocusRequest({ cell: updatedSameCell, nonce: Date.now() });
     }
@@ -242,7 +248,9 @@ export function WorkbenchPage() {
     unwantedCell: Cell,
   ) {
     setProject(updatedProject);
-    setSelectedCell(findUpdatedCell(updatedProject, unwantedCell));
+    const updatedSameCell = findUpdatedCell(updatedProject, unwantedCell);
+    setSelectedCell(updatedSameCell);
+    setHighlightSelectedReviewGroup(false);
   }
 
   function applyProjectAfterRegionUnwanted(
@@ -251,6 +259,7 @@ export function WorkbenchPage() {
     const updatedSameCell = selectedCell ? findUpdatedCell(updatedProject, selectedCell) : null;
     setProject(updatedProject);
     setSelectedCell(updatedSameCell);
+    setHighlightSelectedReviewGroup(false);
   }
 
   function handleSelectCell(cell: Cell) {
@@ -266,6 +275,7 @@ export function WorkbenchPage() {
       });
     }
     setSelectedCell(cell);
+    setHighlightSelectedReviewGroup(cell.status === "review-required");
     setFocusRequest({ cell, nonce: Date.now() });
   }
 
@@ -401,6 +411,7 @@ export function WorkbenchPage() {
             colorStatSort={colorStatSort}
             paletteMappings={paletteMappings}
             project={project}
+            highlightSelectedReviewGroup={highlightSelectedReviewGroup}
             regionSelectionActive={regionSelection !== null}
             regionSelectionComplete={Boolean(regionSelection?.start && regionSelection.end)}
             regionSelectionLabel={regionSelectionLabel}
