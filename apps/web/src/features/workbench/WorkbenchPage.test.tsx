@@ -308,23 +308,28 @@ describe("WorkbenchPage", () => {
     await importPattern();
 
     expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
-    expect(screen.getByText("网格 1 x 2")).toBeInTheDocument();
+    expect(screen.getAllByText("网格 1 x 2")[0]).toBeInTheDocument();
     expect(screen.getByText("MARD H7")).toBeInTheDocument();
     expect(screen.getByText("COCO B09")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "导出图纸" })).toBeEnabled();
+    expect(
+      within(screen.getByRole("navigation", { name: "导出命令" })).getByRole(
+        "button",
+        { name: "导出图纸" },
+      ),
+    ).toBeEnabled();
   });
 
-  it("moves export actions into the preview toolbar without the bottom color summary", async () => {
+  it("keeps export actions in the desktop command bar", async () => {
     await importPattern();
 
     const toolbar = await screen.findByLabelText("预览工具栏");
+    const exportCommands = screen.getByRole("navigation", { name: "导出命令" });
 
     expect(within(toolbar).getByRole("button", { name: "全屏查看" })).toBeInTheDocument();
-    expect(within(toolbar).getByRole("button", { name: "保存项目" })).toBeInTheDocument();
-    expect(within(toolbar).getByRole("button", { name: "导出图纸" })).toBeInTheDocument();
-    expect(within(toolbar).getByRole("button", { name: "导出检查图" })).toBeInTheDocument();
-    expect(within(toolbar).getByRole("button", { name: "导出清单" })).toBeInTheDocument();
-    expect(within(toolbar).getByLabelText("导出时附带色块统计")).toBeInTheDocument();
+    expect(within(exportCommands).getByRole("button", { name: "导出图纸" })).toBeEnabled();
+    expect(within(exportCommands).getByRole("button", { name: "导出检查图" })).toBeEnabled();
+    expect(within(exportCommands).getByRole("button", { name: "导出清单" })).toBeEnabled();
+    expect(toolbar).not.toHaveTextContent("导出图纸");
     expect(screen.queryByLabelText("统计与导出")).not.toBeInTheDocument();
     expect(document.querySelector(".stats-panel")).not.toBeInTheDocument();
     expect(document.querySelector(".chips")).not.toBeInTheDocument();
@@ -713,9 +718,10 @@ describe("WorkbenchPage", () => {
   it("requires confirmation before exporting unresolved output", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     await importPattern();
+    const exportCommands = screen.getByRole("navigation", { name: "导出命令" });
 
     await userEvent.click(
-      await screen.findByRole("button", { name: "导出图纸" }),
+      within(exportCommands).getByRole("button", { name: "导出图纸" }),
     );
 
     expect(confirm).toHaveBeenCalledWith(
@@ -727,8 +733,11 @@ describe("WorkbenchPage", () => {
   it("saves the project archive without resolving pending review cells", async () => {
     const confirm = vi.spyOn(window, "confirm").mockReturnValue(false);
     await importPattern();
+    const projectCommands = screen.getByRole("navigation", { name: "项目命令" });
 
-    await userEvent.click(await screen.findByRole("button", { name: "保存项目" }));
+    await userEvent.click(
+      within(projectCommands).getByRole("button", { name: "保存项目" }),
+    );
 
     expect(confirm).not.toHaveBeenCalled();
     expect(exportUrl).toHaveBeenCalledWith(
@@ -742,18 +751,22 @@ describe("WorkbenchPage", () => {
   it("adds the color-statistics export option to image downloads", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     await importPattern();
+    const exportCommands = screen.getByRole("navigation", { name: "导出命令" });
 
-    await userEvent.click(await screen.findByRole("button", { name: "导出图纸" }));
+    await userEvent.click(
+      within(exportCommands).getByRole("button", { name: "导出图纸" }),
+    );
     expect(exportUrl).toHaveBeenCalledWith("pattern-1", "clean.png", {
       includeColorStats: true,
     });
     expect(saveExport).toHaveBeenCalledWith("/download", "clean.png");
 
-    await userEvent.click(screen.getByLabelText("导出时附带色块统计"));
-    await userEvent.click(screen.getByRole("button", { name: "导出检查图" }));
+    await userEvent.click(
+      within(exportCommands).getByRole("button", { name: "导出检查图" }),
+    );
 
     expect(exportUrl).toHaveBeenLastCalledWith("pattern-1", "overlay.png", {
-      includeColorStats: false,
+      includeColorStats: true,
     });
     expect(saveExport).toHaveBeenLastCalledWith("/download", "overlay.png");
   });
@@ -767,7 +780,12 @@ describe("WorkbenchPage", () => {
     render(<WorkbenchPage />);
     const projectFile = new File(["saved"], "pattern.beadproject");
 
-    await userEvent.upload(screen.getByLabelText("打开项目"), projectFile);
+    await userEvent.upload(
+      within(screen.getByRole("region", { name: "上传与参数" })).getByLabelText(
+        "打开项目",
+      ),
+      projectFile,
+    );
 
     expect(openProject).toHaveBeenCalledWith(projectFile);
     expect(projectSourceImageUrl).toHaveBeenCalledWith("pattern-1");
@@ -803,7 +821,9 @@ describe("WorkbenchPage", () => {
     resolveImport(importResult(projectWithOneReviewCell));
     expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
     await userEvent.upload(
-      screen.getByLabelText("打开项目"),
+      within(screen.getByRole("region", { name: "上传与参数" })).getByLabelText(
+        "打开项目",
+      ),
       new File(["saved"], "pattern.beadproject"),
     );
 

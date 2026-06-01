@@ -4,12 +4,10 @@ import { describe, expect, it } from "vitest";
 import { App } from "./App";
 
 describe("App", () => {
-  it("introduces the local converter", () => {
+  it("opens directly to the workbench", () => {
     render(<App />);
 
-    expect(
-      screen.getByRole("heading", { name: "拼豆图纸标准转换" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("图片与项目文件仅在本机处理")).toBeInTheDocument();
+    expect(screen.getByLabelText("拼豆转换工作台")).toBeInTheDocument();
+    expect(screen.queryByText("图片与项目文件仅在本机处理")).not.toBeInTheDocument();
   });
 });

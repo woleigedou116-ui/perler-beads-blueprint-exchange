@@ -18,9 +18,10 @@ import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
 import { UploadPanel } from "../upload/UploadPanel";
 import { ComparisonPreview } from "./ComparisonPreview";
 import type { ColorStatSort } from "./colorStats";
-import { ExportActions } from "./ExportActions";
 import { PaletteReference } from "./PaletteReference";
 import { ReviewPanel } from "./ReviewPanel";
+import { WorkbenchCommandBar } from "./WorkbenchCommandBar";
+import { WorkbenchStatusBar } from "./WorkbenchStatusBar";
 import { buildReviewGroups, reviewGroupKey } from "./reviewGroups";
 import type { CellRegionBounds } from "./GridPreview";
 
@@ -342,74 +343,92 @@ export function WorkbenchPage() {
   return (
     <div
       aria-label="拼豆转换工作台"
-      className={`workbench${isReviewFullscreen ? " review-fullscreen" : ""}`}
+      className={`desktop-workbench${isReviewFullscreen ? " review-fullscreen" : ""}`}
     >
-      <UploadPanel
-        attribution={attribution}
-        file={file}
-        previewUrl={previewUrl}
-        processing={processing}
-        project={project}
-        lastRecognitionDurationMs={lastRecognitionDurationMs}
-        lastRecognitionTiming={lastRecognitionTiming}
-        onAttributionChange={setAttribution}
-        onImport={handleImport}
+      <WorkbenchCommandBar
+        projectLoaded={Boolean(project)}
+        reviewCount={reviewCount}
+        onExportClean={() => handleExport("clean.png", { includeColorStats: true })}
+        onExportMapping={() => handleExport("mapping.csv")}
+        onExportOverlay={() => handleExport("overlay.png", { includeColorStats: true })}
         onOpenProject={handleOpenProject}
-        onSaveAttribution={handleSaveAttribution}
-        onSelectFile={setFile}
+        onSaveProject={() => handleExport("project.beadproject")}
+        onSelectImage={setFile}
       />
-      <section className="center-workspace" aria-label="图纸对照预览">
-        {error ? <p className="error-note">{error}</p> : null}
-        {project ? (
-          <>
-            <ComparisonPreview
-              colorStatSort={colorStatSort}
-              focusRequest={focusRequest}
-              fullscreen={isReviewFullscreen}
-              paletteMappings={paletteMappings}
-              project={project}
-              selectedRegionBounds={selectedRegionBounds}
-              sourceImageUrl={previewUrl}
-              toolbarActions={<ExportActions onExport={handleExport} />}
-              onFullscreenChange={setIsReviewFullscreen}
-              onSelectCell={handleSelectCell}
-            />
-            <PaletteReference paletteMappings={paletteMappings} project={project} />
-          </>
-        ) : (
-          <div className="empty-workspace">
-            <h2>等待图纸</h2>
-            <p>上传带 MARD 色号的规则网格图片后，此处会生成 COCO 初稿。</p>
-          </div>
-        )}
-      </section>
-      {project ? (
-        <ReviewPanel
-          autoLocateAfterDecision={autoLocateAfterDecision}
-          colorStatSort={colorStatSort}
-          paletteMappings={paletteMappings}
+      <div className="workbench-body">
+        <UploadPanel
+          attribution={attribution}
+          file={file}
+          previewUrl={previewUrl}
+          processing={processing}
           project={project}
-          regionSelectionActive={regionSelection !== null}
-          regionSelectionComplete={Boolean(regionSelection?.start && regionSelection.end)}
-          regionSelectionLabel={regionSelectionLabel}
-          selectedCell={selectedCell}
-          onAutoLocateAfterDecisionChange={setAutoLocateAfterDecision}
-          onApplyRegionUnwanted={handleApplyRegionUnwanted}
-          onCancelRegionUnwanted={handleCancelRegionUnwanted}
-          onColorStatSortChange={setColorStatSort}
-          onConfirmMapping={handleConfirmMapping}
-          onCorrectCell={handleCorrectCell}
-          onLocateCell={(cell) => setFocusRequest({ cell, nonce: Date.now() })}
-          onMarkCellUnwanted={handleMarkCellUnwanted}
-          onStartRegionUnwanted={handleStartRegionUnwanted}
-          onSelectCell={handleSelectCell}
+          lastRecognitionDurationMs={lastRecognitionDurationMs}
+          lastRecognitionTiming={lastRecognitionTiming}
+          onAttributionChange={setAttribution}
+          onImport={handleImport}
+          onOpenProject={handleOpenProject}
+          onSaveAttribution={handleSaveAttribution}
+          onSelectFile={setFile}
         />
-      ) : (
-        <aside className="panel review-panel idle-review">
-          <h2>校对</h2>
-          <p>识别后，疑点会集中列在这里。</p>
-        </aside>
-      )}
+        <section className="center-workspace" aria-label="图纸对照预览">
+          {error ? <p className="error-note">{error}</p> : null}
+          {project ? (
+            <>
+              <ComparisonPreview
+                colorStatSort={colorStatSort}
+                focusRequest={focusRequest}
+                fullscreen={isReviewFullscreen}
+                paletteMappings={paletteMappings}
+                project={project}
+                selectedRegionBounds={selectedRegionBounds}
+                sourceImageUrl={previewUrl}
+                toolbarActions={null}
+                onFullscreenChange={setIsReviewFullscreen}
+                onSelectCell={handleSelectCell}
+              />
+              <PaletteReference paletteMappings={paletteMappings} project={project} />
+            </>
+          ) : (
+            <div className="empty-workspace">
+              <h2>等待图纸</h2>
+              <p>上传带 MARD 色号的规则网格图片后，此处会生成 COCO 初稿。</p>
+            </div>
+          )}
+        </section>
+        {project ? (
+          <ReviewPanel
+            autoLocateAfterDecision={autoLocateAfterDecision}
+            colorStatSort={colorStatSort}
+            paletteMappings={paletteMappings}
+            project={project}
+            regionSelectionActive={regionSelection !== null}
+            regionSelectionComplete={Boolean(regionSelection?.start && regionSelection.end)}
+            regionSelectionLabel={regionSelectionLabel}
+            selectedCell={selectedCell}
+            onAutoLocateAfterDecisionChange={setAutoLocateAfterDecision}
+            onApplyRegionUnwanted={handleApplyRegionUnwanted}
+            onCancelRegionUnwanted={handleCancelRegionUnwanted}
+            onColorStatSortChange={setColorStatSort}
+            onConfirmMapping={handleConfirmMapping}
+            onCorrectCell={handleCorrectCell}
+            onLocateCell={(cell) => setFocusRequest({ cell, nonce: Date.now() })}
+            onMarkCellUnwanted={handleMarkCellUnwanted}
+            onStartRegionUnwanted={handleStartRegionUnwanted}
+            onSelectCell={handleSelectCell}
+          />
+        ) : (
+          <aside className="panel review-panel idle-review">
+            <h2>校对</h2>
+            <p>识别后，疑点会集中列在这里。</p>
+          </aside>
+        )}
+      </div>
+      <WorkbenchStatusBar
+        project={project}
+        reviewCount={reviewCount}
+        selectedCell={selectedCell}
+        lastRecognitionDurationMs={lastRecognitionDurationMs}
+      />
     </div>
   );
 }
