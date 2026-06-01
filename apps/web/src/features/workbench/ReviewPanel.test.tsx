@@ -117,7 +117,8 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
   expect(onConfirmMapping).toHaveBeenCalledWith(projectWithOneReviewCell.cells[0]);
 
   await userEvent.click(screen.getByRole("button", { name: "修改" }));
-  const candidates = screen.getByLabelText("近似色号候选");
+  const cellProperties = screen.getByRole("region", { name: "选中格属性" });
+  const candidates = within(cellProperties).getByLabelText("近似色号候选");
   const candidateButtons = within(candidates).getAllByRole("button");
 
   expect(candidateButtons.map((button) => button.textContent)).toEqual([
@@ -137,7 +138,7 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
   );
 
   await userEvent.click(screen.getByRole("button", { name: "更多" }));
-  const fullPalette = screen.getByLabelText("全部来源色号候选");
+  const fullPalette = within(cellProperties).getByLabelText("全部来源色号候选");
   expect(
     within(fullPalette)
       .getAllByRole("button")
@@ -150,6 +151,37 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
     "H4",
     "A02",
   );
+});
+
+it("keeps active non-bead region selection controls with the review queue", () => {
+  render(
+    <ReviewPanel
+      autoLocateAfterDecision
+      paletteMappings={paletteMappings}
+      project={projectWithOneReviewCell}
+      regionSelectionActive
+      regionSelectionComplete
+      regionSelectionLabel="已框选 4 格"
+      selectedCell={projectWithOneReviewCell.cells[0]}
+      onApplyRegionUnwanted={vi.fn()}
+      onAutoLocateAfterDecisionChange={vi.fn()}
+      onCancelRegionUnwanted={vi.fn()}
+      onConfirmMapping={vi.fn()}
+      onCorrectCell={vi.fn()}
+      onLocateCell={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const reviewQueue = screen.getByRole("region", { name: "校对队列" });
+  const nonBeadTools = screen.getByRole("region", { name: "非拼豆工具" });
+
+  expect(within(reviewQueue).getByLabelText("框选非拼豆区域")).toBeInTheDocument();
+  expect(within(reviewQueue).getByRole("button", { name: "取消框选" })).toBeInTheDocument();
+  expect(
+    within(reviewQueue).getByRole("button", { name: "应用框选区域" }),
+  ).toBeInTheDocument();
+  expect(within(nonBeadTools).queryByLabelText("框选非拼豆区域")).not.toBeInTheDocument();
 });
 
 it("chooses correction candidates from the uploaded source recognition colors", async () => {

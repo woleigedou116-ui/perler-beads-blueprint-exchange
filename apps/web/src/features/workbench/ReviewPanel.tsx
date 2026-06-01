@@ -157,6 +157,9 @@ export function ReviewPanel({
     onCorrectCell(cell, normalizeCode(sourceCode), normalizeCode(targetCode));
   }
 
+  const candidateGroup = reviewGroups.find((group) => group.key === candidateGroupKey);
+  const candidateRepresentative = candidateGroup?.cells[0];
+
   return (
     <aside className="panel review-panel" aria-label="校对与属性">
       <section className="review-sidebar-section" aria-label="校对队列">
@@ -258,6 +261,23 @@ export function ReviewPanel({
             </div>
           </div>
         </div>
+        {regionSelectionActive ? (
+          <div className="region-mode-panel" aria-label="框选非拼豆区域">
+            <p>{regionSelectionLabel ?? "选择起点格，再选择终点格"}</p>
+            <div className="review-actions">
+              <button type="button" onClick={onCancelRegionUnwanted}>
+                取消框选
+              </button>
+              <button
+                disabled={!regionSelectionComplete}
+                type="button"
+                onClick={onApplyRegionUnwanted}
+              >
+                应用框选区域
+              </button>
+            </div>
+          </div>
+        ) : null}
         <div className="review-list">
           {reviewGroups.map((group) => {
             const representative = group.cells[0];
@@ -310,52 +330,6 @@ export function ReviewPanel({
                     修改
                   </button>
                 </div>
-                {candidateGroupKey === group.key ? (
-                  <div className="candidate-list" aria-label="近似色号候选">
-                    <p>来源近似色号</p>
-                    {nearestCandidates(representative).map((candidate) => (
-                      <button
-                        key={`${candidate.source_code}-${candidate.target_code}`}
-                        type="button"
-                        title={`MARD ${candidate.source_code} -> COCO ${candidate.target_code}`}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleCandidateClick(representative, candidate);
-                        }}
-                      >
-                        {candidate.source_code}
-                      </button>
-                    ))}
-                    <button
-                      type="button"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setExpandedPaletteGroupKey((current) =>
-                          current === group.key ? null : group.key,
-                        );
-                      }}
-                    >
-                      更多
-                    </button>
-                    {expandedPaletteGroupKey === group.key ? (
-                      <div className="full-candidate-list" aria-label="全部来源色号候选">
-                        {sortedSourceMappings.map((mapping) => (
-                          <button
-                            key={`${mapping.source_code}-${mapping.target_code}`}
-                            type="button"
-                            title={`MARD ${mapping.source_code} -> COCO ${mapping.target_code}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleCandidateClick(representative, mapping);
-                            }}
-                          >
-                            {mapping.source_code}
-                          </button>
-                        ))}
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
               </article>
             );
           })}
@@ -393,6 +367,45 @@ export function ReviewPanel({
             </button>
           </form>
         ) : null}
+        {candidateGroup && candidateRepresentative ? (
+          <div className="candidate-list" aria-label="近似色号候选">
+            <p>来源近似色号</p>
+            {nearestCandidates(candidateRepresentative).map((candidate) => (
+              <button
+                key={`${candidate.source_code}-${candidate.target_code}`}
+                type="button"
+                title={`MARD ${candidate.source_code} -> COCO ${candidate.target_code}`}
+                onClick={() => handleCandidateClick(candidateRepresentative, candidate)}
+              >
+                {candidate.source_code}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() =>
+                setExpandedPaletteGroupKey((current) =>
+                  current === candidateGroup.key ? null : candidateGroup.key,
+                )
+              }
+            >
+              更多
+            </button>
+            {expandedPaletteGroupKey === candidateGroup.key ? (
+              <div className="full-candidate-list" aria-label="全部来源色号候选">
+                {sortedSourceMappings.map((mapping) => (
+                  <button
+                    key={`${mapping.source_code}-${mapping.target_code}`}
+                    type="button"
+                    title={`MARD ${mapping.source_code} -> COCO ${mapping.target_code}`}
+                    onClick={() => handleCandidateClick(candidateRepresentative, mapping)}
+                  >
+                    {mapping.source_code}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </section>
       <section className="review-sidebar-section" aria-label="非拼豆工具">
         {selectedCell && selectedCell.status !== "empty" ? (
@@ -407,23 +420,7 @@ export function ReviewPanel({
           <button type="button" onClick={onStartRegionUnwanted}>
             框选非拼豆区域
           </button>
-        ) : (
-          <div className="region-mode-panel" aria-label="框选非拼豆区域">
-            <p>{regionSelectionLabel ?? "选择起点格，再选择终点格"}</p>
-            <div className="review-actions">
-              <button type="button" onClick={onCancelRegionUnwanted}>
-                取消框选
-              </button>
-              <button
-                disabled={!regionSelectionComplete}
-                type="button"
-                onClick={onApplyRegionUnwanted}
-              >
-                应用框选区域
-              </button>
-            </div>
-          </div>
-        )}
+        ) : null}
       </section>
     </aside>
   );
