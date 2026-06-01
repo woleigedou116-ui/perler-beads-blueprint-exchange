@@ -68,4 +68,32 @@ describe("WorkbenchCommandBar", () => {
     expect(onSaveProject).toHaveBeenCalledOnce();
     expect(onExportClean).toHaveBeenCalledOnce();
   });
+
+  it("opens command-bar file inputs from keyboard activation", async () => {
+    render(
+      <WorkbenchCommandBar
+        projectLoaded={false}
+        reviewCount={0}
+        onExportClean={() => undefined}
+        onExportMapping={() => undefined}
+        onExportOverlay={() => undefined}
+        onSaveProject={() => undefined}
+        onOpenProject={() => undefined}
+        onSelectImage={() => undefined}
+      />,
+    );
+
+    const importInput = screen.getByLabelText("从命令栏导入图片") as HTMLInputElement;
+    const openInput = screen.getByLabelText("从命令栏打开项目") as HTMLInputElement;
+    const importClick = vi.spyOn(importInput, "click").mockImplementation(() => undefined);
+    const openClick = vi.spyOn(openInput, "click").mockImplementation(() => undefined);
+
+    screen.getByRole("button", { name: "导入图片" }).focus();
+    await userEvent.keyboard("{Enter}");
+    expect(importClick).toHaveBeenCalledOnce();
+
+    screen.getByRole("button", { name: "打开项目" }).focus();
+    await userEvent.keyboard(" ");
+    expect(openClick).toHaveBeenCalledOnce();
+  });
 });

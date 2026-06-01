@@ -16,6 +16,7 @@ import {
   projectSourceImageUrl,
 } from "../../api/client";
 import { saveExport } from "../../api/exports";
+import appCss from "../../styles/app.css?raw";
 import { WorkbenchPage } from "./WorkbenchPage";
 import {
   projectAfterMappingConfirmation,
@@ -317,6 +318,12 @@ describe("WorkbenchPage", () => {
         { name: "导出图纸" },
       ),
     ).toBeEnabled();
+  });
+
+  it("has CSS rules for the desktop workbench shell", () => {
+    expect(appCss).toContain(".desktop-workbench");
+    expect(appCss).toContain(".workbench-body");
+    expect(appCss).toContain(".desktop-workbench.review-fullscreen");
   });
 
   it("keeps export actions in the desktop command bar", async () => {
