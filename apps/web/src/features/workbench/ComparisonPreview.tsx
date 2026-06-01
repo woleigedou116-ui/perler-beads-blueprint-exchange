@@ -215,6 +215,7 @@ export function ComparisonPreview({
   const [draggingSide, setDraggingSide] = useState<PreviewSide | null>(null);
   const [showReviewOverlay, setShowReviewOverlay] = useState(true);
   const [showTargetReviewOverlay, setShowTargetReviewOverlay] = useState(true);
+  const [showTargetCellLabels, setShowTargetCellLabels] = useState(true);
   const [showColorStats, setShowColorStats] = useState(true);
   const [focusedCell, setFocusedCell] = useState<Cell | null>(null);
   const [sourceImageSize, setSourceImageSize] = useState<SourceImageSize | null>(null);
@@ -238,6 +239,7 @@ export function ComparisonPreview({
     setFocusedCell(null);
     setShowReviewOverlay(true);
     setShowTargetReviewOverlay(true);
+    setShowTargetCellLabels(true);
     setShowColorStats(true);
     setSourceImageSize(null);
     setContentSizes({ source: null, target: null });
@@ -442,6 +444,17 @@ export function ComparisonPreview({
             </button>
             <button
               type="button"
+              aria-label={
+                showTargetCellLabels
+                  ? `${title} 隐藏色号`
+                  : `${title} 显示色号`
+              }
+              onClick={() => setShowTargetCellLabels((current) => !current)}
+            >
+              {showTargetCellLabels ? "隐藏色号" : "显示色号"}
+            </button>
+            <button
+              type="button"
               aria-label={showColorStats ? "隐藏色块统计" : "显示色块统计"}
               onClick={() => setShowColorStats((current) => !current)}
             >
@@ -520,6 +533,7 @@ export function ComparisonPreview({
           }
           project={project}
           selectedRegionBounds={selectedRegionBounds}
+          showCellLabels={showTargetCellLabels}
           showColorStats={showColorStats}
           showReviewOverlay={showTargetReviewOverlay}
           target

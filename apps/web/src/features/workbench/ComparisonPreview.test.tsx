@@ -279,6 +279,24 @@ it("toggles target review overlays so correction frames do not cover colors", as
   ).toBeInTheDocument();
 });
 
+it("toggles target cell labels for a finished-look preview", async () => {
+  const { container } = renderPreview();
+
+  expect(container.querySelectorAll(".grid-preview text")).toHaveLength(2);
+
+  await userEvent.click(screen.getByRole("button", { name: "COCO 重绘预览 隐藏色号" }));
+
+  expect(container.querySelectorAll(".grid-preview text")).toHaveLength(0);
+  expect(container.querySelectorAll(".grid-preview rect")).toHaveLength(2);
+  expect(
+    screen.getByRole("button", { name: "COCO 重绘预览 显示色号" }),
+  ).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole("button", { name: "COCO 重绘预览 显示色号" }));
+
+  expect(container.querySelectorAll(".grid-preview text")).toHaveLength(2);
+});
+
 it("focuses a requested cell in both previews", () => {
   const { container, rerender } = renderPreview();
   const sourceImage = screen.getByAltText("上传原图");

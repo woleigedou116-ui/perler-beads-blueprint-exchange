@@ -178,6 +178,21 @@ it("uses larger target labels in the regenerated preview", () => {
   expect(container.querySelector("text")).toHaveStyle({ fontSize: "16px" });
 });
 
+it("can hide cell labels in the regenerated preview while keeping bead colors", () => {
+  const { container } = render(
+    <GridPreview
+      project={projectWithOneReviewCell}
+      showCellLabels={false}
+      target
+      title="COCO 重绘预览"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(container.querySelectorAll("text")).toHaveLength(0);
+  expect(container.querySelectorAll("rect")).toHaveLength(projectWithOneReviewCell.cells.length);
+});
+
 it("renders target color block statistics when requested", () => {
   render(
     <GridPreview

@@ -44,6 +44,7 @@ interface GridPreviewProps {
   project: BeadProject;
   showReviewOverlay?: boolean;
   showColorStats?: boolean;
+  showCellLabels?: boolean;
   sourceImageUrl?: string | null;
   selectedRegionBounds?: CellRegionBounds | null;
   transform?: PreviewTransform;
@@ -95,6 +96,7 @@ export function GridPreview({
   onSourceImageSizeChange,
   project,
   selectedRegionBounds = null,
+  showCellLabels = true,
   showColorStats = false,
   showReviewOverlay = true,
   sourceImageUrl = null,
@@ -327,7 +329,7 @@ export function GridPreview({
                           : `rgb(${rgb.r} ${rgb.g} ${rgb.b})`
                       }
                     />
-                    {label ? (
+                    {showCellLabels && label ? (
                       <text
                         paintOrder="stroke"
                         strokeLinecap="round"
