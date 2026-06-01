@@ -168,7 +168,7 @@ export function ReviewPanel({
 
   return (
     <aside className="panel review-panel" aria-label="校对与属性">
-      <section className="review-sidebar-section" aria-label="校对队列">
+      <section className="review-sidebar-section review-queue-section" aria-label="校对队列">
         <div className="panel-heading">
           <h2>校对</h2>
           <div className="review-heading-actions">
@@ -373,7 +373,7 @@ export function ReviewPanel({
             </button>
           </form>
         ) : null}
-        {candidateGroupMatchesSelectedCell && candidateGroup && candidateRepresentative ? (
+        {candidateGroupMatchesSelectedCell && candidateGroup && candidateRepresentative && selectedCell ? (
           <div className="candidate-list" aria-label="近似色号候选">
             <p>来源近似色号</p>
             {nearestCandidates(candidateRepresentative).map((candidate) => (
@@ -381,7 +381,7 @@ export function ReviewPanel({
                 key={`${candidate.source_code}-${candidate.target_code}`}
                 type="button"
                 title={`MARD ${candidate.source_code} -> COCO ${candidate.target_code}`}
-                onClick={() => handleCandidateClick(candidateRepresentative, candidate)}
+                onClick={() => handleCandidateClick(selectedCell, candidate)}
               >
                 {candidate.source_code}
               </button>
@@ -403,7 +403,7 @@ export function ReviewPanel({
                     key={`${mapping.source_code}-${mapping.target_code}`}
                     type="button"
                     title={`MARD ${mapping.source_code} -> COCO ${mapping.target_code}`}
-                    onClick={() => handleCandidateClick(candidateRepresentative, mapping)}
+                    onClick={() => handleCandidateClick(selectedCell, mapping)}
                   >
                     {mapping.source_code}
                   </button>

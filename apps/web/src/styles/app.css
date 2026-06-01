@@ -645,7 +645,7 @@ p {
   padding: 0.65rem;
 }
 
-.review-sidebar-section[aria-label="校对队列"] {
+.review-queue-section {
   display: flex;
   flex-direction: column;
   overflow: hidden;

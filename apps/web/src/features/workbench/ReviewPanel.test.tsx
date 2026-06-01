@@ -89,9 +89,7 @@ it("keeps the review panel title from wrapping vertically beside dense actions",
   expect(cssBlockFor(".panel-heading h2")).toContain("flex: 0 0 auto;");
   expect(cssBlockFor(".review-heading-actions")).toContain("min-width: 0;");
   expect(cssBlockFor(".review-panel")).toContain("max-height: calc(100vh - 135px);");
-  expect(cssBlockFor('.review-sidebar-section[aria-label="校对队列"]')).toContain(
-    "overflow: hidden;",
-  );
+  expect(cssBlockFor(".review-queue-section")).toContain("overflow: hidden;");
   expect(cssBlockFor(".review-list")).toContain("min-height: 0;");
   expect(cssBlockFor(".review-list")).toContain("overflow-y: auto;");
 });
@@ -243,6 +241,70 @@ it("hides candidate controls when selection moves away from the edited review gr
 
   expect(within(cellProperties).getByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
   expect(within(cellProperties).queryByLabelText("近似色号候选")).not.toBeInTheDocument();
+});
+
+it("applies candidate corrections to the selected cell within the same review group", async () => {
+  const groupedProject: BeadProject = {
+    ...projectWithOneReviewCell,
+    cells: [
+      {
+        ...projectWithOneReviewCell.cells[0],
+        row: 0,
+        column: 0,
+        detected_source_code: "H7",
+        target_code: "B09",
+      },
+      {
+        ...projectWithOneReviewCell.cells[0],
+        row: 0,
+        column: 1,
+        detected_source_code: "H7",
+        target_code: "B09",
+      },
+    ],
+  };
+  const onCorrectCell = vi.fn();
+
+  function ReviewPanelHarness() {
+    const [selectedCell, setSelectedCell] = useState(groupedProject.cells[0]);
+
+    return (
+      <>
+        <button type="button" onClick={() => setSelectedCell(groupedProject.cells[1])}>
+          选择同组第二格
+        </button>
+        <ReviewPanel
+          autoLocateAfterDecision
+          paletteMappings={paletteMappings}
+          project={groupedProject}
+          selectedCell={selectedCell}
+          onAutoLocateAfterDecisionChange={vi.fn()}
+          onConfirmMapping={vi.fn()}
+          onCorrectCell={onCorrectCell}
+          onLocateCell={vi.fn()}
+          onSelectCell={setSelectedCell}
+        />
+      </>
+    );
+  }
+
+  render(<ReviewPanelHarness />);
+
+  const groupedCard = screen.getByLabelText("MARD H7 到 COCO B09，涉及 2 格");
+  await userEvent.click(within(groupedCard).getByRole("button", { name: "修改" }));
+  await userEvent.click(screen.getByRole("button", { name: "选择同组第二格" }));
+
+  const cellProperties = screen.getByRole("region", { name: "选中格属性" });
+  expect(within(cellProperties).getByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
+
+  const candidates = within(cellProperties).getByLabelText("近似色号候选");
+  await userEvent.click(within(candidates).getByRole("button", { name: "H7" }));
+
+  expect(onCorrectCell).toHaveBeenCalledWith(
+    groupedProject.cells[1],
+    "H7",
+    "B09",
+  );
 });
 
 it("chooses correction candidates from the uploaded source recognition colors", async () => {
