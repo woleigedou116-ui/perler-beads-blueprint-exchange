@@ -8,8 +8,12 @@ import type { BeadProject, PaletteMapping } from "../../domain/types";
 import { ReviewPanel } from "./ReviewPanel";
 import { projectWithOneReviewCell } from "./test-data";
 
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+
 afterEach(() => {
   cleanup();
+  Element.prototype.scrollIntoView = originalScrollIntoView;
+  vi.restoreAllMocks();
 });
 
 const paletteMappings: PaletteMapping[] = [
@@ -450,6 +454,57 @@ it("groups repeated review cells by mapping so large patterns stay reviewable", 
 
   await userEvent.click(within(groupedCard).getByRole("button", { name: "确认" }));
   expect(onConfirmMapping).toHaveBeenCalledWith(repeatedReviewProject.cells[0]);
+});
+
+it("highlights and scrolls to the review group for the selected review cell", () => {
+  const repeatedReviewProject: BeadProject = {
+    ...projectWithOneReviewCell,
+    cells: [
+      {
+        ...projectWithOneReviewCell.cells[0],
+        row: 0,
+        column: 0,
+        detected_source_code: "H5",
+        target_code: "B06",
+        issue_reasons: ["mapping-unverified"],
+      },
+      {
+        ...projectWithOneReviewCell.cells[0],
+        row: 0,
+        column: 1,
+        detected_source_code: "B18",
+        target_code: "F07",
+        issue_reasons: ["mapping-unverified"],
+      },
+    ],
+  };
+  const scrollIntoView = vi.fn();
+  Element.prototype.scrollIntoView = scrollIntoView;
+
+  render(
+    <ReviewPanel
+      autoLocateAfterDecision
+      paletteMappings={paletteMappings}
+      project={repeatedReviewProject}
+      selectedCell={repeatedReviewProject.cells[1]}
+      onAutoLocateAfterDecisionChange={vi.fn()}
+      onConfirmMapping={vi.fn()}
+      onCorrectCell={vi.fn()}
+      onLocateCell={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const selectedCard = screen.getByLabelText("MARD B18 到 COCO F07，涉及 1 格");
+  const otherCard = screen.getByLabelText("MARD H5 到 COCO B06，涉及 1 格");
+
+  expect(selectedCard).toHaveAttribute("aria-current", "true");
+  expect(selectedCard).toHaveClass("is-selected-review-group");
+  expect(otherCard).not.toHaveAttribute("aria-current");
+  expect(scrollIntoView).toHaveBeenCalledWith({
+    block: "nearest",
+    behavior: "smooth",
+  });
 });
 
 it("closes review settings when clicking outside the menu", async () => {

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { BeadProject, Cell, PaletteMapping, RGB } from "../../domain/types";
 import type { ColorStatSort } from "./colorStats";
-import { buildReviewGroups, compareCodes } from "./reviewGroups";
+import { buildReviewGroups, compareCodes, reviewGroupKey } from "./reviewGroups";
 
 interface ReviewPanelProps {
   autoLocateAfterDecision: boolean;
@@ -62,6 +62,7 @@ export function ReviewPanel({
   const [expandedPaletteGroupKey, setExpandedPaletteGroupKey] = useState<string | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const settingsRef = useRef<HTMLDivElement | null>(null);
+  const selectedReviewGroupRef = useRef<HTMLElement | null>(null);
   const sortedSourceMappings = useMemo(
     () =>
       [...paletteMappings]
@@ -159,12 +160,25 @@ export function ReviewPanel({
 
   const candidateGroup = reviewGroups.find((group) => group.key === candidateGroupKey);
   const candidateRepresentative = candidateGroup?.cells[0];
+  const selectedReviewGroupKey =
+    selectedCell?.status === "review-required" ? reviewGroupKey(selectedCell) : null;
   const candidateGroupMatchesSelectedCell = candidateGroup?.cells.some(
     (cell) =>
       selectedCell &&
       cell.row === selectedCell.row &&
       cell.column === selectedCell.column,
   );
+
+  useEffect(() => {
+    if (!selectedReviewGroupKey) {
+      return;
+    }
+
+    selectedReviewGroupRef.current?.scrollIntoView?.({
+      block: "nearest",
+      behavior: "smooth",
+    });
+  }, [selectedReviewGroupKey]);
 
   return (
     <aside className="panel review-panel" aria-label="校对与属性">
@@ -270,11 +284,15 @@ export function ReviewPanel({
         <div className="review-list">
           {reviewGroups.map((group) => {
             const representative = group.cells[0];
+            const isSelectedReviewGroup = group.key === selectedReviewGroupKey;
             return (
               <article
                 aria-label={`MARD ${group.source} 到 COCO ${group.target}，涉及 ${group.cells.length} 格`}
+                aria-current={isSelectedReviewGroup ? "true" : undefined}
+                className={isSelectedReviewGroup ? "is-selected-review-group" : undefined}
                 key={group.key}
                 onClick={() => handleSelect(representative)}
+                ref={isSelectedReviewGroup ? selectedReviewGroupRef : null}
               >
                 <div className="review-card-heading">
                   <div>

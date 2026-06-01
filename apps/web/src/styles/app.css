@@ -664,6 +664,12 @@ p {
   padding: 0.7rem;
 }
 
+.review-list article.is-selected-review-group {
+  background: #fff2d7;
+  border-color: #d99a35;
+  box-shadow: inset 3px 0 0 #d99a35;
+}
+
 .review-list article p {
   display: inline-block;
   font-weight: 600;
