@@ -326,36 +326,6 @@ export function ReviewPanel({
             <p className="complete-note">全部疑点已确认</p>
           ) : null}
         </div>
-      </section>
-      <section className="review-sidebar-section" aria-label="选中格属性">
-        {selectedCell ? (
-          <form
-            className="cell-editor"
-            onSubmit={(event) => {
-              event.preventDefault();
-              handleSubmitCorrection(selectedCell);
-            }}
-          >
-            <h3>选中格 {selectedCell.row + 1}, {selectedCell.column + 1}</h3>
-            <label>
-              来源色号
-              <input
-                value={sourceCode}
-                onChange={(event) => handleSourceCodeChange(event.target.value)}
-              />
-            </label>
-            <label>
-              目标色号
-              <input
-                value={targetCode}
-                onChange={(event) => setTargetCode(normalizeCode(event.target.value))}
-              />
-            </label>
-            <button disabled={!sourceCode.trim() || !targetCode.trim()} type="submit">
-              修正选中格
-            </button>
-          </form>
-        ) : null}
         {candidateGroupMatchesSelectedCell && candidateGroup && candidateRepresentative && selectedCell ? (
           <div className="candidate-list" aria-label="近似色号候选">
             <p>来源近似色号</p>
@@ -394,6 +364,36 @@ export function ReviewPanel({
               </div>
             ) : null}
           </div>
+        ) : null}
+      </section>
+      <section className="review-sidebar-section" aria-label="选中格属性">
+        {selectedCell ? (
+          <form
+            className="cell-editor"
+            onSubmit={(event) => {
+              event.preventDefault();
+              handleSubmitCorrection(selectedCell);
+            }}
+          >
+            <h3>选中格 {selectedCell.row + 1}, {selectedCell.column + 1}</h3>
+            <label>
+              来源色号
+              <input
+                value={sourceCode}
+                onChange={(event) => handleSourceCodeChange(event.target.value)}
+              />
+            </label>
+            <label>
+              目标色号
+              <input
+                value={targetCode}
+                onChange={(event) => setTargetCode(normalizeCode(event.target.value))}
+              />
+            </label>
+            <button disabled={!sourceCode.trim() || !targetCode.trim()} type="submit">
+              修正选中格
+            </button>
+          </form>
         ) : null}
       </section>
       <section className="review-sidebar-section" aria-label="非拼豆工具">

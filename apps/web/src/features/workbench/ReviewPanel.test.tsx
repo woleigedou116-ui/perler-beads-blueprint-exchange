@@ -122,10 +122,12 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
   expect(onConfirmMapping).toHaveBeenCalledWith(projectWithOneReviewCell.cells[0]);
 
   await userEvent.click(screen.getByRole("button", { name: "修改" }));
+  const reviewQueue = screen.getByRole("region", { name: "校对队列" });
   const cellProperties = screen.getByRole("region", { name: "选中格属性" });
-  const candidates = within(cellProperties).getByLabelText("近似色号候选");
+  const candidates = within(reviewQueue).getByLabelText("近似色号候选");
   const candidateButtons = within(candidates).getAllByRole("button");
 
+  expect(within(cellProperties).queryByLabelText("近似色号候选")).not.toBeInTheDocument();
   expect(candidateButtons.map((button) => button.textContent)).toEqual([
     "H7",
     "H3",
@@ -143,7 +145,7 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
   );
 
   await userEvent.click(screen.getByRole("button", { name: "更多" }));
-  const fullPalette = within(cellProperties).getByLabelText("全部来源色号候选");
+  const fullPalette = within(reviewQueue).getByLabelText("全部来源色号候选");
   expect(
     within(fullPalette)
       .getAllByRole("button")
@@ -234,13 +236,15 @@ it("hides candidate controls when selection moves away from the edited review gr
   await userEvent.click(within(firstGroup).getByRole("button", { name: "修改" }));
 
   const cellProperties = screen.getByRole("region", { name: "选中格属性" });
-  expect(within(cellProperties).getByLabelText("近似色号候选")).toBeInTheDocument();
+  const reviewQueue = screen.getByRole("region", { name: "校对队列" });
+  expect(within(reviewQueue).getByLabelText("近似色号候选")).toBeInTheDocument();
+  expect(within(cellProperties).queryByLabelText("近似色号候选")).not.toBeInTheDocument();
 
   const secondGroup = screen.getByLabelText("MARD F14 到 COCO K07，涉及 1 格");
   await userEvent.click(within(secondGroup).getByRole("button", { name: "定位" }));
 
   expect(within(cellProperties).getByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
-  expect(within(cellProperties).queryByLabelText("近似色号候选")).not.toBeInTheDocument();
+  expect(within(reviewQueue).queryByLabelText("近似色号候选")).not.toBeInTheDocument();
 });
 
 it("applies candidate corrections to the selected cell within the same review group", async () => {
@@ -297,7 +301,9 @@ it("applies candidate corrections to the selected cell within the same review gr
   const cellProperties = screen.getByRole("region", { name: "选中格属性" });
   expect(within(cellProperties).getByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
 
-  const candidates = within(cellProperties).getByLabelText("近似色号候选");
+  const reviewQueue = screen.getByRole("region", { name: "校对队列" });
+  const candidates = within(reviewQueue).getByLabelText("近似色号候选");
+  expect(within(cellProperties).queryByLabelText("近似色号候选")).not.toBeInTheDocument();
   await userEvent.click(within(candidates).getByRole("button", { name: "H7" }));
 
   expect(onCorrectCell).toHaveBeenCalledWith(
@@ -341,7 +347,8 @@ it("chooses correction candidates from the uploaded source recognition colors", 
 
   await userEvent.click(screen.getByRole("button", { name: "修改" }));
 
-  const candidates = within(screen.getByLabelText("近似色号候选")).getAllByRole(
+  const reviewQueue = screen.getByRole("region", { name: "校对队列" });
+  const candidates = within(within(reviewQueue).getByLabelText("近似色号候选")).getAllByRole(
     "button",
   );
   expect(candidates.map((button) => button.textContent)).toEqual([
