@@ -898,6 +898,11 @@ p {
   z-index: 20;
 }
 
+.desktop-palette-reference {
+  bottom: 42px;
+  right: 1rem;
+}
+
 .palette-fab {
   background: #087f78;
   border-color: #087f78;
@@ -907,8 +912,6 @@ p {
 
 .desktop-palette-reference .palette-fab {
   border-radius: 6px;
-  bottom: 42px;
-  right: 1rem;
 }
 
 .palette-popover {

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it } from "vitest";
 
 import type { PaletteMapping } from "../../domain/types";
+import appCss from "../../styles/app.css?raw";
 import { PaletteReference } from "./PaletteReference";
 import { projectWithOneReviewCell } from "./test-data";
 
@@ -47,6 +48,20 @@ it("marks the floating palette trigger as a desktop reference while keeping its 
     "desktop-palette-reference",
   );
   expect(screen.getByRole("button", { name: "色号表" })).toBeInTheDocument();
+});
+
+it("positions the desktop palette reference wrapper above the status bar", () => {
+  const wrapperRule = appCss.match(/\.desktop-palette-reference\s*\{(?<body>[^}]*)\}/);
+  const buttonRule = appCss.match(
+    /\.desktop-palette-reference\s+\.palette-fab\s*\{(?<body>[^}]*)\}/,
+  );
+  const wrapperBody = wrapperRule?.groups?.body ?? "";
+  const buttonBody = buttonRule?.groups?.body ?? "";
+
+  expect(wrapperBody).toContain("bottom: 42px;");
+  expect(wrapperBody).toContain("right: 1rem;");
+  expect(buttonBody).not.toContain("bottom:");
+  expect(buttonBody).not.toContain("right:");
 });
 
 it("shows only current-project colors first, then the complete mapping list", async () => {
