@@ -100,6 +100,9 @@ Last updated: 2026-05-29
   sample now keeps more white/light beads as reviewable suggestions instead of
   silently treating them as empty.
 - Latest backend verification on 2026-05-30: backend tests pass with 56 tests.
+- Desktop-style UI redesign plan and implementation split were added on
+  2026-06-01. The current implementation keeps the browser architecture but
+  reshapes the frontend toward a reusable desktop workbench shell.
 
 ## Remaining Checkpoints
 

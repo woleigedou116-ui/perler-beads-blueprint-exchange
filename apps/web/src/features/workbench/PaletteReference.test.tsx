@@ -34,6 +34,21 @@ const paletteMappings: PaletteMapping[] = [
   },
 ];
 
+it("marks the floating palette trigger as a desktop reference while keeping its label", () => {
+  const { container } = render(
+    <PaletteReference
+      paletteMappings={paletteMappings}
+      project={projectWithOneReviewCell}
+    />,
+  );
+
+  expect(container.firstElementChild).toHaveClass(
+    "palette-reference",
+    "desktop-palette-reference",
+  );
+  expect(screen.getByRole("button", { name: "色号表" })).toBeInTheDocument();
+});
+
 it("shows only current-project colors first, then the complete mapping list", async () => {
   const completePalette = [
     ...paletteMappings,

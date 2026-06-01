@@ -63,7 +63,7 @@ export function PaletteReference({ paletteMappings, project }: PaletteReferenceP
   }, [mode, paletteMappings, usedCounts]);
 
   return (
-    <div className="palette-reference">
+    <div className="palette-reference desktop-palette-reference">
       <button className="palette-fab" type="button" onClick={() => setOpen((next) => !next)}>
         色号表
       </button>
