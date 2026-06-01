@@ -273,6 +273,9 @@ export function WorkbenchPage() {
         }
         return { start: current.start, end: cell };
       });
+      setSelectedCell(cell);
+      setHighlightSelectedReviewGroup(false);
+      return;
     }
     setSelectedCell(cell);
     setHighlightSelectedReviewGroup(cell.status === "review-required");

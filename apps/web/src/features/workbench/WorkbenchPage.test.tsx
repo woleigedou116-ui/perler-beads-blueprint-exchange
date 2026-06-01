@@ -611,6 +611,10 @@ describe("WorkbenchPage", () => {
     fireEvent.click(targetCells[0]);
 
     expect(screen.getByText("已选择 1, 1 到 2, 2")).toBeInTheDocument();
+    expect(document.querySelectorAll(".focused-cell")).toHaveLength(0);
+    expect(
+      document.querySelector<HTMLElement>(".preview-transform")?.style.transform,
+    ).toBe("translate(0px, 0px) scale(1)");
     expect(
       screen
         .getByRole("img", { name: "COCO 重绘预览" })
