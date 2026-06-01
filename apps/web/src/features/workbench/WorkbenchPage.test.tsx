@@ -60,6 +60,12 @@ const paletteMappings = [
   },
 ];
 
+function cssBlockFor(selector: string) {
+  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const match = appCss.match(new RegExp(`(?:^|\\n)${escaped} \\{([^}]*)\\}`));
+  return match?.[1] ?? "";
+}
+
 async function importPattern(project: BeadProject = projectWithOneReviewCell) {
   vi.mocked(importImage).mockResolvedValue(importResult(project));
   vi.mocked(getPalette).mockResolvedValue({
@@ -324,6 +330,16 @@ describe("WorkbenchPage", () => {
     expect(appCss).toContain(".desktop-workbench");
     expect(appCss).toContain(".workbench-body");
     expect(appCss).toContain(".desktop-workbench.review-fullscreen");
+  });
+
+  it("keeps loaded workbench columns inside the body row", () => {
+    const projectSidebarCss = cssBlockFor(".project-sidebar");
+    const centerWorkspaceCss = cssBlockFor(".center-workspace");
+
+    expect(projectSidebarCss).toContain("max-height: 100%;");
+    expect(projectSidebarCss).toContain("overflow-y: auto;");
+    expect(centerWorkspaceCss).toContain("max-height: 100%;");
+    expect(centerWorkspaceCss).toContain("overflow-y: auto;");
   });
 
   it("keeps export actions in the desktop command bar", async () => {
