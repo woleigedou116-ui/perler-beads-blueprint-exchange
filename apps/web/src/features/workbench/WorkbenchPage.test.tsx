@@ -396,12 +396,14 @@ describe("WorkbenchPage", () => {
 
     expect(await screen.findByText("正在识别图纸")).toBeInTheDocument();
     expect(screen.getByText("已用时 0.0 秒")).toBeInTheDocument();
-    expect(screen.queryByRole("progressbar", { name: "识别进度" })).not.toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "识别进度" })).toBeInTheDocument();
+    expect(screen.getByText("正在分析图纸网格和色号。")).toBeInTheDocument();
 
     vi.advanceTimersByTime(2400);
     expect(await screen.findByText("已用时 2.4 秒")).toBeInTheDocument();
-    expect(screen.queryByText("上传图纸中")).not.toBeInTheDocument();
-    expect(screen.queryByText("生成项目中")).not.toBeInTheDocument();
+
+    vi.advanceTimersByTime(2600);
+    expect(await screen.findByText("正在生成可校对的 COCO 初稿。")).toBeInTheDocument();
   });
 
   it("shows the final recognition duration after image import completes", async () => {
@@ -434,13 +436,9 @@ describe("WorkbenchPage", () => {
 
     expect(await screen.findByText("待确认 1 格 / 1 组")).toBeInTheDocument();
     expect(screen.getByText("本次识别用时 15.6 秒")).toBeInTheDocument();
-    const diagnostics = screen.getByLabelText("识别耗时诊断");
-    expect(within(diagnostics).getByText("服务端总耗时")).toBeInTheDocument();
-    expect(within(diagnostics).getByText("5.3 秒")).toBeInTheDocument();
-    expect(within(diagnostics).getByText("OCR识别")).toBeInTheDocument();
-    expect(within(diagnostics).getByText("4.6 秒")).toBeInTheDocument();
-    expect(within(diagnostics).getByText("等待/渲染差值")).toBeInTheDocument();
-    expect(within(diagnostics).getByText("10.3 秒")).toBeInTheDocument();
+    expect(screen.queryByLabelText("识别耗时诊断")).not.toBeInTheDocument();
+    expect(screen.queryByText("服务端总耗时")).not.toBeInTheDocument();
+    expect(screen.queryByText("OCR识别")).not.toBeInTheDocument();
   });
 
   it("uses the uploaded image behind the recognition overlay", async () => {
@@ -603,6 +601,8 @@ describe("WorkbenchPage", () => {
     await importPattern(projectWithRegionReviewCells);
 
     await userEvent.click(await screen.findByRole("button", { name: "框选非拼豆区域" }));
+    expect(screen.queryByRole("heading", { name: /选中格/ })).not.toBeInTheDocument();
+    expect(screen.getByText("未选中格子")).toBeInTheDocument();
 
     const targetCells = screen
       .getByRole("img", { name: "COCO 重绘预览" })
@@ -642,7 +642,15 @@ describe("WorkbenchPage", () => {
     vi.mocked(markRegionUnwanted).mockResolvedValue(sparseAfterMarkingRegionUnwanted);
     await importPattern(sparseUnwantedProject);
 
+    const centerGroup = await screen.findByLabelText("MARD A6 到 COCO T6，涉及 1 格");
+    await userEvent.click(centerGroup);
+    expect(await screen.findByRole("heading", { name: "选中格 2, 2" })).toBeInTheDocument();
+    expect(document.querySelectorAll(".focused-cell")).toHaveLength(2);
+
     await userEvent.click(await screen.findByRole("button", { name: "框选非拼豆区域" }));
+    expect(screen.queryByRole("heading", { name: /选中格/ })).not.toBeInTheDocument();
+    expect(screen.getByText("未选中格子")).toBeInTheDocument();
+    expect(document.querySelectorAll(".focused-cell")).toHaveLength(0);
 
     const targetCells = screen
       .getByRole("img", { name: "COCO 重绘预览" })
@@ -652,9 +660,10 @@ describe("WorkbenchPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "应用框选区域" }));
 
     expect(markRegionUnwanted).toHaveBeenCalledWith("pattern-1", 1, 1, 1, 1);
-    expect(await screen.findByRole("heading", { name: "选中格 2, 2" })).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "选中格 2, 2" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "选中格 1, 1" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "选中格 2, 3" })).not.toBeInTheDocument();
+    expect(screen.getByText("未选中格子")).toBeInTheDocument();
   });
 
   it("keeps manual source-cell selection editable and visually focused", async () => {

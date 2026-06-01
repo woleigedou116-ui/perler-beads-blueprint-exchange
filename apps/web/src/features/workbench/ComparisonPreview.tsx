@@ -246,6 +246,7 @@ export function ComparisonPreview({
 
   useEffect(() => {
     if (!focusRequest) {
+      setFocusedCell(null);
       return;
     }
     setFocusedCell(focusRequest.cell);

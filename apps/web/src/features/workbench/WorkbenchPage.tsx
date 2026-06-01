@@ -13,7 +13,6 @@ import {
   saveAttribution,
 } from "../../api/client";
 import { saveExport } from "../../api/exports";
-import type { ImportTiming } from "../../api/client";
 import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
 import { UploadPanel } from "../upload/UploadPanel";
 import { ComparisonPreview } from "./ComparisonPreview";
@@ -48,8 +47,6 @@ export function WorkbenchPage() {
   const [lastRecognitionDurationMs, setLastRecognitionDurationMs] = useState<number | null>(
     null,
   );
-  const [lastRecognitionTiming, setLastRecognitionTiming] =
-    useState<ImportTiming | null>(null);
   const [isReviewFullscreen, setIsReviewFullscreen] = useState(false);
   const [autoLocateAfterDecision, setAutoLocateAfterDecision] = useState(true);
   const [regionSelection, setRegionSelection] = useState<RegionSelection | null>(null);
@@ -122,14 +119,12 @@ export function WorkbenchPage() {
     }
     const startedAt = Date.now();
     setLastRecognitionDurationMs(null);
-    setLastRecognitionTiming(null);
     setProcessing(true);
     setError(null);
     try {
       const imported = await importImage(file);
       loadProject(imported.project);
       setLastRecognitionDurationMs(Date.now() - startedAt);
-      setLastRecognitionTiming(imported.timing);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "识别失败");
     } finally {
@@ -152,7 +147,6 @@ export function WorkbenchPage() {
 
   async function handleOpenProject(archive: File) {
     setLastRecognitionDurationMs(null);
-    setLastRecognitionTiming(null);
     setProcessing(true);
     setError(null);
     try {
@@ -256,10 +250,10 @@ export function WorkbenchPage() {
   function applyProjectAfterRegionUnwanted(
     updatedProject: BeadProject,
   ) {
-    const updatedSameCell = selectedCell ? findUpdatedCell(updatedProject, selectedCell) : null;
     setProject(updatedProject);
-    setSelectedCell(updatedSameCell);
+    setSelectedCell(null);
     setHighlightSelectedReviewGroup(false);
+    setFocusRequest(null);
   }
 
   function handleSelectCell(cell: Cell) {
@@ -273,7 +267,6 @@ export function WorkbenchPage() {
         }
         return { start: current.start, end: cell };
       });
-      setSelectedCell(cell);
       setHighlightSelectedReviewGroup(false);
       return;
     }
@@ -283,6 +276,9 @@ export function WorkbenchPage() {
   }
 
   function handleStartRegionUnwanted() {
+    setSelectedCell(null);
+    setHighlightSelectedReviewGroup(false);
+    setFocusRequest(null);
     setRegionSelection({ start: null, end: null });
   }
 
@@ -376,7 +372,6 @@ export function WorkbenchPage() {
           processing={processing}
           project={project}
           lastRecognitionDurationMs={lastRecognitionDurationMs}
-          lastRecognitionTiming={lastRecognitionTiming}
           onAttributionChange={setAttribution}
           onImport={handleImport}
           onOpenProject={handleOpenProject}

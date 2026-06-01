@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 
-import type { ImportTiming } from "../../api/client";
 import type { BeadProject } from "../../domain/types";
 
 interface UploadPanelProps {
   attribution: string;
   file: File | null;
   lastRecognitionDurationMs?: number | null;
-  lastRecognitionTiming?: ImportTiming | null;
   previewUrl: string | null;
   processing: boolean;
   project: BeadProject | null;
@@ -22,7 +20,6 @@ export function UploadPanel({
   attribution,
   file,
   lastRecognitionDurationMs = null,
-  lastRecognitionTiming = null,
   previewUrl,
   processing,
   project,
@@ -35,6 +32,12 @@ export function UploadPanel({
   const [recognitionElapsedMs, setRecognitionElapsedMs] = useState<number | null>(null);
   const [importSubmitted, setImportSubmitted] = useState(false);
   const importLocked = processing || importSubmitted;
+  const recognitionMessage =
+    recognitionElapsedMs === null
+      ? RECOGNITION_MESSAGES[0]
+      : RECOGNITION_MESSAGES[
+          Math.floor(recognitionElapsedMs / 5000) % RECOGNITION_MESSAGES.length
+        ];
 
   useEffect(() => {
     if (!processing) {
@@ -110,48 +113,19 @@ export function UploadPanel({
             <span>正在识别图纸</span>
             <strong>已用时 {formatDuration(recognitionElapsedMs)}</strong>
           </div>
-          <p>水印、低清或文字较多的图纸会更久，请稍等。</p>
+          <div
+            aria-label="识别进度"
+            className="recognition-progress-bar"
+            role="progressbar"
+          >
+            <span />
+          </div>
+          <p>{recognitionMessage}</p>
         </div>
       ) : null}
       {!processing && lastRecognitionDurationMs !== null ? (
         <div className="recognition-duration">
           <p>本次识别用时 {formatDuration(lastRecognitionDurationMs)}</p>
-          {lastRecognitionTiming ? (
-            <dl className="recognition-timing" aria-label="识别耗时诊断">
-              <div>
-                <dt>服务端总耗时</dt>
-                <dd>{formatDuration(lastRecognitionTiming.totalMs)}</dd>
-              </div>
-              <div>
-                <dt>OCR识别</dt>
-                <dd>{formatDuration(lastRecognitionTiming.recognizeMs)}</dd>
-              </div>
-              {lastRecognitionTiming.ocrReps !== undefined ? (
-                <div>
-                  <dt>OCR代表格</dt>
-                  <dd>{lastRecognitionTiming.ocrReps} 格</dd>
-                </div>
-              ) : null}
-              {lastRecognitionTiming.ocrMs !== undefined ? (
-                <div>
-                  <dt>OCR调用耗时</dt>
-                  <dd>{formatDuration(lastRecognitionTiming.ocrMs)}</dd>
-                </div>
-              ) : null}
-              {lastRecognitionTiming.ocrEngineMaxMs !== undefined ? (
-                <div>
-                  <dt>OCR最慢单次</dt>
-                  <dd>{formatDuration(lastRecognitionTiming.ocrEngineMaxMs)}</dd>
-                </div>
-              ) : null}
-              <div>
-                <dt>等待/渲染差值</dt>
-                <dd>
-                  {formatDuration(lastRecognitionDurationMs - lastRecognitionTiming.totalMs)}
-                </dd>
-              </div>
-            </dl>
-          ) : null}
         </div>
       ) : null}
       <label className="project-file-field">
@@ -187,6 +161,12 @@ export function UploadPanel({
     </section>
   );
 }
+
+const RECOGNITION_MESSAGES = [
+  "正在分析图纸网格和色号。",
+  "正在生成可校对的 COCO 初稿。",
+  "复杂图纸可能需要更久，请保持当前页面开启。",
+];
 
 function formatDuration(durationMs: number): string {
   return `${(Math.max(0, durationMs) / 1000).toFixed(1)} 秒`;

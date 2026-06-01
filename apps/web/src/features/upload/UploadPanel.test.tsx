@@ -31,18 +31,6 @@ function renderPanelWithTiming() {
       attribution=""
       file={patternFile}
       lastRecognitionDurationMs={6200}
-      lastRecognitionTiming={{
-        totalMs: 5800,
-        readMs: 1,
-        decodeMs: 10,
-        ocrInitMs: 0,
-        recognizeMs: 5760,
-        ocrMs: 3900,
-        ocrReps: 9,
-        ocrEngineCalls: 9,
-        ocrEngineMaxMs: 620,
-        saveMs: 12,
-      }}
       previewUrl={null}
       processing={false}
       project={null}
@@ -75,11 +63,16 @@ it("updates elapsed recognition time inside the upload panel", async () => {
   renderPanel(true);
 
   expect(await screen.findByText("正在识别图纸")).toBeInTheDocument();
+  expect(screen.getByRole("progressbar", { name: "识别进度" })).toBeInTheDocument();
   expect(screen.getByText("已用时 0.0 秒")).toBeInTheDocument();
+  expect(screen.getByText("正在分析图纸网格和色号。")).toBeInTheDocument();
 
   vi.advanceTimersByTime(2400);
 
   expect(await screen.findByText("已用时 2.4 秒")).toBeInTheDocument();
+
+  vi.advanceTimersByTime(2600);
+  expect(await screen.findByText("正在生成可校对的 COCO 初稿。")).toBeInTheDocument();
 });
 
 it("ignores duplicate import clicks before the parent processing state updates", async () => {
@@ -94,13 +87,12 @@ it("ignores duplicate import clicks before the parent processing state updates",
   expect(onImport).toHaveBeenCalledTimes(1);
 });
 
-it("shows OCR representative cell diagnostics after recognition", () => {
+it("shows only the final recognition duration after recognition", () => {
   renderPanelWithTiming();
 
-  expect(screen.getByText("OCR代表格")).toBeInTheDocument();
-  expect(screen.getByText("9 格")).toBeInTheDocument();
-  expect(screen.getByText("OCR调用耗时")).toBeInTheDocument();
-  expect(screen.getByText("3.9 秒")).toBeInTheDocument();
-  expect(screen.getByText("OCR最慢单次")).toBeInTheDocument();
-  expect(screen.getByText("0.6 秒")).toBeInTheDocument();
+  expect(screen.getByText("本次识别用时 6.2 秒")).toBeInTheDocument();
+  expect(screen.queryByLabelText("识别耗时诊断")).not.toBeInTheDocument();
+  expect(screen.queryByText("OCR代表格")).not.toBeInTheDocument();
+  expect(screen.queryByText("OCR调用耗时")).not.toBeInTheDocument();
+  expect(screen.queryByText("OCR最慢单次")).not.toBeInTheDocument();
 });
