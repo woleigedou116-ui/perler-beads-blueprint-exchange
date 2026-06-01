@@ -79,6 +79,10 @@ it("keeps the review panel title from wrapping vertically beside dense actions",
     />,
   );
 
+  expect(screen.getByRole("complementary", { name: "校对与属性" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "校对队列" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "选中格属性" })).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "非拼豆工具" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "校对" })).toBeInTheDocument();
   expect(cssBlockFor(".panel-heading h2")).toContain("white-space: nowrap;");
   expect(cssBlockFor(".panel-heading h2")).toContain("flex: 0 0 auto;");
