@@ -158,7 +158,7 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
   );
 });
 
-it("keeps active non-bead region selection controls with the review queue", () => {
+it("keeps active non-bead region selection controls with the non-bead tools", () => {
   render(
     <ReviewPanel
       autoLocateAfterDecision
@@ -181,12 +181,12 @@ it("keeps active non-bead region selection controls with the review queue", () =
   const reviewQueue = screen.getByRole("region", { name: "校对队列" });
   const nonBeadTools = screen.getByRole("region", { name: "非拼豆工具" });
 
-  expect(within(reviewQueue).getByLabelText("框选非拼豆区域")).toBeInTheDocument();
-  expect(within(reviewQueue).getByRole("button", { name: "取消框选" })).toBeInTheDocument();
+  expect(within(nonBeadTools).getByLabelText("框选非拼豆区域")).toBeInTheDocument();
+  expect(within(nonBeadTools).getByRole("button", { name: "取消框选" })).toBeInTheDocument();
   expect(
-    within(reviewQueue).getByRole("button", { name: "应用框选区域" }),
+    within(nonBeadTools).getByRole("button", { name: "应用框选区域" }),
   ).toBeInTheDocument();
-  expect(within(nonBeadTools).queryByLabelText("框选非拼豆区域")).not.toBeInTheDocument();
+  expect(within(reviewQueue).queryByLabelText("框选非拼豆区域")).not.toBeInTheDocument();
 });
 
 it("hides candidate controls when selection moves away from the edited review group", async () => {

@@ -267,23 +267,6 @@ export function ReviewPanel({
             </div>
           </div>
         </div>
-        {regionSelectionActive ? (
-          <div className="region-mode-panel" aria-label="框选非拼豆区域">
-            <p>{regionSelectionLabel ?? "选择起点格，再选择终点格"}</p>
-            <div className="review-actions">
-              <button type="button" onClick={onCancelRegionUnwanted}>
-                取消框选
-              </button>
-              <button
-                disabled={!regionSelectionComplete}
-                type="button"
-                onClick={onApplyRegionUnwanted}
-              >
-                应用框选区域
-              </button>
-            </div>
-          </div>
-        ) : null}
         <div className="review-list">
           {reviewGroups.map((group) => {
             const representative = group.cells[0];
@@ -426,7 +409,23 @@ export function ReviewPanel({
           <button type="button" onClick={onStartRegionUnwanted}>
             框选非拼豆区域
           </button>
-        ) : null}
+        ) : (
+          <div className="region-mode-panel" aria-label="框选非拼豆区域">
+            <p>{regionSelectionLabel ?? "选择起点格，再选择终点格"}</p>
+            <div className="review-actions">
+              <button type="button" onClick={onCancelRegionUnwanted}>
+                取消框选
+              </button>
+              <button
+                disabled={!regionSelectionComplete}
+                type="button"
+                onClick={onApplyRegionUnwanted}
+              >
+                应用框选区域
+              </button>
+            </div>
+          </div>
+        )}
       </section>
     </aside>
   );
