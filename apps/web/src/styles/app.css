@@ -168,12 +168,22 @@ p {
   min-height: 58vh;
 }
 
-.panel,
-.center-workspace {
+.panel {
   background: #fff;
   border: 1px solid #e3e7e2;
   border-radius: 18px;
   padding: 1rem;
+}
+
+.center-workspace {
+  background: #ffffff;
+  border: 1px solid #d9dfdc;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+  padding: 0.75rem;
 }
 
 .panel h2 {
@@ -299,13 +309,6 @@ p {
   width: 100%;
 }
 
-.center-workspace {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  min-height: 670px;
-}
-
 .empty-workspace {
   align-items: center;
   color: #63746f;
@@ -332,9 +335,10 @@ p {
 
 .comparison-toolbar {
   align-items: center;
+  border-bottom: 1px solid #e2e7e4;
   display: flex;
-  gap: 0.55rem;
-  justify-content: space-between;
+  min-height: 2.4rem;
+  padding-bottom: 0.5rem;
 }
 
 .comparison-toolbar-actions {
@@ -366,12 +370,13 @@ p {
 }
 
 .preview-card {
-  border: 1px solid #e6e9e4;
-  border-radius: 14px;
+  border: 1px solid #dfe5e2;
+  border-radius: 8px;
   display: grid;
   grid-row: span 3;
   grid-template-rows: subgrid;
-  padding: 0.75rem;
+  min-width: 0;
+  padding: 0.5rem;
 }
 
 .preview-card-header {
@@ -419,11 +424,14 @@ p {
 
 .preview-viewport {
   align-items: center;
+  background: #f7f8f6;
+  border: 1px solid #e0e5e2;
+  border-radius: 6px;
   display: flex;
   grid-row: 2;
   justify-content: center;
   margin-top: 0;
-  min-height: 350px;
+  min-height: 360px;
   overflow: hidden;
   overscroll-behavior: contain;
   touch-action: none;

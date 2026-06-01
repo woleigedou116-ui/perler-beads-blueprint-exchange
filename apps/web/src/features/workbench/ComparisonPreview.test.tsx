@@ -189,21 +189,37 @@ it("uses caller-provided target color statistics sorting", () => {
   expect(screen.queryByRole("button", { name: "COCO 重绘预览 设置" })).not.toBeInTheDocument();
 });
 
-it("uses shared preview rows so both drawing panes align under wrapped controls", () => {
+it("uses desktop workspace preview rules without nested decorative cards", () => {
   renderPreview();
 
   expect(appStyles).toContain(".preview-row");
   expect(cssBlockFor(".preview-row")).toContain(
     "grid-template-rows: auto minmax(350px, auto) auto;",
   );
+  expect(cssBlockFor(".center-workspace")).toContain("background: #ffffff;");
+  expect(cssBlockFor(".center-workspace")).toContain("border: 1px solid #d9dfdc;");
+  expect(cssBlockFor(".center-workspace")).toContain("border-radius: 8px;");
+  expect(cssBlockFor(".center-workspace")).toContain("gap: 0.75rem;");
+  expect(cssBlockFor(".center-workspace")).toContain("min-height: 0;");
+  expect(cssBlockFor(".center-workspace")).toContain("padding: 0.75rem;");
+  expect(cssBlockFor(".comparison-toolbar")).toContain("border-bottom: 1px solid #e2e7e4;");
+  expect(cssBlockFor(".comparison-toolbar")).toContain("min-height: 2.4rem;");
+  expect(cssBlockFor(".comparison-toolbar")).toContain("padding-bottom: 0.5rem;");
   expect(cssBlockFor(".preview-card")).toContain("display: grid;");
   expect(cssBlockFor(".preview-card")).toContain("grid-row: span 3;");
   expect(cssBlockFor(".preview-card")).toContain("grid-template-rows: subgrid;");
+  expect(cssBlockFor(".preview-card")).toContain("border: 1px solid #dfe5e2;");
+  expect(cssBlockFor(".preview-card")).toContain("border-radius: 8px;");
+  expect(cssBlockFor(".preview-card")).toContain("min-width: 0;");
+  expect(cssBlockFor(".preview-card")).toContain("padding: 0.5rem;");
   expect(cssBlockFor(".preview-card-header")).toContain("grid-row: 1;");
   expect(cssBlockFor(".preview-viewport")).toContain("grid-row: 2;");
   expect(cssBlockFor(".preview-viewport")).toContain("margin-top: 0;");
+  expect(cssBlockFor(".preview-viewport")).toContain("background: #f7f8f6;");
+  expect(cssBlockFor(".preview-viewport")).toContain("border: 1px solid #e0e5e2;");
+  expect(cssBlockFor(".preview-viewport")).toContain("border-radius: 6px;");
+  expect(cssBlockFor(".preview-viewport")).toContain("min-height: 360px;");
   expect(cssBlockFor(".target-color-stats")).toContain("grid-row: 3;");
-  expect(cssBlockFor(".comparison-toolbar")).toContain("justify-content: space-between;");
   expect(cssBlockFor(".comparison-toolbar-actions")).toContain("margin-left: auto;");
 });
 
