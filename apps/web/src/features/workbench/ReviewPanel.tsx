@@ -159,6 +159,12 @@ export function ReviewPanel({
 
   const candidateGroup = reviewGroups.find((group) => group.key === candidateGroupKey);
   const candidateRepresentative = candidateGroup?.cells[0];
+  const candidateGroupMatchesSelectedCell = candidateGroup?.cells.some(
+    (cell) =>
+      selectedCell &&
+      cell.row === selectedCell.row &&
+      cell.column === selectedCell.column,
+  );
 
   return (
     <aside className="panel review-panel" aria-label="校对与属性">
@@ -367,7 +373,7 @@ export function ReviewPanel({
             </button>
           </form>
         ) : null}
-        {candidateGroup && candidateRepresentative ? (
+        {candidateGroupMatchesSelectedCell && candidateGroup && candidateRepresentative ? (
           <div className="candidate-list" aria-label="近似色号候选">
             <p>来源近似色号</p>
             {nearestCandidates(candidateRepresentative).map((candidate) => (

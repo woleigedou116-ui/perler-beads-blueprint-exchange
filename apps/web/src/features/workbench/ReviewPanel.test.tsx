@@ -1,5 +1,6 @@
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import appStyles from "../../styles/app.css?inline";
@@ -87,6 +88,12 @@ it("keeps the review panel title from wrapping vertically beside dense actions",
   expect(cssBlockFor(".panel-heading h2")).toContain("white-space: nowrap;");
   expect(cssBlockFor(".panel-heading h2")).toContain("flex: 0 0 auto;");
   expect(cssBlockFor(".review-heading-actions")).toContain("min-width: 0;");
+  expect(cssBlockFor(".review-panel")).toContain("max-height: calc(100vh - 135px);");
+  expect(cssBlockFor('.review-sidebar-section[aria-label="校对队列"]')).toContain(
+    "overflow: hidden;",
+  );
+  expect(cssBlockFor(".review-list")).toContain("min-height: 0;");
+  expect(cssBlockFor(".review-list")).toContain("overflow-y: auto;");
 });
 
 it("locates, confirms, and corrects a review cell from nearest color candidates", async () => {
@@ -182,6 +189,60 @@ it("keeps active non-bead region selection controls with the review queue", () =
     within(reviewQueue).getByRole("button", { name: "应用框选区域" }),
   ).toBeInTheDocument();
   expect(within(nonBeadTools).queryByLabelText("框选非拼豆区域")).not.toBeInTheDocument();
+});
+
+it("hides candidate controls when selection moves away from the edited review group", async () => {
+  const twoGroupProject: BeadProject = {
+    ...projectWithOneReviewCell,
+    cells: [
+      {
+        ...projectWithOneReviewCell.cells[0],
+        row: 0,
+        column: 0,
+        detected_source_code: "H7",
+        target_code: "B09",
+      },
+      {
+        ...projectWithOneReviewCell.cells[0],
+        row: 0,
+        column: 1,
+        detected_source_code: "F14",
+        target_code: "K07",
+      },
+    ],
+  };
+
+  function ReviewPanelHarness() {
+    const [selectedCell, setSelectedCell] = useState(twoGroupProject.cells[0]);
+
+    return (
+      <ReviewPanel
+        autoLocateAfterDecision
+        paletteMappings={paletteMappings}
+        project={twoGroupProject}
+        selectedCell={selectedCell}
+        onAutoLocateAfterDecisionChange={vi.fn()}
+        onConfirmMapping={vi.fn()}
+        onCorrectCell={vi.fn()}
+        onLocateCell={vi.fn()}
+        onSelectCell={setSelectedCell}
+      />
+    );
+  }
+
+  render(<ReviewPanelHarness />);
+
+  const firstGroup = screen.getByLabelText("MARD H7 到 COCO B09，涉及 1 格");
+  await userEvent.click(within(firstGroup).getByRole("button", { name: "修改" }));
+
+  const cellProperties = screen.getByRole("region", { name: "选中格属性" });
+  expect(within(cellProperties).getByLabelText("近似色号候选")).toBeInTheDocument();
+
+  const secondGroup = screen.getByLabelText("MARD F14 到 COCO K07，涉及 1 格");
+  await userEvent.click(within(secondGroup).getByRole("button", { name: "定位" }));
+
+  expect(within(cellProperties).getByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
+  expect(within(cellProperties).queryByLabelText("近似色号候选")).not.toBeInTheDocument();
 });
 
 it("chooses correction candidates from the uploaded source recognition colors", async () => {
