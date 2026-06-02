@@ -317,6 +317,58 @@ it("applies candidate corrections to the selected cell within the same review gr
   );
 });
 
+it("applies candidate corrections to the entire edited review group", async () => {
+  const groupedProject: BeadProject = {
+    ...projectWithOneReviewCell,
+    cells: [
+      {
+        ...projectWithOneReviewCell.cells[0],
+        row: 0,
+        column: 0,
+        detected_source_code: "H7",
+        target_code: "B09",
+      },
+      {
+        ...projectWithOneReviewCell.cells[0],
+        row: 0,
+        column: 1,
+        detected_source_code: "H7",
+        target_code: "B09",
+      },
+    ],
+  };
+  const onCorrectCell = vi.fn();
+  const onCorrectGroup = vi.fn();
+
+  render(
+    <ReviewPanel
+      autoLocateAfterDecision
+      paletteMappings={paletteMappings}
+      project={groupedProject}
+      selectedCell={groupedProject.cells[0]}
+      onAutoLocateAfterDecisionChange={vi.fn()}
+      onConfirmMapping={vi.fn()}
+      onCorrectCell={onCorrectCell}
+      onCorrectGroup={onCorrectGroup}
+      onLocateCell={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const groupedCard = screen.getByLabelText("MARD H7 到 COCO B09，涉及 2 格");
+  await userEvent.click(within(groupedCard).getByRole("button", { name: "修改" }));
+
+  const reviewQueue = screen.getByRole("region", { name: "校对队列" });
+  await userEvent.click(within(reviewQueue).getByRole("button", { name: "H7" }));
+
+  expect(onCorrectGroup).toHaveBeenCalledWith(
+    groupedProject.cells[0],
+    "H7",
+    "B09",
+  );
+  expect(onCorrectCell).not.toHaveBeenCalled();
+});
+
 it("chooses correction candidates from the uploaded source recognition colors", async () => {
   const misleadingTargetPalette: PaletteMapping[] = [
     {

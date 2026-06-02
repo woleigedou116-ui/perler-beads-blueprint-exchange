@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   confirmMapping,
+  correctReviewGroup,
   correctCell,
   exportUrl,
   getPalette,
@@ -26,6 +27,7 @@ import type { BeadProject } from "../../domain/types";
 
 vi.mock("../../api/client", () => ({
   confirmMapping: vi.fn(),
+  correctReviewGroup: vi.fn(),
   correctCell: vi.fn(),
   exportUrl: vi.fn(() => "/download"),
   getPalette: vi.fn(),
@@ -137,6 +139,24 @@ function projectAfterCorrectingCell(column: number, sourceCode: string, targetCo
         ? {
             ...cell,
             confirmed_source_code: sourceCode,
+            target_code: targetCode,
+            status: "confirmed" as const,
+            issue_reasons: ["user-corrected"],
+          }
+        : cell,
+    ),
+  };
+}
+
+function projectAfterCorrectingGroup(sourceCode: string, targetCode: string) {
+  return {
+    ...projectWithThreeReviewGroups,
+    cells: projectWithThreeReviewGroups.cells.map((cell) =>
+      cell.detected_source_code === "B1"
+        ? {
+            ...cell,
+            confirmed_source_code: sourceCode,
+            detected_source_code: sourceCode,
             target_code: targetCode,
             status: "confirmed" as const,
             issue_reasons: ["user-corrected"],
@@ -734,7 +754,7 @@ describe("WorkbenchPage", () => {
   });
 
   it("locates a review cell and offers palette-backed correction candidates", async () => {
-    vi.mocked(correctCell).mockResolvedValue(projectAfterMappingConfirmation);
+    vi.mocked(correctReviewGroup).mockResolvedValue(projectAfterMappingConfirmation);
     await importPattern();
 
     await userEvent.click(await screen.findByRole("button", { name: "定位" }));
@@ -747,7 +767,21 @@ describe("WorkbenchPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "修改" }));
     await userEvent.click(screen.getByRole("button", { name: "H7" }));
 
-    expect(correctCell).toHaveBeenCalledWith("pattern-1", 0, 0, "H7", "B09");
+    expect(correctReviewGroup).toHaveBeenCalledWith("pattern-1", 0, 0, "H7", "B09");
+  });
+
+  it("corrects every cell in the edited review group from palette candidates", async () => {
+    vi.mocked(correctReviewGroup).mockResolvedValue(projectAfterCorrectingGroup("F14", "K07"));
+    await importPattern(projectWithThreeReviewGroups);
+
+    const middleGroup = await screen.findByLabelText("MARD B1 到 COCO T2，涉及 1 格");
+    await userEvent.click(within(middleGroup).getByRole("button", { name: "修改" }));
+    await userEvent.click(screen.getByRole("button", { name: "F14" }));
+
+    expect(correctReviewGroup).toHaveBeenCalledWith("pattern-1", 0, 1, "F14", "K07");
+    expect(await screen.findByRole("heading", { name: "选中格 1, 2" })).toBeInTheDocument();
+    expect(screen.getByLabelText("来源色号")).toHaveValue("F14");
+    expect(screen.getByLabelText("目标色号")).toHaveValue("K07");
   });
 
   it("opens the floating palette reference for the current project", async () => {

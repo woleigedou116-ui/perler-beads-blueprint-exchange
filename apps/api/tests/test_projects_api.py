@@ -1,3 +1,6 @@
+from bead_converter.domain.models import CellStatus
+
+
 def test_upload_defaults_to_mard_and_returns_reviewable_project(
     client,
     synthetic_png: bytes,
@@ -91,6 +94,57 @@ def test_correct_cell_records_user_edit(client, synthetic_png: bytes) -> None:
     assert cell["confirmed_source_code"] == "F14"
     assert cell["target_code"] == "K07"
     assert "user-corrected" in cell["issue_reasons"]
+
+
+def test_correct_cell_group_records_user_edit_for_matching_review_group(
+    client,
+    synthetic_png: bytes,
+) -> None:
+    created = client.post(
+        "/api/projects/import",
+        files={"image": ("pattern.png", synthetic_png, "image/png")},
+    ).json()
+    project = client.app.state.store.load(created["id"])
+    project.cells[0].detected_source_code = "H7"
+    project.cells[0].confirmed_source_code = None
+    project.cells[0].target_code = "B09"
+    project.cells[0].status = CellStatus.review_required
+    project.cells[1].sampled_color = project.cells[0].sampled_color
+    project.cells[1].detected_source_code = "H7"
+    project.cells[1].confirmed_source_code = None
+    project.cells[1].target_code = "B09"
+    project.cells[1].status = CellStatus.review_required
+    project.cells[2].detected_source_code = "H7"
+    project.cells[2].confirmed_source_code = "H7"
+    project.cells[2].target_code = "B09"
+    project.cells[2].status = CellStatus.confirmed
+    client.app.state.store.save(project)
+
+    response = client.patch(
+        f"/api/projects/{created['id']}/cells/group",
+        json={
+            "row": 0,
+            "column": 0,
+            "source_code": "F14",
+            "target_code": "K07",
+        },
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    corrected = [
+        cell
+        for cell in payload["cells"]
+        if cell["confirmed_source_code"] == "F14"
+    ]
+    untouched_confirmed = next(
+        cell for cell in payload["cells"] if cell["row"] == 0 and cell["column"] == 2
+    )
+    assert {(cell["row"], cell["column"]) for cell in corrected} == {(0, 0), (0, 1)}
+    assert all(cell["target_code"] == "K07" for cell in corrected)
+    assert all(cell["status"] == "confirmed" for cell in corrected)
+    assert all("user-corrected" in cell["issue_reasons"] for cell in corrected)
+    assert untouched_confirmed["confirmed_source_code"] == "H7"
 
 
 def test_mark_single_cell_unwanted_clears_recognized_bead(

@@ -167,6 +167,27 @@ export async function correctCell(
   );
 }
 
+export async function correctReviewGroup(
+  projectId: string,
+  row: number,
+  column: number,
+  sourceCode: string,
+  targetCode: string,
+): Promise<BeadProject> {
+  return projectResponse(
+    await fetch(`/api/projects/${projectId}/cells/group`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        row,
+        column,
+        source_code: sourceCode,
+        target_code: targetCode,
+      }),
+    }),
+  );
+}
+
 export async function markCellUnwanted(
   projectId: string,
   row: number,

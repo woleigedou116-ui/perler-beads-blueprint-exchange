@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from "vitest";
 import {
   getPalette,
   importImage,
+  correctReviewGroup,
   markCellUnwanted,
   markRegionUnwanted,
   projectSourceImageUrl,
@@ -95,6 +96,33 @@ it("marks a single cell as unwanted", async () => {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ row: 2, column: 3 }),
+    },
+  );
+});
+
+it("corrects a review group from an anchor cell", async () => {
+  const project = { id: "project-1" };
+  const fetch = vi.fn(async () => ({
+    ok: true,
+    json: async () => project,
+  }));
+  vi.stubGlobal("fetch", fetch);
+
+  await expect(
+    correctReviewGroup("project-1", 2, 3, "H7", "B09"),
+  ).resolves.toBe(project);
+
+  expect(fetch).toHaveBeenCalledWith(
+    "/api/projects/project-1/cells/group",
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        row: 2,
+        column: 3,
+        source_code: "H7",
+        target_code: "B09",
+      }),
     },
   );
 });

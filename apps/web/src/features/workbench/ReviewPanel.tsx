@@ -20,6 +20,7 @@ interface ReviewPanelProps {
   onColorStatSortChange?: (sort: ColorStatSort) => void;
   onConfirmMapping: (cell: Cell) => void;
   onCorrectCell: (cell: Cell, sourceCode: string, targetCode: string) => void;
+  onCorrectGroup?: (cell: Cell, sourceCode: string, targetCode: string) => void;
   onLocateCell?: (cell: Cell) => void;
   onMarkCellUnwanted?: (cell: Cell) => void;
   onStartRegionUnwanted?: () => void;
@@ -51,6 +52,7 @@ export function ReviewPanel({
   onColorStatSortChange = () => undefined,
   onConfirmMapping,
   onCorrectCell,
+  onCorrectGroup = onCorrectCell,
   onLocateCell,
   onMarkCellUnwanted = () => undefined,
   onStartRegionUnwanted = () => undefined,
@@ -134,7 +136,7 @@ export function ReviewPanel({
 
   function handleCandidateClick(cell: Cell, candidate: PaletteMapping) {
     if (candidate.target_code) {
-      onCorrectCell(cell, candidate.source_code, candidate.target_code);
+      onCorrectGroup(cell, candidate.source_code, candidate.target_code);
     }
   }
 

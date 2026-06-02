@@ -56,6 +56,13 @@ class CellUpdate(BaseModel):
     target_code: str
 
 
+class CellGroupUpdate(BaseModel):
+    row: int
+    column: int
+    source_code: str
+    target_code: str
+
+
 class UnwantedCellsUpdate(BaseModel):
     row: int | None = None
     column: int | None = None
@@ -298,6 +305,40 @@ def mark_unwanted_cells(
         cell.ocr_candidates = []
         if "user-marked-unwanted" not in cell.issue_reasons:
             cell.issue_reasons.append("user-marked-unwanted")
+    request.app.state.store.save(project)
+    return project
+
+
+@router.patch("/{project_id}/cells/group", response_model=BeadProject)
+def correct_cell_group(
+    request: Request,
+    project_id: str,
+    update: CellGroupUpdate,
+) -> BeadProject:
+    project = _project(request, project_id)
+    try:
+        anchor = next(
+            cell
+            for cell in project.cells
+            if cell.row == update.row and cell.column == update.column
+        )
+    except StopIteration as exc:
+        raise HTTPException(status_code=404, detail="格子不存在") from exc
+    anchor_source_code = anchor.confirmed_source_code or anchor.detected_source_code
+    anchor_target_code = anchor.target_code
+    for cell in project.cells:
+        cell_source_code = cell.confirmed_source_code or cell.detected_source_code
+        if (
+            cell.status == CellStatus.review_required
+            and cell_source_code == anchor_source_code
+            and cell.target_code == anchor_target_code
+        ):
+            cell.confirmed_source_code = update.source_code
+            cell.detected_source_code = update.source_code
+            cell.target_code = update.target_code
+            cell.status = CellStatus.confirmed
+            if "user-corrected" not in cell.issue_reasons:
+                cell.issue_reasons.append("user-corrected")
     request.app.state.store.save(project)
     return project
 

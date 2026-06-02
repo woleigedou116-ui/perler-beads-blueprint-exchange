@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import {
   confirmMapping,
+  correctReviewGroup,
   correctCell,
   exportUrl,
   getPalette,
@@ -178,6 +179,20 @@ export function WorkbenchPage() {
       return;
     }
     const updated = await correctCell(
+      project.id,
+      cell.row,
+      cell.column,
+      sourceCode,
+      targetCode,
+    );
+    applyProjectAfterCorrection(updated, cell);
+  }
+
+  async function handleCorrectGroup(cell: Cell, sourceCode: string, targetCode: string) {
+    if (!project) {
+      return;
+    }
+    const updated = await correctReviewGroup(
       project.id,
       cell.row,
       cell.column,
@@ -420,6 +435,7 @@ export function WorkbenchPage() {
             onColorStatSortChange={setColorStatSort}
             onConfirmMapping={handleConfirmMapping}
             onCorrectCell={handleCorrectCell}
+            onCorrectGroup={handleCorrectGroup}
             onLocateCell={(cell) => setFocusRequest({ cell, nonce: Date.now() })}
             onMarkCellUnwanted={handleMarkCellUnwanted}
             onStartRegionUnwanted={handleStartRegionUnwanted}
