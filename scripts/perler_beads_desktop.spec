@@ -11,7 +11,15 @@ datas = [
     (str(ROOT / "apps" / "web" / "dist"), "apps/web/dist"),
     (str(ROOT / "data" / "palettes"), "data/palettes"),
 ]
-datas += collect_data_files("rapidocr", includes=["**/*.onnx", "**/*.yaml", "**/*.yml"])
+datas += collect_data_files(
+    "rapidocr",
+    includes=[
+        "**/*.yaml",
+        "**/*.yml",
+        "models/*_mobile.onnx",
+        "models/*.txt",
+    ],
+)
 
 hiddenimports = []
 hiddenimports += collect_submodules("rapidocr")
@@ -43,6 +51,11 @@ a = Analysis(
     noarchive=False,
     optimize=0,
 )
+a.binaries = [
+    binary
+    for binary in a.binaries
+    if "opencv_videoio_ffmpeg" not in binary[0].lower()
+]
 pyz = PYZ(a.pure)
 
 exe = EXE(
