@@ -8,6 +8,7 @@ __pycache__/
 build/
 dist/
 release/
+node_modules/
 apps/web/node_modules/
 apps/web/dist/
 /拼豆样例图/
