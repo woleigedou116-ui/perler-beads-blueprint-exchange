@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -784,6 +784,62 @@ describe("WorkbenchPage", () => {
     await userEvent.click(screen.getByRole("button", { name: "H7" }));
 
     expect(correctReviewGroup).toHaveBeenCalledWith("pattern-1", 0, 0, "H7", "B09");
+  });
+
+  it("clears the previous locate request when recognizing another pattern", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi
+        .fn()
+        .mockReturnValueOnce("blob:first-pattern")
+        .mockReturnValueOnce("blob:next-pattern"),
+      revokeObjectURL: vi.fn(),
+    });
+    const nextPatternFile = new File(["next-pattern"], "next-pattern.png", {
+      type: "image/png",
+    });
+    vi.mocked(importImage)
+      .mockResolvedValueOnce(importResult(projectWithOneReviewCell))
+      .mockResolvedValueOnce(
+        importResult({ ...projectWithOneReviewCell, id: "pattern-2" }),
+      );
+    vi.mocked(getPalette).mockResolvedValue({
+      version: "mard-coco.v1",
+      mappings: paletteMappings,
+    });
+    render(<WorkbenchPage />);
+
+    const uploadInput = screen.getByLabelText("上传图纸");
+    await userEvent.upload(uploadInput, patternFile);
+    await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
+    const sourceImage = await screen.findByAltText("上传原图");
+    Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 64 });
+    Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 32 });
+    fireEvent.load(sourceImage);
+    await userEvent.click(await screen.findByRole("button", { name: "定位" }));
+
+    expect(document.querySelectorAll(".focused-cell")).toHaveLength(2);
+    expect(
+      Array.from(document.querySelectorAll<HTMLElement>(".preview-transform")).some(
+        (element) => element.style.transform !== "translate(0px, 0px) scale(1)",
+      ),
+    ).toBe(true);
+
+    await userEvent.upload(uploadInput, nextPatternFile);
+    await userEvent.click(screen.getByRole("button", { name: "开始识别" }));
+
+    await waitFor(() => expect(importImage).toHaveBeenCalledTimes(2));
+    await waitFor(() => {
+      expect(document.querySelectorAll(".focused-cell")).toHaveLength(0);
+      expect(
+        Array.from(document.querySelectorAll<HTMLElement>(".preview-transform")).map(
+          (element) => element.style.transform,
+        ),
+      ).toEqual([
+        "translate(0px, 0px) scale(1)",
+        "translate(0px, 0px) scale(1)",
+      ]);
+    });
   });
 
   it("corrects every cell in the edited review group from palette candidates", async () => {

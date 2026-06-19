@@ -416,6 +416,59 @@ it("allows panning clipped previews even at base zoom", () => {
   expect(transforms(container)[1]).toBe("translate(0px, -40px) scale(1)");
 });
 
+it("recenters both previews when a different recognized project loads", () => {
+  const { container, rerender } = renderPreview();
+  setPreviewSize(container, 0, { width: 400, height: 240 }, { width: 400, height: 475 });
+  setPreviewSize(container, 1, { width: 400, height: 240 }, { width: 400, height: 475 });
+
+  const sourceViewport = container.querySelectorAll(".preview-viewport")[0];
+  const targetViewport = container.querySelectorAll(".preview-viewport")[1];
+  firePointer(sourceViewport, "pointerdown", {
+    pointerId: 11,
+    clientX: 50,
+    clientY: 50,
+  });
+  firePointer(sourceViewport, "pointermove", {
+    pointerId: 11,
+    clientX: 40,
+    clientY: 10,
+  });
+  firePointer(sourceViewport, "pointerup", { pointerId: 11 });
+  firePointer(targetViewport, "pointerdown", {
+    pointerId: 12,
+    clientX: 50,
+    clientY: 50,
+  });
+  firePointer(targetViewport, "pointermove", {
+    pointerId: 12,
+    clientX: 70,
+    clientY: 20,
+  });
+  firePointer(targetViewport, "pointerup", { pointerId: 12 });
+
+  expect(transforms(container)).toEqual([
+    "translate(-10px, -40px) scale(1)",
+    "translate(20px, -30px) scale(1)",
+  ]);
+
+  rerender(
+    <ComparisonPreview
+      fullscreen={false}
+      project={{ ...projectWithOneReviewCell, id: "pattern-2" }}
+      sourceImageUrl="blob:next-pattern"
+      onFullscreenChange={vi.fn()}
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("100%");
+  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("100%");
+  expect(transforms(container)).toEqual([
+    "translate(0px, 0px) scale(1)",
+    "translate(0px, 0px) scale(1)",
+  ]);
+});
+
 it("updates pan transform during drag without committing a React render", () => {
   const commits: string[] = [];
   const queuedFrames: FrameRequestCallback[] = [];

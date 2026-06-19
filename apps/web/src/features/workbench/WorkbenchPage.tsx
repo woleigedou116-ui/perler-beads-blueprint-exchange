@@ -139,6 +139,7 @@ export function WorkbenchPage() {
     setProject(opened);
     setAttribution(opened.source_attribution ?? "");
     setColorStatSort(DEFAULT_COLOR_STAT_SORT);
+    setFocusRequest(null);
     setSelectedCell(
       opened.cells.find((cell) => cell.status === "review-required") ??
         opened.cells[0] ??
