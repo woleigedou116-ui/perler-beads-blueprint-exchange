@@ -47,7 +47,7 @@ it("marks the floating palette trigger as a desktop reference while keeping its 
     "palette-reference",
     "desktop-palette-reference",
   );
-  expect(screen.getByRole("button", { name: "色号表" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "色号表" })).toHaveClass("ui-button");
 });
 
 it("positions the desktop palette reference wrapper above the status bar", () => {
@@ -84,6 +84,9 @@ it("shows only current-project colors first, then the complete mapping list", as
 
   await userEvent.click(screen.getByRole("button", { name: "色号表" }));
 
+  expect(screen.getByRole("button", { name: "关闭" })).toHaveClass("ui-button");
+  expect(screen.getByRole("button", { name: "本图用到" })).toHaveClass("ui-button");
+  expect(screen.getByRole("button", { name: "全部色号" })).toHaveClass("ui-button");
   expect(screen.getByText("H7 -> B09")).toBeInTheDocument();
   expect(screen.getByText("F14 -> K07")).toBeInTheDocument();
   expect(screen.getAllByText("1 颗")).toHaveLength(2);

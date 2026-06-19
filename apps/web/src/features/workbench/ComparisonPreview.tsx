@@ -8,6 +8,7 @@ import {
 } from "react";
 
 import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
+import { Button } from "../../shared/ui";
 import { buildTargetColorStats, type ColorStatSort } from "./colorStats";
 import {
   GridPreview,
@@ -401,38 +402,52 @@ export function ComparisonPreview({
     const title = sideTitle(side);
     return (
       <div className="preview-controls">
-        <button
+        <Button
+          size="sm"
           type="button"
+          variant="subtle"
           aria-label={`${title} 缩小`}
           onClick={() => changeZoom(side, -ZOOM_STEP)}
         >
           -
-        </button>
+        </Button>
         <strong aria-label={`${title} 缩放比例`}>
           {Math.round(views[side].zoom * 100)}%
         </strong>
-        <button
+        <Button
+          size="sm"
           type="button"
+          variant="subtle"
           aria-label={`${title} 放大`}
           onClick={() => changeZoom(side, ZOOM_STEP)}
         >
           +
-        </button>
-        <button type="button" aria-label={`${title} 重置`} onClick={() => fitToWindow(side)}>
+        </Button>
+        <Button
+          size="sm"
+          type="button"
+          variant="subtle"
+          aria-label={`${title} 重置`}
+          onClick={() => fitToWindow(side)}
+        >
           重置
-        </button>
+        </Button>
         {side === "source" ? (
-          <button
+          <Button
+            size="sm"
             type="button"
+            variant="subtle"
             aria-label={showReviewOverlay ? "隐藏叠加" : "显示叠加"}
             onClick={() => setShowReviewOverlay((current) => !current)}
           >
             {showReviewOverlay ? "隐藏叠加" : "显示叠加"}
-          </button>
+          </Button>
         ) : (
           <>
-            <button
+            <Button
+              size="sm"
               type="button"
+              variant="subtle"
               aria-label={
                 showTargetReviewOverlay
                   ? `${title} 隐藏叠加`
@@ -441,9 +456,11 @@ export function ComparisonPreview({
               onClick={() => setShowTargetReviewOverlay((current) => !current)}
             >
               {showTargetReviewOverlay ? "隐藏叠加" : "显示叠加"}
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               type="button"
+              variant="subtle"
               aria-label={
                 showTargetCellLabels
                   ? `${title} 隐藏色号`
@@ -452,14 +469,16 @@ export function ComparisonPreview({
               onClick={() => setShowTargetCellLabels((current) => !current)}
             >
               {showTargetCellLabels ? "隐藏色号" : "显示色号"}
-            </button>
-            <button
+            </Button>
+            <Button
+              size="sm"
               type="button"
+              variant="subtle"
               aria-label={showColorStats ? "隐藏色块统计" : "显示色块统计"}
               onClick={() => setShowColorStats((current) => !current)}
             >
               {showColorStats ? "隐藏色块统计" : "显示色块统计"}
-            </button>
+            </Button>
           </>
         )}
       </div>
@@ -486,13 +505,15 @@ export function ComparisonPreview({
   return (
     <section className="comparison-preview" aria-label="图纸预览">
       <div className="comparison-toolbar" aria-label="预览工具栏">
-        <button
+        <Button
           className="quiet-button"
+          size="sm"
           type="button"
+          variant="subtle"
           onClick={() => onFullscreenChange(!fullscreen)}
         >
           {fullscreen ? "退出全屏" : "全屏查看"}
-        </button>
+        </Button>
         {toolbarActions ? (
           <div className="comparison-toolbar-actions">{toolbarActions}</div>
         ) : null}

@@ -1,5 +1,7 @@
 import { useState } from "react";
 
+import { Button } from "../../shared/ui";
+
 type ExportKind = "clean.png" | "overlay.png" | "mapping.csv" | "project.beadproject";
 
 interface ExportActionsProps {
@@ -20,25 +22,28 @@ export function ExportActions({ onExport }: ExportActionsProps) {
         />
         导出带色块统计
       </label>
-      <button type="button" onClick={() => onExport("project.beadproject")}>
+      <Button size="sm" type="button" onClick={() => onExport("project.beadproject")}>
         保存项目
-      </button>
-      <button
+      </Button>
+      <Button
         className="primary-button"
+        size="sm"
         type="button"
+        variant="primary"
         onClick={() => onExport("clean.png", { includeColorStats })}
       >
         导出图纸
-      </button>
-      <button
+      </Button>
+      <Button
+        size="sm"
         type="button"
         onClick={() => onExport("overlay.png", { includeColorStats })}
       >
         导出检查图
-      </button>
-      <button type="button" onClick={() => onExport("mapping.csv")}>
+      </Button>
+      <Button size="sm" type="button" onClick={() => onExport("mapping.csv")}>
         导出清单
-      </button>
+      </Button>
     </div>
   );
 }

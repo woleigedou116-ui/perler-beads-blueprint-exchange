@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 
 import type { BeadProject, PaletteMapping, RGB } from "../../domain/types";
+import { Button } from "../../shared/ui";
 
 interface PaletteReferenceProps {
   paletteMappings: PaletteMapping[];
@@ -64,32 +65,42 @@ export function PaletteReference({ paletteMappings, project }: PaletteReferenceP
 
   return (
     <div className="palette-reference desktop-palette-reference">
-      <button className="palette-fab" type="button" onClick={() => setOpen((next) => !next)}>
+      <Button
+        className="palette-fab"
+        size="sm"
+        type="button"
+        variant="primary"
+        onClick={() => setOpen((next) => !next)}
+      >
         色号表
-      </button>
+      </Button>
       {open ? (
         <section className="palette-popover" aria-label="色号对照表">
           <header>
             <h2>色号对照表</h2>
-            <button type="button" onClick={() => setOpen(false)}>
+            <Button size="sm" type="button" variant="subtle" onClick={() => setOpen(false)}>
               关闭
-            </button>
+            </Button>
           </header>
           <div className="palette-tabs">
-            <button
+            <Button
               className={mode === "used" ? "active" : ""}
+              size="sm"
               type="button"
+              variant="ghost"
               onClick={() => setMode("used")}
             >
               本图用到
-            </button>
-            <button
+            </Button>
+            <Button
               className={mode === "all" ? "active" : ""}
+              size="sm"
               type="button"
+              variant="ghost"
               onClick={() => setMode("all")}
             >
               全部色号
-            </button>
+            </Button>
           </div>
           <div className="palette-reference-list">
             {rows.map((mapping) => {

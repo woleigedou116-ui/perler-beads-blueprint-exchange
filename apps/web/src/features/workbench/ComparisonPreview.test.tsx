@@ -80,6 +80,17 @@ it("applies zoom and panning independently for each blueprint preview", async ()
   setPreviewSize(container, 0, { width: 400, height: 200 });
   setPreviewSize(container, 1, { width: 400, height: 200 });
 
+  expect(screen.getByRole("button", { name: "全屏查看" })).toHaveClass("ui-button");
+  expect(screen.getByRole("button", { name: "识别叠加视图 缩小" })).toHaveClass(
+    "ui-button",
+  );
+  expect(screen.getByRole("button", { name: "识别叠加视图 放大" })).toHaveClass(
+    "ui-button",
+  );
+  expect(screen.getByRole("button", { name: "COCO 重绘预览 隐藏色号" })).toHaveClass(
+    "ui-button",
+  );
+
   await userEvent.click(screen.getByRole("button", { name: "识别叠加视图 放大" }));
 
   expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("125%");

@@ -165,5 +165,6 @@ data/palettes/mard-coco.v1.json
 前端重构和桌面软件式界面的长期规范见：
 
 - `docs/frontend/frontend-architecture-source-of-truth.md`
+- `docs/frontend/frontend-skeleton-acceptance.md`
 
 后续调整前端 UI、视觉风格、目录结构、token、主题或多语言设计时，优先以这份前端真源文档为准，避免只改局部界面导致整体方向跑偏。
