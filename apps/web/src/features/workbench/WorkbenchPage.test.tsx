@@ -512,6 +512,33 @@ describe("WorkbenchPage", () => {
     );
   });
 
+  it("keeps the recognized source preview until the newly selected pattern is imported", async () => {
+    vi.stubGlobal("URL", {
+      ...URL,
+      createObjectURL: vi
+        .fn()
+        .mockReturnValueOnce("blob:source-pattern")
+        .mockReturnValueOnce("blob:next-pattern"),
+      revokeObjectURL: vi.fn(),
+    });
+    const nextPatternFile = new File(["next-pattern"], "next-pattern.png", {
+      type: "image/png",
+    });
+
+    await importPattern();
+    await userEvent.upload(screen.getByLabelText("上传图纸"), nextPatternFile);
+
+    expect(screen.getByAltText("上传图纸预览")).toHaveAttribute(
+      "src",
+      "blob:next-pattern",
+    );
+    expect(await screen.findByAltText("上传原图")).toHaveAttribute(
+      "src",
+      "blob:source-pattern",
+    );
+    expect(importImage).toHaveBeenCalledTimes(1);
+  });
+
   it("expands the preview area for full-screen review and exits with Escape", async () => {
     await importPattern();
 

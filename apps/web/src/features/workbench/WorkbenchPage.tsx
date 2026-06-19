@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import {
   confirmMapping,
@@ -47,6 +47,10 @@ export function WorkbenchPage() {
   const [focusRequest, setFocusRequest] = useState<{ cell: Cell; nonce: number } | null>(null);
   const [paletteMappings, setPaletteMappings] = useState<PaletteMapping[]>([]);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [recognizedSourceImageUrl, setRecognizedSourceImageUrl] = useState<string | null>(
+    null,
+  );
+  const recognizedLocalSourceUrl = useRef<string | null>(null);
   const [lastRecognitionDurationMs, setLastRecognitionDurationMs] = useState<number | null>(
     null,
   );
@@ -64,8 +68,21 @@ export function WorkbenchPage() {
     }
     const nextUrl = URL.createObjectURL(file);
     setPreviewUrl(nextUrl);
-    return () => URL.revokeObjectURL(nextUrl);
+    return () => {
+      if (recognizedLocalSourceUrl.current !== nextUrl) {
+        URL.revokeObjectURL(nextUrl);
+      }
+    };
   }, [file]);
+
+  useEffect(
+    () => () => {
+      if (recognizedLocalSourceUrl.current) {
+        URL.revokeObjectURL(recognizedLocalSourceUrl.current);
+      }
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -127,6 +144,11 @@ export function WorkbenchPage() {
     try {
       const imported = await importImage(file);
       loadProject(imported.project);
+      if (recognizedLocalSourceUrl.current && recognizedLocalSourceUrl.current !== previewUrl) {
+        URL.revokeObjectURL(recognizedLocalSourceUrl.current);
+      }
+      recognizedLocalSourceUrl.current = previewUrl;
+      setRecognizedSourceImageUrl(previewUrl);
       setLastRecognitionDurationMs(Date.now() - startedAt);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "识别失败");
@@ -156,7 +178,13 @@ export function WorkbenchPage() {
     try {
       const opened = await openProject(archive);
       loadProject(opened);
-      setPreviewUrl(projectSourceImageUrl(opened.id));
+      const sourceImageUrl = projectSourceImageUrl(opened.id);
+      if (recognizedLocalSourceUrl.current) {
+        URL.revokeObjectURL(recognizedLocalSourceUrl.current);
+        recognizedLocalSourceUrl.current = null;
+      }
+      setPreviewUrl(sourceImageUrl);
+      setRecognizedSourceImageUrl(sourceImageUrl);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "项目打开失败");
     } finally {
@@ -408,7 +436,7 @@ export function WorkbenchPage() {
             paletteMappings={paletteMappings}
             project={project}
             selectedRegionBounds={selectedRegionBounds}
-            sourceImageUrl={previewUrl}
+            sourceImageUrl={recognizedSourceImageUrl}
             toolbarActions={null}
             onFullscreenChange={setIsReviewFullscreen}
             onSelectCell={handleSelectCell}
