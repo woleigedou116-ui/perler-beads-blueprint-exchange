@@ -1,0 +1,123 @@
+:root {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+.ui-button {
+  align-items: center;
+  border: 1px solid var(--app-border);
+  border-radius: var(--radius-control);
+  display: inline-flex;
+  font-weight: 500;
+  gap: var(--space-2);
+  justify-content: center;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.ui-button:focus-visible {
+  box-shadow: 0 0 0 3px var(--app-focus-ring);
+  outline: none;
+}
+
+.ui-button-default {
+  background: var(--app-surface-strong);
+  color: var(--app-text);
+}
+
+.ui-button-primary {
+  background: var(--app-accent);
+  border-color: var(--app-accent);
+  color: #ffffff;
+}
+
+.ui-button-subtle {
+  background: color-mix(in srgb, var(--app-accent) 9%, var(--app-surface));
+  color: var(--app-accent-strong);
+}
+
+.ui-button-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--app-text);
+}
+
+.ui-button-sm {
+  font-size: var(--font-size-xs);
+  min-height: 28px;
+  padding: 0.35rem 0.55rem;
+}
+
+.ui-button-md {
+  font-size: var(--font-size-sm);
+  min-height: 34px;
+  padding: 0.48rem 0.72rem;
+}
+
+.ui-button-icon {
+  height: 34px;
+  padding: 0;
+  width: 34px;
+}
+
+.sr-only {
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}
+
+.desktop-shell-layout {
+  background: var(--app-bg);
+  color: var(--app-text);
+  display: grid;
+  grid-template-rows: var(--layout-topbar-height) minmax(0, 1fr) var(--layout-statusbar-height);
+  height: 100vh;
+  min-height: 720px;
+}
+
+.desktop-shell-topbar,
+.desktop-shell-statusbar {
+  background: var(--app-surface);
+  border-color: var(--app-border);
+}
+
+.desktop-shell-topbar {
+  border-bottom-style: solid;
+  border-bottom-width: 1px;
+}
+
+.desktop-shell-body {
+  min-height: 0;
+}
+
+.desktop-shell-statusbar {
+  border-top-style: solid;
+  border-top-width: 1px;
+}
+
+.three-pane-workspace {
+  display: grid;
+  gap: var(--space-3);
+  grid-template-columns:
+    var(--layout-left-rail-width)
+    minmax(0, 1fr)
+    var(--layout-right-rail-width);
+  height: 100%;
+  min-height: 0;
+}
+
+.three-pane-workspace-left,
+.three-pane-workspace-center,
+.three-pane-workspace-right {
+  min-height: 0;
+  min-width: 0;
+}

@@ -1,0 +1,51 @@
+:root {
+  --app-bg: #e8ece8;
+  --app-surface: #fbfcfa;
+  --app-surface-strong: #ffffff;
+  --app-border: #d7dfd8;
+  --app-border-strong: #b9c6bf;
+  --app-text: #172426;
+  --app-text-muted: #667773;
+  --app-accent: #0b8178;
+  --app-accent-strong: #076c66;
+  --app-warning: #c67919;
+  --app-danger: #a94438;
+  --app-focus-ring: rgba(11, 129, 120, 0.32);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+
+  --radius-control: 6px;
+  --radius-panel: 8px;
+  --radius-round: 999px;
+
+  --shadow-surface: 0 1px 2px rgba(36, 45, 43, 0.04);
+
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.84rem;
+  --font-size-md: 0.95rem;
+  --font-size-lg: 1.05rem;
+
+  --layout-topbar-height: 56px;
+  --layout-statusbar-height: 30px;
+  --layout-left-rail-width: 260px;
+  --layout-right-rail-width: 318px;
+}
+
+:root[data-theme="dark"] {
+  --app-bg: #151a1a;
+  --app-surface: #1e2424;
+  --app-surface-strong: #242b2b;
+  --app-border: #33403d;
+  --app-border-strong: #465650;
+  --app-text: #edf4f1;
+  --app-text-muted: #a4b2ad;
+  --app-accent: #4bb9ad;
+  --app-accent-strong: #62d2c4;
+  --app-warning: #e2a958;
+  --app-danger: #e78272;
+  --app-focus-ring: rgba(75, 185, 173, 0.36);
+}
