@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type Ref,
@@ -10,6 +11,11 @@ import {
 
 import type { BeadProject, Cell } from "../../domain/types";
 import type { TargetColorStat } from "./colorStats";
+import {
+  cellInBounds,
+  visibleCellBoundsForPreview,
+  type PreviewSide,
+} from "./previewVirtualization";
 
 export interface PreviewTransform {
   zoom: number;
@@ -37,6 +43,7 @@ export interface CellRegionBounds {
 interface GridPreviewProps {
   actions?: ReactNode;
   colorStats?: TargetColorStat[];
+  contentSize?: PreviewContentSize | null;
   contentRef?: Ref<HTMLDivElement>;
   focusedCell?: Cell | null;
   onContentSizeChange?: (size: PreviewContentSize) => void;
@@ -53,6 +60,7 @@ interface GridPreviewProps {
   target: boolean;
   title: string;
   viewportRef?: Ref<HTMLDivElement>;
+  viewportSize?: PreviewContentSize | null;
   onSelectCell: (cell: Cell) => void;
   onViewportPointerCancel?: PointerEventHandler<HTMLDivElement>;
   onViewportPointerDown?: PointerEventHandler<HTMLDivElement>;
@@ -87,9 +95,14 @@ function cellInRegion(cell: Cell, bounds: CellRegionBounds | null) {
   );
 }
 
+function validSize(size: PreviewContentSize | null) {
+  return size && size.width > 0 && size.height > 0 ? size : null;
+}
+
 export function GridPreview({
   actions = null,
   colorStats = [],
+  contentSize = null,
   contentRef = null,
   focusedCell = null,
   onContentSizeChange,
@@ -106,6 +119,7 @@ export function GridPreview({
   target,
   title,
   viewportRef = null,
+  viewportSize = null,
   onSelectCell,
   onViewportPointerCancel,
   onViewportPointerDown,
@@ -114,11 +128,61 @@ export function GridPreview({
   onViewportWheel,
 }: GridPreviewProps) {
   const sourceImageRef = useRef<HTMLImageElement | null>(null);
+  const viewportNodeRef = useRef<HTMLDivElement | null>(null);
   const [sourceSize, setSourceSize] = useState<SourceImageSize | null>(null);
-  const targetRgbByCode = new Map(
-    colorStats
-      .filter((stat) => stat.rgb)
-      .map((stat) => [stat.code, stat.rgb]),
+  const [measuredViewportSize, setMeasuredViewportSize] =
+    useState<PreviewContentSize | null>(null);
+  const targetRgbByCode = useMemo(
+    () =>
+      new Map(
+        colorStats
+          .filter((stat) => stat.rgb)
+          .map((stat) => [stat.code, stat.rgb]),
+      ),
+    [colorStats],
+  );
+  const naturalContentSize =
+    contentSize ??
+    (target
+      ? {
+          width: project.grid.columns * CELL_SIZE,
+          height: project.grid.rows * CELL_SIZE,
+        }
+      : sourceSize);
+  const effectiveViewportSize =
+    validSize(viewportSize) ?? validSize(measuredViewportSize);
+  const visibleBounds = useMemo(
+    () =>
+      naturalContentSize && effectiveViewportSize
+        ? visibleCellBoundsForPreview({
+            contentSize: naturalContentSize,
+            project,
+            side: (target ? "target" : "source") satisfies PreviewSide,
+            sourceImageSize: sourceSize,
+            transform,
+            viewportSize: effectiveViewportSize,
+          })
+        : null,
+    [effectiveViewportSize, naturalContentSize, project, sourceSize, target, transform],
+  );
+  const visibleCells = useMemo(
+    () => {
+      if (!visibleBounds) {
+        return project.cells;
+      }
+      const cellsByKey = new Map<string, Cell>();
+      for (const cell of project.cells) {
+        if (
+          cellInBounds(cell, visibleBounds) ||
+          cellInRegion(cell, selectedRegionBounds) ||
+          (focusedCell?.row === cell.row && focusedCell.column === cell.column)
+        ) {
+          cellsByKey.set(`${cell.row}-${cell.column}`, cell);
+        }
+      }
+      return Array.from(cellsByKey.values());
+    },
+    [focusedCell, project.cells, selectedRegionBounds, visibleBounds],
   );
 
   function setContentNode(node: HTMLDivElement | null) {
@@ -126,6 +190,32 @@ export function GridPreview({
       contentRef(node);
     } else if (contentRef) {
       contentRef.current = node;
+    }
+  }
+
+  function publishViewportSize(node: HTMLDivElement) {
+    const rect = node.getBoundingClientRect();
+    const next = {
+      width: node.clientWidth || rect.width,
+      height: node.clientHeight || rect.height,
+    };
+    if (!validSize(next)) {
+      return;
+    }
+    setMeasuredViewportSize((current) =>
+      current?.width === next.width && current.height === next.height ? current : next,
+    );
+  }
+
+  function setViewportNode(node: HTMLDivElement | null) {
+    viewportNodeRef.current = node;
+    if (typeof viewportRef === "function") {
+      viewportRef(node);
+    } else if (viewportRef) {
+      viewportRef.current = node;
+    }
+    if (node) {
+      publishViewportSize(node);
     }
   }
 
@@ -163,6 +253,20 @@ export function GridPreview({
     }
   }, [project.id, project.grid.columns, project.grid.rows, target]);
 
+  useEffect(() => {
+    const node = viewportNodeRef.current;
+    if (!node) {
+      return;
+    }
+    publishViewportSize(node);
+    if (typeof ResizeObserver === "undefined") {
+      return;
+    }
+    const observer = new ResizeObserver(() => publishViewportSize(node));
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, []);
+
   const showSourceOverlay = !target && sourceImageUrl;
 
   return (
@@ -180,9 +284,9 @@ export function GridPreview({
         className={[
           "preview-viewport",
           pannable ? "is-pannable" : "",
-          dragging ? "is-dragging" : "",
+          dragging ? "is-interacting" : "",
         ].filter(Boolean).join(" ")}
-        ref={viewportRef}
+        ref={setViewportNode}
         onPointerCancel={onViewportPointerCancel}
         onPointerDown={onViewportPointerDown}
         onPointerMove={onViewportPointerMove}
@@ -215,7 +319,7 @@ export function GridPreview({
                   className="source-review-overlay"
                   viewBox={`0 0 ${sourceSize.width} ${sourceSize.height}`}
                 >
-                  {project.cells
+                  {visibleCells
                     .filter(
                       (cell) =>
                         (showReviewOverlay && cell.status === "review-required") ||
@@ -259,7 +363,7 @@ export function GridPreview({
                   className="source-hit-overlay"
                   viewBox={`0 0 ${sourceSize.width} ${sourceSize.height}`}
                 >
-                  {project.cells.map((cell) => (
+                  {visibleCells.map((cell) => (
                     <rect
                       key={`${cell.row}-${cell.column}`}
                       data-cell-column={cell.column}
@@ -290,7 +394,7 @@ export function GridPreview({
               height={project.grid.rows * CELL_SIZE}
               viewBox={`0 0 ${project.grid.columns * CELL_SIZE} ${project.grid.rows * CELL_SIZE}`}
             >
-              {project.cells.map((cell) => {
+              {visibleCells.map((cell) => {
                 const rgb =
                   target && cell.target_code
                     ? targetRgbByCode.get(cell.target_code) ?? cell.sampled_color

@@ -3,6 +3,7 @@ import { afterEach, expect, it, vi } from "vitest";
 
 import { GridPreview } from "./GridPreview";
 import { projectAfterMappingConfirmation, projectWithOneReviewCell } from "./test-data";
+import type { BeadProject } from "../../domain/types";
 
 afterEach(() => {
   cleanup();
@@ -191,6 +192,74 @@ it("can hide cell labels in the regenerated preview while keeping bead colors", 
 
   expect(container.querySelectorAll("text")).toHaveLength(0);
   expect(container.querySelectorAll("rect")).toHaveLength(projectWithOneReviewCell.cells.length);
+});
+
+function largeProject(): BeadProject {
+  return {
+    ...projectWithOneReviewCell,
+    id: "large-pattern",
+    grid: {
+      rows: 100,
+      columns: 100,
+      bounds: [0, 0, 1000, 1000],
+      x_lines: Array.from({ length: 101 }, (_, index) => index * 10),
+      y_lines: Array.from({ length: 101 }, (_, index) => index * 10),
+    },
+    cells: Array.from({ length: 10_000 }, (_, index) => ({
+      ...projectWithOneReviewCell.cells[1],
+      row: Math.floor(index / 100),
+      column: index % 100,
+      target_code: `T${index}`,
+    })),
+  };
+}
+
+it("virtualizes regenerated grid cells to the buffered visible range", () => {
+  const { container } = render(
+    <GridPreview
+      contentSize={{ width: 5200, height: 5200 }}
+      project={largeProject()}
+      transform={{ zoom: 4, panX: -1040, panY: -1560 }}
+      viewportSize={{ width: 520, height: 520 }}
+      target
+      title="COCO 重绘预览"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  expect(container.querySelectorAll(".grid-preview g")).toHaveLength(3000);
+});
+
+it("virtualizes source hit cells while keeping visible source cells selectable", () => {
+  const onSelectCell = vi.fn();
+  render(
+    <GridPreview
+      contentSize={{ width: 500, height: 500 }}
+      project={largeProject()}
+      sourceImageUrl="blob:source-pattern"
+      transform={{ zoom: 5, panX: -1000, panY: -1250 }}
+      viewportSize={{ width: 500, height: 500 }}
+      target={false}
+      title="识别叠加视图"
+      onSelectCell={onSelectCell}
+    />,
+  );
+
+  const sourceImage = screen.getByAltText("上传原图");
+  Object.defineProperty(sourceImage, "naturalWidth", { configurable: true, value: 1000 });
+  Object.defineProperty(sourceImage, "naturalHeight", { configurable: true, value: 1000 });
+  fireEvent.load(sourceImage);
+
+  const hitCells = screen.getByLabelText("原图格子选择层").querySelectorAll("rect");
+  expect(hitCells).toHaveLength(4356);
+  expect(hitCells[0]).toHaveAttribute("data-cell-row", "30");
+  expect(hitCells[0]).toHaveAttribute("data-cell-column", "19");
+
+  fireEvent.click(hitCells[0]);
+
+  expect(onSelectCell).toHaveBeenCalledWith(
+    expect.objectContaining({ row: 30, column: 19 }),
+  );
 });
 
 it("renders target color block statistics when requested", () => {

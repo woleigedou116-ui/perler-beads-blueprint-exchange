@@ -1,5 +1,6 @@
 import {
   useEffect,
+  useMemo,
   useRef,
   useState,
   type PointerEvent,
@@ -50,9 +51,25 @@ interface DragStart {
   panY: number;
 }
 
+interface ZoomInteraction {
+  commitTimer: number | null;
+  transform: PreviewTransform;
+}
+
+interface TouchPoint {
+  x: number;
+  y: number;
+}
+
+interface PinchStart {
+  distance: number;
+  transform: PreviewTransform;
+}
+
 const MIN_ZOOM = 1;
 const MAX_ZOOM = 8;
 const ZOOM_STEP = 0.25;
+const ZOOM_COMMIT_DELAY_MS = 150;
 const CLICK_MOVE_TOLERANCE = 4;
 const PREVIEW_CONTENT_MAX_HEIGHT = 475;
 const INITIAL_VIEW: PreviewTransform = { zoom: MIN_ZOOM, panX: 0, panY: 0 };
@@ -81,6 +98,10 @@ function pointerPoint(event: PointerEvent<HTMLDivElement>) {
     x: Number.isFinite(event.clientX) ? event.clientX : 0,
     y: Number.isFinite(event.clientY) ? event.clientY : 0,
   };
+}
+
+function distanceBetween(first: TouchPoint, second: TouchPoint) {
+  return Math.hypot(second.x - first.x, second.y - first.y);
 }
 
 function cellFromEventTarget(project: BeadProject, target: EventTarget | null) {
@@ -218,7 +239,7 @@ export function ComparisonPreview({
   onSelectCell,
 }: ComparisonPreviewProps) {
   const [views, setViews] = useState<Record<PreviewSide, PreviewTransform>>(initialViews);
-  const [draggingSide, setDraggingSide] = useState<PreviewSide | null>(null);
+  const [interactingSide, setInteractingSide] = useState<PreviewSide | null>(null);
   const [showReviewOverlay, setShowReviewOverlay] = useState(true);
   const [showTargetReviewOverlay, setShowTargetReviewOverlay] = useState(true);
   const [showTargetCellLabels, setShowTargetCellLabels] = useState(true);
@@ -229,8 +250,23 @@ export function ComparisonPreview({
     source: null,
     target: null,
   });
+  const [viewportSizes, setViewportSizes] = useState<Record<PreviewSide, PreviewContentSize | null>>({
+    source: null,
+    target: null,
+  });
+  const viewportSizeRefs = useRef<Record<PreviewSide, PreviewContentSize | null>>({
+    source: null,
+    target: null,
+  });
   const dragStart = useRef<DragStart | null>(null);
-  const pendingDragFrame = useRef<number | null>(null);
+  const pendingTransformFrame = useRef<number | null>(null);
+  const pendingTransforms = useRef<Partial<Record<PreviewSide, PreviewTransform>>>({});
+  const zoomInteractions = useRef<Partial<Record<PreviewSide, ZoomInteraction>>>({});
+  const touchPoints = useRef<Record<PreviewSide, Map<number, TouchPoint>>>({
+    source: new Map(),
+    target: new Map(),
+  });
+  const pinchStarts = useRef<Partial<Record<PreviewSide, PinchStart>>>({});
   const contentRefs = useRef<Record<PreviewSide, HTMLDivElement | null>>({
     source: null,
     target: null,
@@ -242,7 +278,7 @@ export function ComparisonPreview({
 
   useEffect(() => {
     setViews(initialViews());
-    setDraggingSide(null);
+    setInteractingSide(null);
     setFocusedCell(null);
     setShowReviewOverlay(true);
     setShowTargetReviewOverlay(true);
@@ -250,16 +286,36 @@ export function ComparisonPreview({
     setShowColorStats(true);
     setSourceImageSize(null);
     setContentSizes({ source: null, target: null });
+    setViewportSizes({ source: null, target: null });
+    viewportSizeRefs.current = { source: null, target: null };
+    touchPoints.current = { source: new Map(), target: new Map() };
+    pinchStarts.current = {};
     dragStart.current = null;
-    if (pendingDragFrame.current !== null) {
-      cancelAnimationFrame(pendingDragFrame.current);
-      pendingDragFrame.current = null;
+    if (pendingTransformFrame.current !== null) {
+      cancelAnimationFrame(pendingTransformFrame.current);
+      pendingTransformFrame.current = null;
     }
-    return () => {
-      if (pendingDragFrame.current !== null) {
-        cancelAnimationFrame(pendingDragFrame.current);
-        pendingDragFrame.current = null;
+    pendingTransforms.current = {};
+    for (const interaction of Object.values(zoomInteractions.current)) {
+      if (interaction?.commitTimer != null) {
+        window.clearTimeout(interaction.commitTimer);
       }
+    }
+    zoomInteractions.current = {};
+    return () => {
+      if (pendingTransformFrame.current !== null) {
+        cancelAnimationFrame(pendingTransformFrame.current);
+        pendingTransformFrame.current = null;
+      }
+      pendingTransforms.current = {};
+      for (const interaction of Object.values(zoomInteractions.current)) {
+        if (interaction?.commitTimer != null) {
+          window.clearTimeout(interaction.commitTimer);
+        }
+      }
+      zoomInteractions.current = {};
+      touchPoints.current = { source: new Map(), target: new Map() };
+      pinchStarts.current = {};
       dragStart.current = null;
     };
   }, [project.id]);
@@ -291,6 +347,11 @@ export function ComparisonPreview({
       ),
     });
   }, [focusRequest, project, sourceImageSize]);
+
+  const targetColorStats = useMemo(
+    () => buildTargetColorStats(project, paletteMappings, colorStatSort),
+    [colorStatSort, paletteMappings, project],
+  );
 
   function zoomAroundViewportCenter(
     side: PreviewSide,
@@ -325,6 +386,36 @@ export function ComparisonPreview({
     };
   }
 
+  function applyTransform(side: PreviewSide, transform: PreviewTransform) {
+    const content = contentRefs.current[side];
+    if (content) {
+      content.style.transform = transformStyle(transform);
+    }
+  }
+
+  function scheduleTransformWrite(side: PreviewSide, transform: PreviewTransform) {
+    pendingTransforms.current[side] = transform;
+    if (pendingTransformFrame.current !== null) {
+      return;
+    }
+    pendingTransformFrame.current = requestAnimationFrame(() => {
+      pendingTransformFrame.current = null;
+      const transformsToApply = pendingTransforms.current;
+      pendingTransforms.current = {};
+      for (const [entrySide, entryTransform] of Object.entries(transformsToApply)) {
+        applyTransform(entrySide as PreviewSide, entryTransform);
+      }
+    });
+  }
+
+  function cancelPendingTransformWrite() {
+    if (pendingTransformFrame.current !== null) {
+      cancelAnimationFrame(pendingTransformFrame.current);
+      pendingTransformFrame.current = null;
+    }
+    pendingTransforms.current = {};
+  }
+
   function changeZoom(side: PreviewSide, delta: number) {
     setViews((current) => {
       const nextZoom = clampZoom(current[side].zoom + delta);
@@ -333,6 +424,41 @@ export function ComparisonPreview({
         [side]: zoomAroundViewportCenter(side, current[side], nextZoom),
       };
     });
+  }
+
+  function commitZoomInteraction(side: PreviewSide) {
+    const interaction = zoomInteractions.current[side];
+    if (!interaction) {
+      return;
+    }
+    zoomInteractions.current[side] = undefined;
+    applyTransform(side, interaction.transform);
+    updateViewportSize(side, true);
+    setViews((current) => ({
+      ...current,
+      [side]: interaction.transform,
+    }));
+    setInteractingSide((current) => (current === side ? null : current));
+  }
+
+  function previewZoom(side: PreviewSide, delta: number) {
+    const currentTransform = zoomInteractions.current[side]?.transform ?? views[side];
+    const nextZoom = clampZoom(currentTransform.zoom + delta);
+    const nextTransform = zoomAroundViewportCenter(side, currentTransform, nextZoom);
+    previewZoomTo(side, nextTransform);
+  }
+
+  function previewZoomTo(side: PreviewSide, nextTransform: PreviewTransform) {
+    const previousTimer = zoomInteractions.current[side]?.commitTimer;
+    if (previousTimer !== undefined && previousTimer !== null) {
+      window.clearTimeout(previousTimer);
+    }
+    scheduleTransformWrite(side, nextTransform);
+    setInteractingSide(side);
+    zoomInteractions.current[side] = {
+      transform: nextTransform,
+      commitTimer: window.setTimeout(() => commitZoomInteraction(side), ZOOM_COMMIT_DELAY_MS),
+    };
   }
 
   function fitToWindow(side: PreviewSide) {
@@ -345,7 +471,25 @@ export function ComparisonPreview({
   function handleWheel(side: PreviewSide, event: WheelEvent<HTMLDivElement>) {
     event.preventDefault();
     event.stopPropagation();
-    changeZoom(side, event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
+    updateViewportSize(side);
+    previewZoom(side, event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
+  }
+
+  function updateViewportSize(side: PreviewSide, commit = false) {
+    const viewport = viewportRefs.current[side];
+    if (!viewport) {
+      return;
+    }
+    const size = measuredElementSize(viewport, { width: 0, height: 0 });
+    viewportSizeRefs.current[side] = size;
+    if (!commit) {
+      return;
+    }
+    setViewportSizes((current) =>
+      current[side]?.width === size.width && current[side]?.height === size.height
+        ? current
+        : { ...current, [side]: size },
+    );
   }
 
   function canPan(side: PreviewSide) {
@@ -364,10 +508,26 @@ export function ComparisonPreview({
   }
 
   function handlePointerDown(side: PreviewSide, event: PointerEvent<HTMLDivElement>) {
+    const point = pointerPoint(event);
+    if (event.pointerType === "touch") {
+      const points = touchPoints.current[side];
+      points.set(event.pointerId, point);
+      event.currentTarget.setPointerCapture?.(event.pointerId);
+      if (points.size === 2) {
+        const [first, second] = Array.from(points.values());
+        pinchStarts.current[side] = {
+          distance: distanceBetween(first, second),
+          transform: zoomInteractions.current[side]?.transform ?? views[side],
+        };
+        dragStart.current = null;
+        setInteractingSide(side);
+      }
+      return;
+    }
     if (!canPan(side)) {
       return;
     }
-    const point = pointerPoint(event);
+    updateViewportSize(side);
     dragStart.current = {
       cell: cellFromEventTarget(project, event.target),
       currentTransform: views[side],
@@ -380,10 +540,27 @@ export function ComparisonPreview({
       panY: views[side].panY,
     };
     event.currentTarget.setPointerCapture?.(event.pointerId);
-    setDraggingSide(side);
+    setInteractingSide(side);
   }
 
   function handlePointerMove(side: PreviewSide, event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "touch") {
+      const points = touchPoints.current[side];
+      if (!points.has(event.pointerId)) {
+        return;
+      }
+      points.set(event.pointerId, pointerPoint(event));
+      const pinchStart = pinchStarts.current[side];
+      if (points.size < 2 || !pinchStart || pinchStart.distance <= 0) {
+        return;
+      }
+      const [first, second] = Array.from(points.values());
+      const nextZoom = clampZoom(
+        pinchStart.transform.zoom * (distanceBetween(first, second) / pinchStart.distance),
+      );
+      previewZoomTo(side, zoomAroundViewportCenter(side, pinchStart.transform, nextZoom));
+      return;
+    }
     const start = dragStart.current;
     if (!start || start.side !== side || start.pointerId !== event.pointerId) {
       return;
@@ -400,34 +577,27 @@ export function ComparisonPreview({
       panY: start.panY + deltaY,
     };
     start.currentTransform = nextTransform;
-    if (pendingDragFrame.current === null) {
-      pendingDragFrame.current = requestAnimationFrame(() => {
-        pendingDragFrame.current = null;
-        const latest = dragStart.current;
-        if (!latest) {
-          return;
-        }
-        const content = contentRefs.current[latest.side];
-        if (content) {
-          content.style.transform = transformStyle(latest.currentTransform);
-        }
-      });
-    }
+    scheduleTransformWrite(side, nextTransform);
   }
 
   function handlePointerEnd(side: PreviewSide, event: PointerEvent<HTMLDivElement>) {
+    if (event.pointerType === "touch") {
+      touchPoints.current[side].delete(event.pointerId);
+      if (touchPoints.current[side].size < 2) {
+        pinchStarts.current[side] = undefined;
+      }
+      event.currentTarget.releasePointerCapture?.(event.pointerId);
+      if (touchPoints.current[side].size === 0 && !zoomInteractions.current[side]) {
+        setInteractingSide(null);
+      }
+      return;
+    }
     if (dragStart.current?.side !== side || dragStart.current.pointerId !== event.pointerId) {
       return;
     }
     const finalTransform = dragStart.current.currentTransform;
-    if (pendingDragFrame.current !== null) {
-      cancelAnimationFrame(pendingDragFrame.current);
-      pendingDragFrame.current = null;
-    }
-    const content = contentRefs.current[side];
-    if (content) {
-      content.style.transform = transformStyle(finalTransform);
-    }
+    cancelPendingTransformWrite();
+    applyTransform(side, finalTransform);
     event.currentTarget.releasePointerCapture?.(event.pointerId);
     if (!dragStart.current.moved && dragStart.current.cell) {
       onSelectCell(dragStart.current.cell);
@@ -437,7 +607,7 @@ export function ComparisonPreview({
       ...current,
       [side]: finalTransform,
     }));
-    setDraggingSide(null);
+    setInteractingSide(null);
   }
 
   function controls(side: PreviewSide) {
@@ -529,7 +699,7 @@ export function ComparisonPreview({
 
   function viewportProps(side: PreviewSide) {
     return {
-      dragging: draggingSide === side,
+      dragging: interactingSide === side,
       pannable: canPan(side),
       transform: views[side],
       onViewportPointerCancel: (event: PointerEvent<HTMLDivElement>) =>
@@ -572,21 +742,24 @@ export function ComparisonPreview({
           onContentSizeChange={(size) =>
             setContentSizes((current) => ({ ...current, source: size }))
           }
+          contentSize={contentSizes.source}
           project={project}
           selectedRegionBounds={selectedRegionBounds}
           showReviewOverlay={showReviewOverlay}
           sourceImageUrl={sourceImageUrl}
           target={false}
           title="识别叠加视图"
+          viewportSize={viewportSizes.source ?? viewportSizeRefs.current.source}
           viewportRef={(node) => {
             viewportRefs.current.source = node;
+            updateViewportSize("source");
           }}
           onSelectCell={onSelectCell}
         />
         <GridPreview
           {...viewportProps("target")}
           actions={controls("target")}
-          colorStats={buildTargetColorStats(project, paletteMappings, colorStatSort)}
+          colorStats={targetColorStats}
           contentRef={(node) => {
             contentRefs.current.target = node;
           }}
@@ -594,6 +767,7 @@ export function ComparisonPreview({
           onContentSizeChange={(size) =>
             setContentSizes((current) => ({ ...current, target: size }))
           }
+          contentSize={contentSizes.target}
           project={project}
           selectedRegionBounds={selectedRegionBounds}
           showCellLabels={showTargetCellLabels}
@@ -601,8 +775,10 @@ export function ComparisonPreview({
           showReviewOverlay={showTargetReviewOverlay}
           target
           title="COCO 重绘预览"
+          viewportSize={viewportSizes.target ?? viewportSizeRefs.current.target}
           viewportRef={(node) => {
             viewportRefs.current.target = node;
+            updateViewportSize("target");
           }}
           onSelectCell={onSelectCell}
         />

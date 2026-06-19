@@ -433,7 +433,7 @@ p {
   cursor: grab;
 }
 
-.preview-viewport.is-dragging {
+.preview-viewport.is-interacting {
   cursor: grabbing;
   user-select: none;
 }
@@ -444,7 +444,7 @@ p {
   transform-origin: top left;
 }
 
-.preview-viewport.is-dragging .preview-transform {
+.preview-viewport.is-interacting .preview-transform {
   will-change: transform;
 }
 

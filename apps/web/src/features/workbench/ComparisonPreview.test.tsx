@@ -12,6 +12,7 @@ import { projectWithOneReviewCell } from "./test-data";
 
 afterEach(() => {
   cleanup();
+  vi.useRealTimers();
 });
 
 function renderPreview(project: BeadProject = projectWithOneReviewCell) {
@@ -35,14 +36,15 @@ function transforms(container: HTMLElement) {
 
 function firePointer(
   element: Element,
-  type: "pointerdown" | "pointermove" | "pointerup",
-  pointer: { pointerId: number; clientX?: number; clientY?: number },
+  type: "pointerdown" | "pointermove" | "pointerup" | "pointercancel",
+  pointer: { pointerId: number; clientX?: number; clientY?: number; pointerType?: string },
 ) {
   const event = new Event(type, { bubbles: true });
   Object.defineProperties(event, {
     clientX: { value: pointer.clientX ?? 0 },
     clientY: { value: pointer.clientY ?? 0 },
     pointerId: { value: pointer.pointerId },
+    pointerType: { value: pointer.pointerType ?? "mouse" },
   });
   fireEvent(element, event);
 }
@@ -104,7 +106,9 @@ it("applies zoom and panning independently for each blueprint preview", async ()
     deltaY: -100,
   });
 
-  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("125%");
+  await vi.waitFor(() =>
+    expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("125%"),
+  );
   expect(transforms(container)).toEqual([
     "translate(-50px, -25px) scale(1.25)",
     "translate(-50px, -25px) scale(1.25)",
@@ -134,7 +138,7 @@ it("applies zoom and panning independently for each blueprint preview", async ()
   );
 });
 
-it("keeps wheel zoom events inside preview frames", () => {
+it("keeps wheel zoom events inside preview frames", async () => {
   const parentWheel = vi.fn();
   const { container } = render(
     <div onWheel={parentWheel}>
@@ -154,7 +158,9 @@ it("keeps wheel zoom events inside preview frames", () => {
   });
 
   expect(parentWheel).not.toHaveBeenCalled();
-  expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("125%");
+  await vi.waitFor(() =>
+    expect(screen.getByLabelText("识别叠加视图 缩放比例")).toHaveTextContent("125%"),
+  );
 });
 
 it("uses caller-provided target color statistics sorting", () => {
@@ -232,7 +238,7 @@ it("uses desktop workspace preview rules without nested decorative cards", () =>
   expect(cssBlockFor(".preview-viewport")).toContain("border-radius: 6px;");
   expect(cssBlockFor(".preview-viewport")).toContain("min-height: 360px;");
   expect(cssBlockFor(".preview-transform")).not.toContain("will-change:");
-  expect(cssBlockFor(".preview-viewport.is-dragging .preview-transform")).toContain(
+  expect(cssBlockFor(".preview-viewport.is-interacting .preview-transform")).toContain(
     "will-change: transform;",
   );
   expect(cssBlockFor(".target-color-stats")).toContain("grid-row: 3;");
@@ -513,6 +519,116 @@ it("updates pan transform during drag without committing a React render", () => 
   firePointer(targetViewport, "pointerup", { pointerId: 10 });
 
   expect(transforms(container)[1]).toBe("translate(0px, -38px) scale(1)");
+
+  requestAnimationFrameSpy.mockRestore();
+  cancelAnimationFrameSpy.mockRestore();
+});
+
+it("updates wheel zoom through a single animation frame before committing state", async () => {
+  vi.useFakeTimers();
+  const commits: string[] = [];
+  const queuedFrames: FrameRequestCallback[] = [];
+  const requestAnimationFrameSpy = vi
+    .spyOn(window, "requestAnimationFrame")
+    .mockImplementation((callback) => {
+      queuedFrames.push(callback);
+      return queuedFrames.length;
+    });
+  const cancelAnimationFrameSpy = vi
+    .spyOn(window, "cancelAnimationFrame")
+    .mockImplementation(() => undefined);
+  const { container } = render(
+    <Profiler id="comparison-preview" onRender={() => commits.push("commit")}>
+      <ComparisonPreview
+        fullscreen={false}
+        project={projectWithOneReviewCell}
+        sourceImageUrl="blob:source-pattern"
+        onFullscreenChange={vi.fn()}
+        onSelectCell={vi.fn()}
+      />
+    </Profiler>,
+  );
+  setPreviewSize(container, 1, { width: 400, height: 200 }, { width: 400, height: 200 });
+
+  const targetViewport = container.querySelectorAll(".preview-viewport")[1];
+  const targetTransform = container.querySelectorAll<HTMLElement>(".preview-transform")[1];
+  const commitsBeforeWheel = commits.length;
+
+  fireEvent.wheel(targetViewport, { deltaY: -100 });
+  fireEvent.wheel(targetViewport, { deltaY: -100 });
+
+  expect(requestAnimationFrameSpy).toHaveBeenCalledTimes(1);
+  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("100%");
+  const commitsBeforeFrame = commits.length;
+
+  queuedFrames.shift()?.(16);
+
+  expect(targetTransform.style.transform).toBe("translate(-100px, -50px) scale(1.5)");
+  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("100%");
+  expect(commits.length).toBe(commitsBeforeFrame);
+  expect(commits.length - commitsBeforeWheel).toBeLessThanOrEqual(3);
+
+  vi.advanceTimersByTime(149);
+  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("100%");
+
+  vi.advanceTimersByTime(1);
+  await vi.waitFor(() =>
+    expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("150%"),
+  );
+  expect(transforms(container)[1]).toBe("translate(-100px, -50px) scale(1.5)");
+
+  requestAnimationFrameSpy.mockRestore();
+  cancelAnimationFrameSpy.mockRestore();
+});
+
+it("updates touch pinch zoom through the same deferred transform path", async () => {
+  vi.useFakeTimers();
+  const queuedFrames: FrameRequestCallback[] = [];
+  const requestAnimationFrameSpy = vi
+    .spyOn(window, "requestAnimationFrame")
+    .mockImplementation((callback) => {
+      queuedFrames.push(callback);
+      return queuedFrames.length;
+    });
+  const cancelAnimationFrameSpy = vi
+    .spyOn(window, "cancelAnimationFrame")
+    .mockImplementation(() => undefined);
+  const { container } = renderPreview();
+  setPreviewSize(container, 1, { width: 400, height: 200 }, { width: 400, height: 200 });
+
+  const targetViewport = container.querySelectorAll(".preview-viewport")[1];
+  const targetTransform = container.querySelectorAll<HTMLElement>(".preview-transform")[1];
+  firePointer(targetViewport, "pointerdown", {
+    pointerId: 21,
+    pointerType: "touch",
+    clientX: 150,
+    clientY: 100,
+  });
+  firePointer(targetViewport, "pointerdown", {
+    pointerId: 22,
+    pointerType: "touch",
+    clientX: 250,
+    clientY: 100,
+  });
+  firePointer(targetViewport, "pointermove", {
+    pointerId: 22,
+    pointerType: "touch",
+    clientX: 300,
+    clientY: 100,
+  });
+
+  expect(requestAnimationFrameSpy).toHaveBeenCalledTimes(1);
+  queuedFrames.shift()?.(16);
+
+  expect(targetTransform.style.transform).toBe("translate(-100px, -50px) scale(1.5)");
+  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("100%");
+
+  firePointer(targetViewport, "pointerup", { pointerId: 21, pointerType: "touch" });
+  firePointer(targetViewport, "pointerup", { pointerId: 22, pointerType: "touch" });
+  vi.advanceTimersByTime(150);
+  await vi.waitFor(() =>
+    expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("150%"),
+  );
 
   requestAnimationFrameSpy.mockRestore();
   cancelAnimationFrameSpy.mockRestore();
