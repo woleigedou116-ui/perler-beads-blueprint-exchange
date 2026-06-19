@@ -118,6 +118,13 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
     />,
   );
 
+  expect(screen.getByRole("button", { name: "定位" })).toHaveClass("ui-button");
+  expect(screen.getByRole("button", { name: "确认" })).toHaveClass("ui-button");
+  expect(screen.getByRole("button", { name: "修改" })).toHaveClass("ui-button");
+  expect(screen.getByRole("button", { name: "修正选中格" })).toHaveClass(
+    "ui-button",
+  );
+
   await userEvent.click(screen.getByRole("button", { name: "定位" }));
   expect(onLocateCell).toHaveBeenCalledWith(projectWithOneReviewCell.cells[0]);
   expect(onSelectCell).toHaveBeenCalledWith(projectWithOneReviewCell.cells[0]);
@@ -132,6 +139,9 @@ it("locates, confirms, and corrects a review cell from nearest color candidates"
   const candidateButtons = within(candidates).getAllByRole("button");
 
   expect(within(cellProperties).queryByLabelText("近似色号候选")).not.toBeInTheDocument();
+  expect(candidateButtons.every((button) => button.classList.contains("ui-button"))).toBe(
+    true,
+  );
   expect(candidateButtons.map((button) => button.textContent)).toEqual([
     "H7",
     "H3",
@@ -188,10 +198,12 @@ it("keeps active non-bead region selection controls with the non-bead tools", ()
   const nonBeadTools = screen.getByRole("region", { name: "非拼豆工具" });
 
   expect(within(nonBeadTools).getByLabelText("框选非拼豆区域")).toBeInTheDocument();
-  expect(within(nonBeadTools).getByRole("button", { name: "取消框选" })).toBeInTheDocument();
+  expect(within(nonBeadTools).getByRole("button", { name: "取消框选" })).toHaveClass(
+    "ui-button",
+  );
   expect(
     within(nonBeadTools).getByRole("button", { name: "应用框选区域" }),
-  ).toBeInTheDocument();
+  ).toHaveClass("ui-button");
   expect(within(reviewQueue).queryByLabelText("框选非拼豆区域")).not.toBeInTheDocument();
 });
 

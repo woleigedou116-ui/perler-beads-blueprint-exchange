@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import type { BeadProject, Cell, PaletteMapping, RGB } from "../../domain/types";
+import { Button } from "../../shared/ui";
 import type { ColorStatSort } from "./colorStats";
 import { buildReviewGroups, compareCodes, reviewGroupKey } from "./reviewGroups";
 
@@ -194,14 +195,16 @@ export function ReviewPanel({
           <div className="review-heading-actions">
             <strong>待确认 {reviewCells.length} 格 / {reviewGroups.length} 组</strong>
             <div className="review-settings-anchor" ref={settingsRef}>
-              <button
+              <Button
                 type="button"
                 aria-expanded={showSettings}
                 aria-label="校对设置"
+                size="sm"
+                variant="subtle"
                 onClick={() => setShowSettings((current) => !current)}
               >
                 设置
-              </button>
+              </Button>
               {showSettings ? (
                 <div
                   aria-label="校对设置"
@@ -222,9 +225,11 @@ export function ReviewPanel({
                   <div className="review-settings-section">
                     <div className="preview-settings-label">色块统计排序</div>
                     <div className="segmented-control" aria-label="排序依据">
-                      <button
+                      <Button
                         className={colorStatSort.sortBy === "code" ? "is-active" : ""}
+                        size="sm"
                         type="button"
+                        variant="ghost"
                         aria-label="按色号排序"
                         aria-pressed={colorStatSort.sortBy === "code"}
                         onClick={() =>
@@ -232,12 +237,14 @@ export function ReviewPanel({
                         }
                       >
                         色号
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         className={
                           colorStatSort.sortBy === "count" ? "is-active" : ""
                         }
+                        size="sm"
                         type="button"
+                        variant="ghost"
                         aria-label="按数量排序"
                         aria-pressed={colorStatSort.sortBy === "count"}
                         onClick={() =>
@@ -245,14 +252,16 @@ export function ReviewPanel({
                         }
                       >
                         数量
-                      </button>
+                      </Button>
                     </div>
                     <div className="segmented-control" aria-label="排序顺序">
-                      <button
+                      <Button
                         className={
                           colorStatSort.sortDirection === "asc" ? "is-active" : ""
                         }
+                        size="sm"
                         type="button"
+                        variant="ghost"
                         aria-label="正序"
                         aria-pressed={colorStatSort.sortDirection === "asc"}
                         onClick={() =>
@@ -263,12 +272,14 @@ export function ReviewPanel({
                         }
                       >
                         正序
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         className={
                           colorStatSort.sortDirection === "desc" ? "is-active" : ""
                         }
+                        size="sm"
                         type="button"
+                        variant="ghost"
                         aria-label="倒序"
                         aria-pressed={colorStatSort.sortDirection === "desc"}
                         onClick={() =>
@@ -279,7 +290,7 @@ export function ReviewPanel({
                         }
                       >
                         倒序
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -309,7 +320,8 @@ export function ReviewPanel({
                 </div>
                 <small>{group.issueReasons.map(issueReasonLabel).join("、")}</small>
                 <div className="review-actions">
-                  <button
+                  <Button
+                    size="sm"
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
@@ -317,9 +329,10 @@ export function ReviewPanel({
                     }}
                   >
                     定位
-                  </button>
+                  </Button>
                   {group.source !== "?" && group.target !== "?" ? (
-                    <button
+                    <Button
+                      size="sm"
                       type="button"
                       onClick={(event) => {
                         event.stopPropagation();
@@ -327,9 +340,10 @@ export function ReviewPanel({
                       }}
                     >
                       确认
-                    </button>
+                    </Button>
                   ) : null}
-                  <button
+                  <Button
+                    size="sm"
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation();
@@ -341,7 +355,7 @@ export function ReviewPanel({
                     }}
                   >
                     修改
-                  </button>
+                  </Button>
                 </div>
               </article>
             );
@@ -354,16 +368,18 @@ export function ReviewPanel({
           <div className="candidate-list" aria-label="近似色号候选">
             <p>来源近似色号</p>
             {nearestCandidates(candidateRepresentative).map((candidate) => (
-              <button
+              <Button
                 key={`${candidate.source_code}-${candidate.target_code}`}
+                size="sm"
                 type="button"
                 title={`MARD ${candidate.source_code} -> COCO ${candidate.target_code}`}
                 onClick={() => handleCandidateClick(selectedCell, candidate)}
               >
                 {candidate.source_code}
-              </button>
+              </Button>
             ))}
-            <button
+            <Button
+              size="sm"
               type="button"
               onClick={() =>
                 setExpandedPaletteGroupKey((current) =>
@@ -372,18 +388,19 @@ export function ReviewPanel({
               }
             >
               更多
-            </button>
+            </Button>
             {expandedPaletteGroupKey === candidateGroup.key ? (
               <div className="full-candidate-list" aria-label="全部来源色号候选">
                 {sortedSourceMappings.map((mapping) => (
-                  <button
+                  <Button
                     key={`${mapping.source_code}-${mapping.target_code}`}
+                    size="sm"
                     type="button"
                     title={`MARD ${mapping.source_code} -> COCO ${mapping.target_code}`}
                     onClick={() => handleCandidateClick(selectedCell, mapping)}
                   >
                     {mapping.source_code}
-                  </button>
+                  </Button>
                 ))}
               </div>
             ) : null}
@@ -414,39 +431,40 @@ export function ReviewPanel({
                 onChange={(event) => setTargetCode(normalizeCode(event.target.value))}
               />
             </label>
-            <button disabled={!sourceCode.trim() || !targetCode.trim()} type="submit">
+            <Button disabled={!sourceCode.trim() || !targetCode.trim()} type="submit">
               修正选中格
-            </button>
+            </Button>
           </form>
         ) : null}
       </section>
       <section className="review-sidebar-section" aria-label="非拼豆工具">
         {selectedCell && selectedCell.status !== "empty" ? (
-          <button
+          <Button
             type="button"
             onClick={() => onMarkCellUnwanted(selectedCell)}
           >
             标记为非拼豆
-          </button>
+          </Button>
         ) : null}
         {!regionSelectionActive ? (
-          <button type="button" onClick={onStartRegionUnwanted}>
+          <Button type="button" onClick={onStartRegionUnwanted}>
             框选非拼豆区域
-          </button>
+          </Button>
         ) : (
           <div className="region-mode-panel" aria-label="框选非拼豆区域">
             <p>{regionSelectionLabel ?? "选择起点格，再选择终点格"}</p>
             <div className="review-actions">
-              <button type="button" onClick={onCancelRegionUnwanted}>
+              <Button size="sm" type="button" onClick={onCancelRegionUnwanted}>
                 取消框选
-              </button>
-              <button
+              </Button>
+              <Button
                 disabled={!regionSelectionComplete}
+                size="sm"
                 type="button"
                 onClick={onApplyRegionUnwanted}
               >
                 应用框选区域
-              </button>
+              </Button>
             </div>
           </div>
         )}
