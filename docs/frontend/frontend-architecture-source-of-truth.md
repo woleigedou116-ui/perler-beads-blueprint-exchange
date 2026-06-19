@@ -62,6 +62,29 @@ Rules:
 - Keep card radius at 8px or less.
 - Optimize for scanning, comparison, and repeated action.
 
+## Design Guardrails
+
+These rules protect the desktop-tool direction during future AI-assisted edits.
+
+Do:
+
+- Start new workbench screens from the desktop shell: command bar, left rail, center work area, right rail, and status bar.
+- Keep the source/target preview area as the first visual priority after a project is loaded.
+- Use compact controls, clear grouping, and stable dimensions so repeated review work feels predictable.
+- Prefer familiar icons for tool actions such as open, save, export, zoom, reset, hide, and selection.
+- Keep panels visually flat and functional. A panel should represent a real tool area, queue, inspector, or repeated item.
+- Use visible status and progress surfaces for long-running local work such as recognition and export.
+
+Do not:
+
+- Turn the product into a landing page, hero page, or marketing-style layout.
+- Add decorative gradient blobs, oversized illustrations, floating decorative cards, or one-off visual effects.
+- Nest cards inside cards unless the inner surface is a true repeated item or modal content.
+- Use a full admin template or generic dashboard visual language.
+- Let sidebars visually compete with the preview workspace.
+- Introduce broad palette changes without updating tokens and checking the prototype route.
+- Hide important review actions behind menus before the workflow is stable.
+
 ## Token System
 
 Design tokens are CSS custom properties. They are the styling source of truth and should live under `src/shared/tokens/`.
@@ -165,6 +188,21 @@ Lower layers must not import higher layers.
 - Domain-specific components belong in `features`, `entities`, or `widgets`, not `shared/ui`.
 - Existing business API clients remain in `src/api/` during the first migration. They can move into `shared/api/` only when the migration is deliberate.
 
+## Implementation Rules
+
+Use these rules as the default checklist for frontend changes:
+
+- Keep the existing MVP workbench as the default route until a replacement page has equivalent behavior and tests.
+- Keep experimental visual work behind explicit routing such as `?prototype=desktop-ui`.
+- Build route-level pages by composing `app`, `pages`, `widgets`, `features`, `entities`, and `shared` in the documented import direction.
+- Use `DesktopShellLayout` for desktop-shell screens and `ThreePaneWorkspace` for the standard workbench body before creating another layout primitive.
+- Use `shared/ui` primitives for repeated controls before adding local button styles.
+- Add new design constants to `shared/tokens/tokens.css` before scattering new colors, radii, shadows, or layout sizes.
+- Keep domain-specific behavior near the feature that owns it. Do not move code into `shared` only because two nearby files can import it.
+- Add or update focused tests when route behavior, shared UI behavior, or migration boundaries change.
+- Keep each migration step reviewable: move one workflow or surface at a time, verify it, then remove obsolete code.
+- Do not let prototype CSS become permanent production CSS without moving reusable rules into tokens, shared styles, or widget styles.
+
 ## Prototype Strategy
 
 The visual prototype is available behind a query parameter:
@@ -222,3 +260,5 @@ Visual skeleton changes should also be checked at `1280 x 720` and a narrower de
 - Use CSS custom properties for tokens.
 - Use a provider structure for theme and i18n.
 - Keep current MVP route untouched while the new skeleton matures.
+- Use `DesktopShellLayout` and `ThreePaneWorkspace` as the first reusable desktop layout primitives.
+- Keep `?prototype=desktop-ui` as the visual model route until the real workbench migration catches up.
