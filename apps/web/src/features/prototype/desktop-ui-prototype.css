@@ -22,6 +22,15 @@
   min-height: 720px;
 }
 
+.prototype-shell .desktop-shell-body {
+  overflow: hidden;
+}
+
+.prototype-shell .desktop-shell-topbar,
+.prototype-shell .desktop-shell-statusbar {
+  border: 0;
+}
+
 .prototype-shell button,
 .prototype-shell input,
 .prototype-shell select {
@@ -54,10 +63,10 @@
 .prototype-topbar {
   align-items: center;
   background: rgba(251, 252, 250, 0.96);
-  border-bottom: 1px solid var(--prototype-line);
   display: grid;
   gap: 1rem;
   grid-template-columns: minmax(260px, 1fr) auto minmax(260px, 1fr);
+  height: 100%;
   padding: 0 1rem;
 }
 
@@ -303,6 +312,7 @@
   display: grid;
   gap: 0.75rem;
   grid-template-rows: auto minmax(0, 1fr) auto;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -550,9 +560,9 @@
 .prototype-statusbar {
   align-items: center;
   background: #f8faf8;
-  border-top: 1px solid var(--prototype-line);
   display: flex;
   gap: 1rem;
+  height: 100%;
   padding: 0 0.9rem;
 }
 

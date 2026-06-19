@@ -8,6 +8,9 @@ import {
   Save,
 } from "lucide-react";
 
+import { Button } from "../../shared/ui";
+import { DesktopShellLayout } from "../../widgets/app-shell";
+import { ThreePaneWorkspace } from "../../widgets/workspace-layout";
 import "./desktop-ui-prototype.css";
 
 const reviewItems = [
@@ -68,209 +71,248 @@ function labelFor(color: string) {
 }
 
 export function DesktopUiPrototype() {
-  return (
-    <main className="prototype-shell" aria-label="桌面工作台视觉模型">
-      <header className="prototype-topbar">
-        <div className="prototype-brand">
-          <span className="prototype-logo-mark" aria-hidden="true" />
-          <div>
-            <strong>拼豆图纸转换工具</strong>
-            <span>MARD 转 COCO / 本地项目</span>
-          </div>
+  const topBar = (
+    <div className="prototype-topbar">
+      <div className="prototype-brand">
+        <span className="prototype-logo-mark" aria-hidden="true" />
+        <div>
+          <strong>拼豆图纸转换工具</strong>
+          <span>MARD 转 COCO / 本地项目</span>
         </div>
-        <nav className="prototype-topnav" aria-label="工作台视图">
-          <button className="prototype-tab prototype-tab-active">转换</button>
-          <button className="prototype-tab">校对</button>
-          <button className="prototype-tab">导出</button>
-        </nav>
-        <div className="prototype-top-actions">
-          <button>
-            <FolderOpen size={15} />
-            打开项目
-          </button>
-          <button>
-            <Save size={15} />
-            保存
-          </button>
-          <button className="prototype-primary">
-            <Download size={15} />
-            导出
-          </button>
+      </div>
+      <nav className="prototype-topnav" aria-label="工作台视图">
+        <Button className="prototype-tab prototype-tab-active" size="sm" variant="ghost">
+          转换
+        </Button>
+        <Button className="prototype-tab" size="sm" variant="ghost">
+          校对
+        </Button>
+        <Button className="prototype-tab" size="sm" variant="ghost">
+          导出
+        </Button>
+      </nav>
+      <div className="prototype-top-actions">
+        <Button size="sm">
+          <FolderOpen size={15} />
+          打开项目
+        </Button>
+        <Button size="sm">
+          <Save size={15} />
+          保存
+        </Button>
+        <Button size="sm" variant="primary">
+          <Download size={15} />
+          导出
+        </Button>
+      </div>
+    </div>
+  );
+
+  const leftRail = (
+    <div className="prototype-left-rail">
+      <section className="prototype-panel prototype-project-card">
+        <div className="prototype-section-title">
+          <h2>项目</h2>
+          <span>本地处理</span>
         </div>
-      </header>
-
-      <section className="prototype-body">
-        <aside className="prototype-left-rail" aria-label="项目面板">
-          <section className="prototype-panel prototype-project-card">
-            <div className="prototype-section-title">
-              <h2>项目</h2>
-              <span>本地处理</span>
-            </div>
-            <div className="prototype-file-drop">
-              <div className="prototype-source-thumb">
-                <MiniBeadMap variant="source" />
-              </div>
-              <strong>恶魔狼.jpg</strong>
-              <span>48 x 48 / MARD</span>
-            </div>
-            <div className="prototype-field-grid">
-              <label>
-                来源标准
-                <select defaultValue="MARD">
-                  <option>MARD</option>
-                </select>
-              </label>
-              <label>
-                目标标准
-                <select defaultValue="COCO">
-                  <option>COCO</option>
-                </select>
-              </label>
-            </div>
-            <button className="prototype-recognize">重新识别</button>
-          </section>
-
-          <section className="prototype-panel">
-            <div className="prototype-section-title">
-              <h2>流程</h2>
-              <span>3 / 5</span>
-            </div>
-            <ol className="prototype-steps">
-              <li className="done">上传图纸</li>
-              <li className="done">识别网格</li>
-              <li className="active">校对色号</li>
-              <li>保存项目</li>
-              <li>导出文件</li>
-            </ol>
-          </section>
-        </aside>
-
-        <section className="prototype-workspace" aria-label="预览工作区">
-          <div className="prototype-workspace-toolbar">
-            <div>
-              <h1>图纸校对</h1>
-              <span>待确认 770 格 / 35 组</span>
-            </div>
-            <div className="prototype-tool-group">
-              <button>
-                <Frame size={15} />
-                框选非拼豆
-              </button>
-              <button>
-                <EyeOff size={15} />
-                隐藏色号
-              </button>
-              <button>
-                <Maximize2 size={15} />
-                全屏
-              </button>
-            </div>
+        <div className="prototype-file-drop">
+          <div className="prototype-source-thumb">
+            <MiniBeadMap variant="source" />
           </div>
-
-          <div className="prototype-preview-grid">
-            <article className="prototype-preview-panel">
-              <div className="prototype-preview-heading">
-                <div>
-                  <h2>识别叠加视图</h2>
-                  <span>MARD / 200%</span>
-                </div>
-                <div className="prototype-zoom-controls">
-                  <button>-</button>
-                  <button>
-                    <RotateCcw size={14} />
-                    重置
-                  </button>
-                  <button>+</button>
-                </div>
-              </div>
-              <div className="prototype-preview-stage prototype-source-stage">
-                <MiniBeadMap variant="source" />
-                <span className="prototype-selection-ring prototype-selection-a" />
-                <span className="prototype-selection-ring prototype-selection-b" />
-              </div>
-            </article>
-
-            <article className="prototype-preview-panel">
-              <div className="prototype-preview-heading">
-                <div>
-                  <h2>COCO 重绘预览</h2>
-                  <span>目标图 / 225%</span>
-                </div>
-                <div className="prototype-zoom-controls">
-                  <button>-</button>
-                  <button>
-                    <RotateCcw size={14} />
-                    重置
-                  </button>
-                  <button>+</button>
-                </div>
-              </div>
-              <div className="prototype-preview-stage">
-                <MiniBeadMap variant="target" />
-                <span className="prototype-target-crosshair" />
-              </div>
-            </article>
-          </div>
-
-          <section className="prototype-panel prototype-palette-strip" aria-label="当前用色">
-            {paletteStats.map(([code, count, color]) => (
-              <button className="prototype-swatch-pill" key={code}>
-                <span style={{ background: color }} />
-                <strong>{code}</strong>
-                <em>{count}</em>
-              </button>
-            ))}
-          </section>
-        </section>
-
-        <aside className="prototype-right-rail" aria-label="校对面板">
-          <section className="prototype-panel prototype-review-panel">
-            <div className="prototype-section-title">
-              <h2>校对</h2>
-              <span>待确认 35 组</span>
-            </div>
-            <div className="prototype-review-list">
-              {reviewItems.map((item, index) => (
-                <article className={`prototype-review-card tone-${item.tone}`} key={item.source}>
-                  <div>
-                    <strong>{item.source}</strong>
-                    <strong>{item.target}</strong>
-                    <span>涉及 {item.count} 格</span>
-                  </div>
-                  <div className="prototype-card-actions">
-                    <button>定位</button>
-                    <button>确认</button>
-                    <button className={index === 0 ? "prototype-primary" : ""}>修改</button>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className="prototype-panel prototype-inspector">
-            <div className="prototype-section-title">
-              <h2>选中格</h2>
-              <span>2, 18</span>
-            </div>
-            <label>
-              来源色号
-              <input defaultValue="D6" />
-            </label>
-            <label>
-              目标色号
-              <input defaultValue="J11" />
-            </label>
-            <button>修正选中格</button>
-          </section>
-        </aside>
+          <strong>恶魔狼.jpg</strong>
+          <span>48 x 48 / MARD</span>
+        </div>
+        <div className="prototype-field-grid">
+          <label>
+            来源标准
+            <select defaultValue="MARD">
+              <option>MARD</option>
+            </select>
+          </label>
+          <label>
+            目标标准
+            <select defaultValue="COCO">
+              <option>COCO</option>
+            </select>
+          </label>
+        </div>
+        <Button className="prototype-recognize" variant="primary">
+          重新识别
+        </Button>
       </section>
 
-      <footer className="prototype-statusbar">
-        <span>本地服务正常</span>
-        <span>最近识别 7.3 秒</span>
-        <span>自动定位已开启</span>
-        <span>项目未上传到远程服务</span>
-      </footer>
-    </main>
+      <section className="prototype-panel">
+        <div className="prototype-section-title">
+          <h2>流程</h2>
+          <span>3 / 5</span>
+        </div>
+        <ol className="prototype-steps">
+          <li className="done">上传图纸</li>
+          <li className="done">识别网格</li>
+          <li className="active">校对色号</li>
+          <li>保存项目</li>
+          <li>导出文件</li>
+        </ol>
+      </section>
+    </div>
+  );
+
+  const workspace = (
+    <section className="prototype-workspace" aria-label="预览工作区">
+      <div className="prototype-workspace-toolbar">
+        <div>
+          <h1>图纸校对</h1>
+          <span>待确认 770 格 / 35 组</span>
+        </div>
+        <div className="prototype-tool-group">
+          <Button size="sm">
+            <Frame size={15} />
+            框选非拼豆
+          </Button>
+          <Button size="sm">
+            <EyeOff size={15} />
+            隐藏色号
+          </Button>
+          <Button size="sm">
+            <Maximize2 size={15} />
+            全屏
+          </Button>
+        </div>
+      </div>
+
+      <div className="prototype-preview-grid">
+        <article className="prototype-preview-panel">
+          <div className="prototype-preview-heading">
+            <div>
+              <h2>识别叠加视图</h2>
+              <span>MARD / 200%</span>
+            </div>
+            <div className="prototype-zoom-controls">
+              <Button aria-label="缩小识别叠加视图" size="icon">
+                -
+              </Button>
+              <Button size="sm">
+                <RotateCcw size={14} />
+                重置
+              </Button>
+              <Button aria-label="放大识别叠加视图" size="icon">
+                +
+              </Button>
+            </div>
+          </div>
+          <div className="prototype-preview-stage prototype-source-stage">
+            <MiniBeadMap variant="source" />
+            <span className="prototype-selection-ring prototype-selection-a" />
+            <span className="prototype-selection-ring prototype-selection-b" />
+          </div>
+        </article>
+
+        <article className="prototype-preview-panel">
+          <div className="prototype-preview-heading">
+            <div>
+              <h2>COCO 重绘预览</h2>
+              <span>目标图 / 225%</span>
+            </div>
+            <div className="prototype-zoom-controls">
+              <Button aria-label="缩小 COCO 重绘预览" size="icon">
+                -
+              </Button>
+              <Button size="sm">
+                <RotateCcw size={14} />
+                重置
+              </Button>
+              <Button aria-label="放大 COCO 重绘预览" size="icon">
+                +
+              </Button>
+            </div>
+          </div>
+          <div className="prototype-preview-stage">
+            <MiniBeadMap variant="target" />
+            <span className="prototype-target-crosshair" />
+          </div>
+        </article>
+      </div>
+
+      <section className="prototype-panel prototype-palette-strip" aria-label="当前用色">
+        {paletteStats.map(([code, count, color]) => (
+          <Button className="prototype-swatch-pill" key={code} size="sm">
+            <span style={{ background: color }} />
+            <strong>{code}</strong>
+            <em>{count}</em>
+          </Button>
+        ))}
+      </section>
+    </section>
+  );
+
+  const rightRail = (
+    <div className="prototype-right-rail">
+      <section className="prototype-panel prototype-review-panel">
+        <div className="prototype-section-title">
+          <h2>校对</h2>
+          <span>待确认 35 组</span>
+        </div>
+        <div className="prototype-review-list">
+          {reviewItems.map((item, index) => (
+            <article className={`prototype-review-card tone-${item.tone}`} key={item.source}>
+              <div>
+                <strong>{item.source}</strong>
+                <strong>{item.target}</strong>
+                <span>涉及 {item.count} 格</span>
+              </div>
+              <div className="prototype-card-actions">
+                <Button size="sm">定位</Button>
+                <Button size="sm">确认</Button>
+                <Button size="sm" variant={index === 0 ? "primary" : "default"}>
+                  修改
+                </Button>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="prototype-panel prototype-inspector">
+        <div className="prototype-section-title">
+          <h2>选中格</h2>
+          <span>2, 18</span>
+        </div>
+        <label>
+          来源色号
+          <input defaultValue="D6" />
+        </label>
+        <label>
+          目标色号
+          <input defaultValue="J11" />
+        </label>
+        <Button>修正选中格</Button>
+      </section>
+    </div>
+  );
+
+  const statusBar = (
+    <div className="prototype-statusbar">
+      <span>本地服务正常</span>
+      <span>最近识别 7.3 秒</span>
+      <span>自动定位已开启</span>
+      <span>项目未上传到远程服务</span>
+    </div>
+  );
+
+  return (
+    <DesktopShellLayout
+      ariaLabel="桌面工作台视觉模型"
+      body={
+        <ThreePaneWorkspace
+          center={workspace}
+          className="prototype-body"
+          left={leftRail}
+          right={rightRail}
+        />
+      }
+      className="prototype-shell"
+      statusBar={statusBar}
+      topBar={topBar}
+    />
   );
 }
