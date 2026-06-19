@@ -31,6 +31,8 @@ describe("WorkbenchCommandBar", () => {
     expect(screen.getByRole("button", { name: "打开项目" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "保存项目" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "导出图纸" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "导入图片" })).toHaveClass("ui-button");
+    expect(screen.getByRole("button", { name: "导出图纸" })).toHaveClass("ui-button");
 
     await userEvent.upload(
       screen.getByLabelText("从命令栏导入图片"),

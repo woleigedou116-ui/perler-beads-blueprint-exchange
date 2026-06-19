@@ -1,5 +1,7 @@
 import { useRef, useState } from "react";
 
+import { Button } from "../../shared/ui";
+
 type ImageExportOptions = { includeColorStats: boolean };
 
 interface WorkbenchCommandBarProps {
@@ -34,13 +36,14 @@ export function WorkbenchCommandBar({
         <span>MARD -&gt; COCO</span>
       </div>
       <nav aria-label="项目命令" className="command-group">
-        <button
+        <Button
           className="command-file-button"
+          size="sm"
           type="button"
           onClick={() => imageInputRef.current?.click()}
         >
           导入图片
-        </button>
+        </Button>
         <input
           ref={imageInputRef}
           aria-label="从命令栏导入图片"
@@ -54,13 +57,14 @@ export function WorkbenchCommandBar({
             }
           }}
         />
-        <button
+        <Button
           className="command-file-button"
+          size="sm"
           type="button"
           onClick={() => projectInputRef.current?.click()}
         >
           打开项目
-        </button>
+        </Button>
         <input
           ref={projectInputRef}
           aria-label="从命令栏打开项目"
@@ -74,9 +78,9 @@ export function WorkbenchCommandBar({
             }
           }}
         />
-        <button disabled={!projectLoaded} type="button" onClick={onSaveProject}>
+        <Button disabled={!projectLoaded} size="sm" type="button" onClick={onSaveProject}>
           保存项目
-        </button>
+        </Button>
       </nav>
       <nav aria-label="导出命令" className="command-group">
         <span className="command-review-count">待确认 {reviewCount}</span>
@@ -89,23 +93,30 @@ export function WorkbenchCommandBar({
           />
           导出带色块统计
         </label>
-        <button
+        <Button
           disabled={!projectLoaded}
+          size="sm"
           type="button"
           onClick={() => onExportClean({ includeColorStats })}
         >
           导出图纸
-        </button>
-        <button
+        </Button>
+        <Button
           disabled={!projectLoaded}
+          size="sm"
           type="button"
           onClick={() => onExportOverlay({ includeColorStats })}
         >
           导出检查图
-        </button>
-        <button disabled={!projectLoaded} type="button" onClick={onExportMapping}>
+        </Button>
+        <Button
+          disabled={!projectLoaded}
+          size="sm"
+          type="button"
+          onClick={onExportMapping}
+        >
           导出清单
-        </button>
+        </Button>
       </nav>
     </header>
   );
