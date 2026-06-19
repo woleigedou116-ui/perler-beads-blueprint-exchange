@@ -3,8 +3,8 @@
   "sourceStandard": "MARD",
   "targetStandard": "COCO",
   "reviewedFrom": [
-    "标准对应转换/mard和coco/拼豆色卡对照_1（本地参考，人工核对首批颜色）",
-    "标准对应转换/mard和coco/拼豆色卡对照_2（本地完整表，OCR 抽取新增对应关系）"
+    "标准对应转换/mard和coco/拼豆色卡对照_1（本地参考，已人工核对）",
+    "标准对应转换/mard和coco/拼豆色卡对照_2（本地完整表，OCR 初步抽取后已逐条人工核对）"
   ],
   "mappings": [
     {
