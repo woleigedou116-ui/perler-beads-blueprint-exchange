@@ -231,6 +231,10 @@ it("uses desktop workspace preview rules without nested decorative cards", () =>
   expect(cssBlockFor(".preview-viewport")).toContain("border: 1px solid #e0e5e2;");
   expect(cssBlockFor(".preview-viewport")).toContain("border-radius: 6px;");
   expect(cssBlockFor(".preview-viewport")).toContain("min-height: 360px;");
+  expect(cssBlockFor(".preview-transform")).not.toContain("will-change:");
+  expect(cssBlockFor(".preview-viewport.is-dragging .preview-transform")).toContain(
+    "will-change: transform;",
+  );
   expect(cssBlockFor(".target-color-stats")).toContain("grid-row: 3;");
   expect(cssBlockFor(".comparison-toolbar-actions")).toContain("margin-left: auto;");
 });

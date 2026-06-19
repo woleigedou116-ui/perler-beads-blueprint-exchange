@@ -442,6 +442,9 @@ p {
   display: inline-block;
   max-width: 100%;
   transform-origin: top left;
+}
+
+.preview-viewport.is-dragging .preview-transform {
   will-change: transform;
 }
 
