@@ -55,6 +55,7 @@ it("shows project inputs and local processing status", () => {
   expect(screen.getByLabelText("上传图纸")).toBeInTheDocument();
   expect(screen.getByLabelText("打开项目")).toBeInTheDocument();
   expect(screen.getByText("本地处理")).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "开始识别" })).toHaveClass("ui-button");
 });
 
 it("updates elapsed recognition time inside the upload panel", async () => {

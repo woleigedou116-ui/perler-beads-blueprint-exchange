@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import type { BeadProject } from "../../domain/types";
+import { Button } from "../../shared/ui";
 
 interface UploadPanelProps {
   attribution: string;
@@ -94,9 +95,11 @@ export function UploadPanel({
           </select>
         </label>
       </div>
-      <button
+      <Button
         className="primary-button"
         disabled={!file || importLocked}
+        type="button"
+        variant="primary"
         onClick={() => {
           if (!file || importLocked) {
             return;
@@ -106,7 +109,7 @@ export function UploadPanel({
         }}
       >
         {importLocked ? "识别中..." : "开始识别"}
-      </button>
+      </Button>
       {processing && recognitionElapsedMs !== null ? (
         <div className="recognition-progress" aria-live="polite">
           <div className="recognition-progress-heading">
@@ -153,9 +156,14 @@ export function UploadPanel({
               placeholder="记录作者或来源链接"
             />
           </label>
-          <button className="quiet-button" onClick={onSaveAttribution}>
+          <Button
+            className="quiet-button"
+            type="button"
+            variant="subtle"
+            onClick={onSaveAttribution}
+          >
             保存出处
-          </button>
+          </Button>
         </>
       ) : null}
     </section>
