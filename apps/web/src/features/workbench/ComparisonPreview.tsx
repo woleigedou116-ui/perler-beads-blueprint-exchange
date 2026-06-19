@@ -40,6 +40,7 @@ type PreviewSide = "source" | "target";
 
 interface DragStart {
   cell: Cell | null;
+  currentTransform: PreviewTransform;
   moved: boolean;
   pointerId: number;
   side: PreviewSide;
@@ -69,6 +70,10 @@ function initialViews(): Record<PreviewSide, PreviewTransform> {
     source: INITIAL_VIEW,
     target: INITIAL_VIEW,
   };
+}
+
+function transformStyle(transform: PreviewTransform) {
+  return `translate(${transform.panX}px, ${transform.panY}px) scale(${transform.zoom})`;
 }
 
 function pointerPoint(event: PointerEvent<HTMLDivElement>) {
@@ -225,6 +230,7 @@ export function ComparisonPreview({
     target: null,
   });
   const dragStart = useRef<DragStart | null>(null);
+  const pendingDragFrame = useRef<number | null>(null);
   const contentRefs = useRef<Record<PreviewSide, HTMLDivElement | null>>({
     source: null,
     target: null,
@@ -245,6 +251,17 @@ export function ComparisonPreview({
     setSourceImageSize(null);
     setContentSizes({ source: null, target: null });
     dragStart.current = null;
+    if (pendingDragFrame.current !== null) {
+      cancelAnimationFrame(pendingDragFrame.current);
+      pendingDragFrame.current = null;
+    }
+    return () => {
+      if (pendingDragFrame.current !== null) {
+        cancelAnimationFrame(pendingDragFrame.current);
+        pendingDragFrame.current = null;
+      }
+      dragStart.current = null;
+    };
   }, [project.id]);
 
   useEffect(() => {
@@ -353,6 +370,7 @@ export function ComparisonPreview({
     const point = pointerPoint(event);
     dragStart.current = {
       cell: cellFromEventTarget(project, event.target),
+      currentTransform: views[side],
       moved: false,
       pointerId: event.pointerId,
       side,
@@ -376,25 +394,49 @@ export function ComparisonPreview({
     if (Math.hypot(deltaX, deltaY) > CLICK_MOVE_TOLERANCE) {
       start.moved = true;
     }
-    setViews((current) => ({
-      ...current,
-      [side]: {
-        ...current[side],
-        panX: start.panX + deltaX,
-        panY: start.panY + deltaY,
-      },
-    }));
+    const nextTransform = {
+      ...start.currentTransform,
+      panX: start.panX + deltaX,
+      panY: start.panY + deltaY,
+    };
+    start.currentTransform = nextTransform;
+    if (pendingDragFrame.current === null) {
+      pendingDragFrame.current = requestAnimationFrame(() => {
+        pendingDragFrame.current = null;
+        const latest = dragStart.current;
+        if (!latest) {
+          return;
+        }
+        const content = contentRefs.current[latest.side];
+        if (content) {
+          content.style.transform = transformStyle(latest.currentTransform);
+        }
+      });
+    }
   }
 
   function handlePointerEnd(side: PreviewSide, event: PointerEvent<HTMLDivElement>) {
     if (dragStart.current?.side !== side || dragStart.current.pointerId !== event.pointerId) {
       return;
     }
+    const finalTransform = dragStart.current.currentTransform;
+    if (pendingDragFrame.current !== null) {
+      cancelAnimationFrame(pendingDragFrame.current);
+      pendingDragFrame.current = null;
+    }
+    const content = contentRefs.current[side];
+    if (content) {
+      content.style.transform = transformStyle(finalTransform);
+    }
     event.currentTarget.releasePointerCapture?.(event.pointerId);
     if (!dragStart.current.moved && dragStart.current.cell) {
       onSelectCell(dragStart.current.cell);
     }
     dragStart.current = null;
+    setViews((current) => ({
+      ...current,
+      [side]: finalTransform,
+    }));
     setDraggingSide(null);
   }
 

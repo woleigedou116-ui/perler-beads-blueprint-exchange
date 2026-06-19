@@ -2,6 +2,7 @@
 
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { Profiler } from "react";
 import { afterEach, expect, it, vi } from "vitest";
 
 import appStyles from "../../styles/app.css?inline";
@@ -409,6 +410,55 @@ it("allows panning clipped previews even at base zoom", () => {
   firePointer(targetViewport, "pointerup", { pointerId: 9 });
 
   expect(transforms(container)[1]).toBe("translate(0px, -40px) scale(1)");
+});
+
+it("updates pan transform during drag without committing a React render", () => {
+  const commits: string[] = [];
+  const queuedFrames: FrameRequestCallback[] = [];
+  const requestAnimationFrameSpy = vi
+    .spyOn(window, "requestAnimationFrame")
+    .mockImplementation((callback) => {
+      queuedFrames.push(callback);
+      return queuedFrames.length;
+    });
+  const cancelAnimationFrameSpy = vi
+    .spyOn(window, "cancelAnimationFrame")
+    .mockImplementation(() => undefined);
+  const { container } = render(
+    <Profiler id="comparison-preview" onRender={() => commits.push("commit")}>
+      <ComparisonPreview
+        fullscreen={false}
+        project={projectWithOneReviewCell}
+        sourceImageUrl="blob:source-pattern"
+        onFullscreenChange={vi.fn()}
+        onSelectCell={vi.fn()}
+      />
+    </Profiler>,
+  );
+  setPreviewSize(container, 1, { width: 400, height: 240 }, { width: 400, height: 475 });
+
+  const targetViewport = container.querySelectorAll(".preview-viewport")[1];
+  const targetTransform = container.querySelectorAll<HTMLElement>(".preview-transform")[1];
+
+  firePointer(targetViewport, "pointerdown", { pointerId: 10, clientX: 50, clientY: 50 });
+  const commitsAfterPointerDown = commits.length;
+  firePointer(targetViewport, "pointermove", { pointerId: 10, clientX: 50, clientY: 15 });
+  firePointer(targetViewport, "pointermove", { pointerId: 10, clientX: 50, clientY: 12 });
+
+  expect(requestAnimationFrameSpy).toHaveBeenCalledTimes(1);
+  expect(targetTransform.style.transform).toBe("translate(0px, 0px) scale(1)");
+  expect(commits.length).toBe(commitsAfterPointerDown);
+
+  queuedFrames.shift()?.(16);
+
+  expect(targetTransform.style.transform).toBe("translate(0px, -38px) scale(1)");
+
+  firePointer(targetViewport, "pointerup", { pointerId: 10 });
+
+  expect(transforms(container)[1]).toBe("translate(0px, -38px) scale(1)");
+
+  requestAnimationFrameSpy.mockRestore();
+  cancelAnimationFrameSpy.mockRestore();
 });
 
 it("selects a source cell from pointer release after zoom enables panning", async () => {

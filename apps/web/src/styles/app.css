@@ -442,6 +442,7 @@ p {
   display: inline-block;
   max-width: 100%;
   transform-origin: top left;
+  will-change: transform;
 }
 
 .preview-settings-label {
