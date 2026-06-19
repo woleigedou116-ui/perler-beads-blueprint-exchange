@@ -79,7 +79,7 @@ class AttributionUpdate(BaseModel):
 def _project(request: Request, project_id: str) -> BeadProject:
     try:
         return request.app.state.store.load(project_id)
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=404, detail="项目不存在") from exc
 
 
@@ -229,7 +229,7 @@ def get_source_image(request: Request, project_id: str) -> Response:
     try:
         source_image = request.app.state.store.source_image_path(project_id)
         content = source_image.read_bytes()
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=404, detail="原始图片不存在") from exc
     return Response(
         content,
@@ -422,7 +422,7 @@ def export_overlay_image(
     project = _project(request, project_id)
     try:
         source = Image.open(request.app.state.store.source_image_path(project_id))
-    except (FileNotFoundError, UnidentifiedImageError) as exc:
+    except (FileNotFoundError, ValueError, UnidentifiedImageError) as exc:
         raise HTTPException(status_code=404, detail="原始图片不存在") from exc
     output = BytesIO()
     render_overlay_pattern(
@@ -445,7 +445,7 @@ def export_archive(request: Request, project_id: str) -> Response:
     project = _project(request, project_id)
     try:
         data = request.app.state.store.export_archive(project_id)
-    except FileNotFoundError as exc:
+    except (FileNotFoundError, ValueError) as exc:
         raise HTTPException(status_code=404, detail="原始图片不存在") from exc
     return _export_response(
         request,

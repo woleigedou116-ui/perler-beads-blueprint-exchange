@@ -1,4 +1,7 @@
+from contextlib import asynccontextmanager
 from pathlib import Path
+from threading import Thread
+from collections.abc import AsyncIterator
 
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
@@ -9,14 +12,24 @@ from bead_converter.projects.store import ProjectStore
 from bead_converter.routes.palettes import router as palettes_router
 from bead_converter.routes.projects import router as projects_router
 from bead_converter.settings import default_data_root, web_dist_path
-from bead_converter.vision.ocr import OcrProvider
+from bead_converter.vision.ocr import OcrProvider, RapidOcrProvider
 
 
 def create_app(
     data_root: Path | None = None,
     ocr_provider: OcrProvider | None = None,
 ) -> FastAPI:
-    application = FastAPI(title="拼豆图纸标准转换")
+    @asynccontextmanager
+    async def lifespan(application: FastAPI) -> AsyncIterator[None]:
+        if ocr_provider is None:
+            def initialize_ocr() -> None:
+                if application.state.ocr is None:
+                    application.state.ocr = RapidOcrProvider()
+
+            Thread(target=initialize_ocr, daemon=True).start()
+        yield
+
+    application = FastAPI(title="拼豆图纸标准转换", lifespan=lifespan)
     application.state.store = ProjectStore(data_root or default_data_root())
     application.state.palette = PaletteRepository.load_default()
     application.state.ocr = ocr_provider

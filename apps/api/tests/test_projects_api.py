@@ -78,6 +78,20 @@ def test_saved_project_can_be_reopened(client, synthetic_png: bytes) -> None:
     assert response.json()["id"] == created["id"]
 
 
+def test_invalid_project_ids_are_returned_as_not_found(client) -> None:
+    invalid_ids = ["..%2Ffoo", "..\\foo", "not-hex", "0123456789abcdef0123456789abcdeg"]
+
+    for project_id in invalid_ids:
+        response = client.get(f"/api/projects/{project_id}")
+        assert response.status_code == 404
+
+    response = client.patch(
+        "/api/projects/not-hex/cells/0/0",
+        json={"source_code": "F14", "target_code": "K07"},
+    )
+    assert response.status_code == 404
+
+
 def test_correct_cell_records_user_edit(client, synthetic_png: bytes) -> None:
     created = client.post(
         "/api/projects/import",

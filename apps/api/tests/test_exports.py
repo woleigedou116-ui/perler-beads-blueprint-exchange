@@ -22,10 +22,12 @@ from bead_converter.exports.image_export import (
 from bead_converter.palettes.repository import PaletteRepository
 from bead_converter.projects.store import ProjectStore
 
+PROJECT_ID = "0123456789abcdef0123456789abcdef"
+
 
 def confirmed_project() -> BeadProject:
     return BeadProject(
-        id="export-project",
+        id=PROJECT_ID,
         name="导出图纸",
         source_image_name="source.png",
         source_standard="MARD",
@@ -264,8 +266,9 @@ def test_beadproject_archive_reopens_with_source_image(tmp_path: Path) -> None:
     restored = restored_store.import_archive(archive)
 
     assert restored.cells == project.cells
+    assert restored.id != project.id
     assert (
-        tmp_path / "restored" / project.id / "source.png"
+        tmp_path / "restored" / restored.id / "source.png"
     ).read_bytes() == b"source-bytes"
 
 
@@ -287,6 +290,62 @@ def test_beadproject_archive_preserves_unwanted_cells(tmp_path: Path) -> None:
     assert unwanted.confidence == 0
     assert unwanted.ocr_candidates == []
     assert "user-marked-unwanted" in unwanted.issue_reasons
+
+
+def test_importing_same_beadproject_twice_creates_independent_projects(
+    tmp_path: Path,
+) -> None:
+    store = ProjectStore(tmp_path / "original")
+    project = confirmed_project()
+    store.save(project)
+    store.save_source_image(project.id, "source.png", b"source-bytes")
+    archive = store.export_archive(project.id)
+
+    restored_store = ProjectStore(tmp_path / "restored")
+    first = restored_store.import_archive(archive)
+    second = restored_store.import_archive(archive)
+
+    assert first.id != second.id
+    assert (tmp_path / "restored" / first.id / "project.json").exists()
+    assert (tmp_path / "restored" / second.id / "project.json").exists()
+    assert (tmp_path / "restored" / first.id / "source.png").read_bytes() == b"source-bytes"
+    assert (tmp_path / "restored" / second.id / "source.png").read_bytes() == b"source-bytes"
+
+
+def test_beadproject_archive_rejects_large_declared_file(tmp_path: Path) -> None:
+    archive = BytesIO()
+    with ZipFile(archive, "w", ZIP_DEFLATED) as bundle:
+        bundle.writestr("project.json", confirmed_project().model_dump_json())
+        bundle.writestr("source.png", b"x" * (65 * 1024 * 1024))
+
+    store = ProjectStore(tmp_path)
+
+    try:
+        store.import_archive(archive.getvalue())
+    except ValueError as exc:
+        assert "too large" in str(exc)
+        return
+    raise AssertionError("oversized project archive must be rejected")
+
+
+def test_beadproject_archive_rejects_too_many_cells(
+    monkeypatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr("bead_converter.projects.store.MAX_PROJECT_CELLS", 1)
+    archive = BytesIO()
+    with ZipFile(archive, "w", ZIP_DEFLATED) as bundle:
+        bundle.writestr("project.json", confirmed_project().model_dump_json())
+        bundle.writestr("source.png", b"source-bytes")
+
+    store = ProjectStore(tmp_path)
+
+    try:
+        store.import_archive(archive.getvalue())
+    except ValueError as exc:
+        assert "too many cells" in str(exc)
+        return
+    raise AssertionError("archive with too many cells must be rejected")
 
 
 def test_beadproject_archive_rejects_unknown_format_version(tmp_path: Path) -> None:
