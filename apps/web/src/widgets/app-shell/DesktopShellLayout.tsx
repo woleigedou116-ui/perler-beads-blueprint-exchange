@@ -19,9 +19,9 @@ export function DesktopShellLayout({
 }: DesktopShellLayoutProps) {
   return (
     <main aria-label={ariaLabel} className={cn("desktop-shell-layout", className)}>
-      {topBar ? <header className="desktop-shell-topbar">{topBar}</header> : null}
-      <section className="desktop-shell-body">{body}</section>
-      {statusBar ? <footer className="desktop-shell-statusbar">{statusBar}</footer> : null}
+      {topBar ? <div className="desktop-shell-topbar">{topBar}</div> : null}
+      <div className="desktop-shell-body">{body}</div>
+      {statusBar ? <div className="desktop-shell-statusbar">{statusBar}</div> : null}
     </main>
   );
 }

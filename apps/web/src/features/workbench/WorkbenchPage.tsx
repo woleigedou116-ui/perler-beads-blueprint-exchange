@@ -15,6 +15,8 @@ import {
 } from "../../api/client";
 import { saveExport } from "../../api/exports";
 import type { BeadProject, Cell, PaletteMapping } from "../../domain/types";
+import { DesktopShellLayout } from "../../widgets/app-shell";
+import { ThreePaneWorkspace } from "../../widgets/workspace-layout";
 import { UploadPanel } from "../upload/UploadPanel";
 import { ComparisonPreview } from "./ComparisonPreview";
 import type { ColorStatSort } from "./colorStats";
@@ -364,97 +366,117 @@ export function WorkbenchPage() {
     }
   }
 
-  return (
-    <div
-      aria-label="拼豆转换工作台"
-      className={`desktop-workbench${isReviewFullscreen ? " review-fullscreen" : ""}`}
-    >
-      <WorkbenchCommandBar
-        projectLoaded={Boolean(project)}
-        reviewCount={reviewCount}
-        onExportClean={(options) => handleExport("clean.png", options)}
-        onExportMapping={() => handleExport("mapping.csv")}
-        onExportOverlay={(options) => handleExport("overlay.png", options)}
-        onOpenProject={handleOpenProject}
-        onSaveProject={() => handleExport("project.beadproject")}
-        onSelectImage={setFile}
-      />
-      <div className="workbench-body">
-        <UploadPanel
-          attribution={attribution}
-          file={file}
-          previewUrl={previewUrl}
-          processing={processing}
-          project={project}
-          lastRecognitionDurationMs={lastRecognitionDurationMs}
-          onAttributionChange={setAttribution}
-          onImport={handleImport}
-          onOpenProject={handleOpenProject}
-          onSaveAttribution={handleSaveAttribution}
-          onSelectFile={setFile}
-        />
-        <section className="center-workspace" aria-label="图纸对照预览">
-          {error ? <p className="error-note">{error}</p> : null}
-          {project ? (
-            <>
-              <ComparisonPreview
-                colorStatSort={colorStatSort}
-                focusRequest={focusRequest}
-                fullscreen={isReviewFullscreen}
-                paletteMappings={paletteMappings}
-                project={project}
-                selectedRegionBounds={selectedRegionBounds}
-                sourceImageUrl={previewUrl}
-                toolbarActions={null}
-                onFullscreenChange={setIsReviewFullscreen}
-                onSelectCell={handleSelectCell}
-              />
-              <PaletteReference paletteMappings={paletteMappings} project={project} />
-            </>
-          ) : (
-            <div className="empty-workspace">
-              <h2>等待图纸</h2>
-              <p>上传带 MARD 色号的规则网格图片后，此处会生成 COCO 初稿。</p>
-            </div>
-          )}
-        </section>
-        {project ? (
-          <ReviewPanel
-            autoLocateAfterDecision={autoLocateAfterDecision}
+  const commandBar = (
+    <WorkbenchCommandBar
+      projectLoaded={Boolean(project)}
+      reviewCount={reviewCount}
+      onExportClean={(options) => handleExport("clean.png", options)}
+      onExportMapping={() => handleExport("mapping.csv")}
+      onExportOverlay={(options) => handleExport("overlay.png", options)}
+      onOpenProject={handleOpenProject}
+      onSaveProject={() => handleExport("project.beadproject")}
+      onSelectImage={setFile}
+    />
+  );
+
+  const projectRail = (
+    <UploadPanel
+      attribution={attribution}
+      file={file}
+      previewUrl={previewUrl}
+      processing={processing}
+      project={project}
+      lastRecognitionDurationMs={lastRecognitionDurationMs}
+      onAttributionChange={setAttribution}
+      onImport={handleImport}
+      onOpenProject={handleOpenProject}
+      onSaveAttribution={handleSaveAttribution}
+      onSelectFile={setFile}
+    />
+  );
+
+  const previewWorkspace = (
+    <section className="center-workspace" aria-label="图纸对照预览">
+      {error ? <p className="error-note">{error}</p> : null}
+      {project ? (
+        <>
+          <ComparisonPreview
             colorStatSort={colorStatSort}
+            focusRequest={focusRequest}
+            fullscreen={isReviewFullscreen}
             paletteMappings={paletteMappings}
             project={project}
-            highlightSelectedReviewGroup={highlightSelectedReviewGroup}
-            regionSelectionActive={regionSelection !== null}
-            regionSelectionComplete={Boolean(regionSelection?.start && regionSelection.end)}
-            regionSelectionLabel={regionSelectionLabel}
-            selectedCell={selectedCell}
-            onAutoLocateAfterDecisionChange={setAutoLocateAfterDecision}
-            onApplyRegionUnwanted={handleApplyRegionUnwanted}
-            onCancelRegionUnwanted={handleCancelRegionUnwanted}
-            onColorStatSortChange={setColorStatSort}
-            onConfirmMapping={handleConfirmMapping}
-            onCorrectCell={handleCorrectCell}
-            onCorrectGroup={handleCorrectGroup}
-            onLocateCell={(cell) => setFocusRequest({ cell, nonce: Date.now() })}
-            onMarkCellUnwanted={handleMarkCellUnwanted}
-            onStartRegionUnwanted={handleStartRegionUnwanted}
+            selectedRegionBounds={selectedRegionBounds}
+            sourceImageUrl={previewUrl}
+            toolbarActions={null}
+            onFullscreenChange={setIsReviewFullscreen}
             onSelectCell={handleSelectCell}
           />
-        ) : (
-          <aside className="panel review-panel idle-review">
-            <h2>校对</h2>
-            <p>识别后，疑点会集中列在这里。</p>
-          </aside>
-        )}
-      </div>
-      <WorkbenchStatusBar
-        project={project}
-        reviewCount={reviewCount}
-        selectedCell={selectedCell}
-        lastRecognitionDurationMs={lastRecognitionDurationMs}
-      />
-    </div>
+          <PaletteReference paletteMappings={paletteMappings} project={project} />
+        </>
+      ) : (
+        <div className="empty-workspace">
+          <h2>等待图纸</h2>
+          <p>上传带 MARD 色号的规则网格图片后，此处会生成 COCO 初稿。</p>
+        </div>
+      )}
+    </section>
+  );
+
+  const reviewRail = project ? (
+    <ReviewPanel
+      autoLocateAfterDecision={autoLocateAfterDecision}
+      colorStatSort={colorStatSort}
+      paletteMappings={paletteMappings}
+      project={project}
+      highlightSelectedReviewGroup={highlightSelectedReviewGroup}
+      regionSelectionActive={regionSelection !== null}
+      regionSelectionComplete={Boolean(regionSelection?.start && regionSelection.end)}
+      regionSelectionLabel={regionSelectionLabel}
+      selectedCell={selectedCell}
+      onAutoLocateAfterDecisionChange={setAutoLocateAfterDecision}
+      onApplyRegionUnwanted={handleApplyRegionUnwanted}
+      onCancelRegionUnwanted={handleCancelRegionUnwanted}
+      onColorStatSortChange={setColorStatSort}
+      onConfirmMapping={handleConfirmMapping}
+      onCorrectCell={handleCorrectCell}
+      onCorrectGroup={handleCorrectGroup}
+      onLocateCell={(cell) => setFocusRequest({ cell, nonce: Date.now() })}
+      onMarkCellUnwanted={handleMarkCellUnwanted}
+      onStartRegionUnwanted={handleStartRegionUnwanted}
+      onSelectCell={handleSelectCell}
+    />
+  ) : (
+    <aside className="panel review-panel idle-review">
+      <h2>校对</h2>
+      <p>识别后，疑点会集中列在这里。</p>
+    </aside>
+  );
+
+  const statusBar = (
+    <WorkbenchStatusBar
+      project={project}
+      reviewCount={reviewCount}
+      selectedCell={selectedCell}
+      lastRecognitionDurationMs={lastRecognitionDurationMs}
+    />
+  );
+
+  return (
+    <DesktopShellLayout
+      ariaLabel="拼豆转换工作台"
+      body={
+        <ThreePaneWorkspace
+          center={previewWorkspace}
+          className="workbench-body"
+          left={projectRail}
+          right={reviewRail}
+        />
+      }
+      className={`desktop-workbench${isReviewFullscreen ? " review-fullscreen" : ""}`}
+      statusBar={statusBar}
+      topBar={commandBar}
+    />
   );
 }
 

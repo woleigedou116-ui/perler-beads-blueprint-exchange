@@ -376,14 +376,30 @@ describe("WorkbenchPage", () => {
     expect(appCss).toContain(".desktop-workbench.review-fullscreen");
   });
 
+  it("renders the default workbench through the shared desktop shell", () => {
+    vi.mocked(getPalette).mockResolvedValue({
+      version: "mard-coco.v1",
+      mappings: paletteMappings,
+    });
+
+    render(<WorkbenchPage />);
+
+    const workbench = screen.getByLabelText("拼豆转换工作台");
+    expect(workbench).toHaveClass("desktop-shell-layout");
+    expect(workbench.querySelector(".three-pane-workspace")).toBeInTheDocument();
+  });
+
   it("keeps loaded workbench columns inside the body row", () => {
     const projectSidebarCss = cssBlockFor(".project-sidebar");
     const centerWorkspaceCss = cssBlockFor(".center-workspace");
+    const shellStatusCss = cssBlockFor(".desktop-shell-statusbar .workbench-status-bar");
 
     expect(projectSidebarCss).toContain("max-height: 100%;");
     expect(projectSidebarCss).toContain("overflow-y: auto;");
     expect(centerWorkspaceCss).toContain("max-height: 100%;");
     expect(centerWorkspaceCss).toContain("overflow-y: auto;");
+    expect(shellStatusCss).toContain("height: 100%;");
+    expect(shellStatusCss).toContain("min-height: 0;");
   });
 
   it("keeps export actions in the desktop command bar", async () => {

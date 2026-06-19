@@ -17,9 +17,9 @@ export function ThreePaneWorkspace({
 }: ThreePaneWorkspaceProps) {
   return (
     <div className={cn("three-pane-workspace", className)}>
-      {left ? <aside className="three-pane-workspace-left">{left}</aside> : null}
-      <section className="three-pane-workspace-center">{center}</section>
-      {right ? <aside className="three-pane-workspace-right">{right}</aside> : null}
+      {left ? <div className="three-pane-workspace-left">{left}</div> : null}
+      <div className="three-pane-workspace-center">{center}</div>
+      {right ? <div className="three-pane-workspace-right">{right}</div> : null}
     </div>
   );
 }
