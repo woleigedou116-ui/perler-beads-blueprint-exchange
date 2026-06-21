@@ -88,6 +88,16 @@ cd ..\..
 http://localhost:8765
 ```
 
+## 项目交接
+
+继续开发前，建议先读：
+
+- `docs/agent-workflow/current-context.md`：当前分支、运行方式、最近改动和接手顺序。
+- `docs/agent-workflow/stage-wrap-up-2026-06-22.md`：阶段性收尾审计、冗余文件判断和多 agent 文档说明。
+- `docs/frontend/frontend-architecture-source-of-truth.md`：前端视觉语言、组件方案、token、主题和多语言方向。
+
+`docs/agent-workflow/` 里还有本地多 agent / Claude Code / DeepSeek 工作流文档。日常小改动不需要启动完整流程；只有需要把打包、测试或拆分任务交给其他 agent 时再阅读使用。
+
 ## 打包
 
 Windows 便携包使用 PyInstaller 构建：

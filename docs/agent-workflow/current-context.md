@@ -1,121 +1,117 @@
 # Current Context
 
-Last updated: 2026-06-01.
+Last updated: 2026-06-22.
 
-This project is currently small enough to continue mostly in one coding
-conversation. Use this file as the first stop for future agents before reading
-the full local multi-agent workflow.
+Use this file as the first stop for future agents. It is the short handoff for
+the current worktree; read the more specific documents only when the task needs
+them.
 
 ## Project
 
 - Main project: `D:\vibecoding_project\perlerbeads_blueprint_exchange`
-- Active worktree: `D:\vibecoding_project\perlerbeads_blueprint_exchange\.worktrees\feature-mard-coco-mvp`
+- Active worktree:
+  `D:\vibecoding_project\perlerbeads_blueprint_exchange\.worktrees\feature-mard-coco-mvp`
 - Branch: `feature/mard-coco-mvp`
-- Runtime multi-agent records: `D:\vibecoding_project\perlerbeads_blueprint_exchange\.agent-work`
-- Current local app URL when service is running: `http://127.0.0.1:8787/`
+- Runtime multi-agent records:
+  `D:\vibecoding_project\perlerbeads_blueprint_exchange\.agent-work`
+- Main local app URL when the packaged/dev desktop service is running:
+  `http://127.0.0.1:8765/`
+- Frontend Vite dev URL, when running frontend separately:
+  `http://127.0.0.1:5173/`
 
-The sample image names were recently changed. Current files in
-`D:\vibecoding_project\perlerbeads_blueprint_exchange\拼豆样例图` include:
+As of the stage wrap-up audit on 2026-06-22, the branch was ahead of
+`origin/feature/mard-coco-mvp` by at least one local commit:
 
-- `初音未来.jpg`
-- `大耳帽兜.jpg` - formerly the 40 x 63 Cinnamoroll sample.
-- `恶魔狼.jpg`
-- `高级咕噜球.jpg`
-- `棱镜球.jpg`
-- `小夜_有水印版.jpg` - watermark sample.
+- `056323c fix: render target focus as separate frame`
 
-## Current Product Direction
+Check `git status --short --branch` before continuing. Do not assume this
+handoff reflects later pushes or local commits.
 
-The watermark/unwanted-area correction flow is result-first:
+## Current Product State
 
-- Users upload and recognize an image first.
-- After the result appears, users can mark a single grid cell as not a bead.
-- Users can select a rectangular grid range and remove it as non-bead content.
-- Pre-recognition crop, multiple boxes, polygon selection, and explicit watermark
-  exclusion are future extensions, not the primary current flow.
+The project is an MVP local tool for converting regular MARD perler-bead
+blueprints into reviewable/exportable COCO projects.
 
-## Implemented Surface
+- Users upload a local blueprint image.
+- The backend detects the grid, samples colors, runs OCR, and maps MARD to COCO.
+- The frontend shows a source overlay and COCO redraw preview.
+- Users review uncertain cells by group, confirm groups, modify groups, or fix a
+  single cell.
+- Users can mark a single cell or rectangular region as non-bead content.
+- Users can hide overlays, hide COCO labels, hide color statistics, save
+  `.beadproject`, reopen projects, and export CSV/image/project outputs.
+- The current UI still runs in a browser, but the visual direction is a
+  desktop-software style workbench.
 
-- Backend: `PATCH /api/projects/{project_id}/cells/unwanted`
-- Single-cell payload: `{"row": 0, "column": 0}`
-- Rectangular range payload:
-  `{"start_row": 0, "start_column": 0, "end_row": 1, "end_column": 1}`
-- Marked cells become `empty`, source/target/OCR fields are cleared, and
-  `user-marked-unwanted` is recorded.
-- Frontend actions include `标记为非拼豆`, `框选非拼豆区域`, `应用框选区域`, and
-  `取消框选`.
-- Export supports clean image, overlay image, mapping CSV, and `.beadproject`.
-- `.beadproject` archives now preserve the original source image, so reopening a
-  saved project can reload the uploaded image.
-- Frontend has zoom/pan controls, source overlay toggle, target overlay toggle,
-  color statistics toggle, palette reference, review panel, and selectable
-  non-bead regions.
+## Current Frontend Direction
 
-## Recent OCR Performance Work
+The frontend rewrite is guided by:
 
-The random recognition slowdown was traced to RapidOCR / ONNX Runtime CPU
-threading, not to color clustering, OCR representative count, or the frontend.
+- `docs/frontend/frontend-architecture-source-of-truth.md`
+- `docs/frontend/frontend-skeleton-acceptance.md`
 
-Important conclusions:
+Important recent frontend work:
 
-- OCR result cache was deliberately disabled by default because it can mask
-  validation results during manual acceptance testing.
-- Timing diagnostics were added to upload responses and the upload panel:
-  `本次识别用时`, `服务端总耗时`, `OCR识别`, `OCR代表格`, `OCR调用耗时`,
-  `OCR最慢单次`, and `等待/渲染差值`.
-- Direct service tests showed `大耳帽兜.jpg` should normally use 9 OCR
-  representative cells.
-- The major fix was to set ONNX Runtime thread counts explicitly in
-  `apps/api/src/bead_converter/vision/ocr.py`.
-- The current default is the gentler setting:
-  `intra_op_num_threads = 2`, `inter_op_num_threads = 1`.
-- Earlier `4` threads were faster but caused noticeably higher CPU spikes. The
-  current `2` thread setting is intentionally more comfortable for desktop use.
+- A desktop-workbench visual skeleton was introduced.
+- `GridPreview` now virtualizes visible cells so large projects do not render
+  every grid cell at once.
+- Preview pan/zoom uses direct DOM transform updates during interaction and
+  commits React state after the gesture.
+- Wheel zoom commits immediately enough to keep the two preview panels aligned
+  and avoid stale zoom/blur behavior after interaction.
+- The selected target cell frame is rendered as a separate outline instead of
+  filling or distorting the COCO cell.
+- Source/target preview reset and image-change behavior were tightened so the
+  panels recenter correctly between projects.
 
-Recent commits to know:
+If changing preview behavior, inspect these files first:
 
-- `6a62df9 perf: use gentler OCR thread count`
-- `60c56c8 chore: add OCR engine call diagnostics`
-- `c41fa09 perf: limit RapidOCR CPU threads`
-- `726ad16 chore: expose OCR timing diagnostics`
-- `f338562 feat: show recognition timing diagnostics`
-- `5fb27c8 fix: prevent duplicate image imports`
-- `a32c74b chore: disable OCR result cache by default`
-- `36483a6 fix: isolate recognition timing updates`
+- `apps/web/src/features/workbench/ComparisonPreview.tsx`
+- `apps/web/src/features/workbench/GridPreview.tsx`
+- `apps/web/src/features/workbench/previewVirtualization.ts`
+- `apps/web/src/styles/app.css`
 
-Current rough performance with the gentler default:
+## Current Backend And Packaging Direction
 
-- `大耳帽兜.jpg`: about 2.0 seconds after OCR initialization.
-- `高级咕噜球.jpg`: about 2.6 seconds.
-- `小夜_有水印版.jpg`: about 8.6 seconds.
+Backend and packaging are stable enough for MVP testing.
 
-If the user reports another slow recognition, inspect the timing card:
+- Backend API lives under `apps/api/src/bead_converter/`.
+- Static frontend output is served by the FastAPI desktop service after build.
+- Runtime project data belongs in `.data/`, which is ignored.
+- Windows portable packaging is documented in
+  `docs/agent-workflow/release-packager-task.md`.
+- Build artifacts belong in `release/`, `dist/`, or `build/`, all ignored.
 
-- Large `等待/渲染差值`: likely browser/request queue/rendering.
-- Large `OCR调用耗时` and large `OCR最慢单次`: one underlying OCR engine call
-  stalled.
-- Large `OCR调用耗时` but small `OCR最慢单次`: OCR calls are collectively slower,
-  likely scheduling/resource contention.
-- `OCR代表格` unexpectedly high: representative-cell selection changed and
-  should be investigated in `apps/api/src/bead_converter/vision/recognizer.py`.
+Packaging/release builds have been delegated to Claude Code / DeepSeek-style
+executor runs before, mainly to keep noisy build output out of the main coding
+conversation. That is optional; ordinary code changes do not need the full
+multi-agent workflow.
 
 ## Local Service
 
-Start or restart the local service from the active worktree:
+Integrated app service:
 
 ```powershell
-$owner=(Get-NetTCPConnection -LocalPort 8787 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty OwningProcess)
-if ($owner) { Stop-Process -Id $owner -Force; Start-Sleep -Seconds 1 }
-$env:PYTHONPATH='apps/api/src'
-Start-Process -FilePath '.\.venv\Scripts\python.exe' -ArgumentList @('-m','uvicorn','bead_converter.main:app','--host','127.0.0.1','--port','8787') -WorkingDirectory (Get-Location) -WindowStyle Hidden
-Start-Sleep -Seconds 3
-Invoke-RestMethod -Uri 'http://127.0.0.1:8787/api/health'
+.\.venv\Scripts\python scripts\dev.py
 ```
 
-Open the app at:
+Open:
 
 ```text
-http://127.0.0.1:8787/
+http://127.0.0.1:8765/
+```
+
+Separate frontend development:
+
+```powershell
+cd apps\web
+npm run dev
+```
+
+Open:
+
+```text
+http://127.0.0.1:5173/
 ```
 
 ## Verification Commands
@@ -140,34 +136,72 @@ npm test -- --run
 npm run build
 ```
 
-Recent verification after the OCR thread-count change:
+For frontend visual or interaction changes, also verify in a real browser on
+`127.0.0.1`; jsdom tests cannot prove canvas/SVG sharpness or GPU compositing
+behavior.
 
-- Backend full tests: 79 passed.
-- Frontend full tests: 74 passed.
-- Frontend build: passed.
-- Direct API recognition test on `大耳帽兜.jpg`: stable around 2 seconds after
-  OCR initialization.
+## Handoff Reading Order
+
+For ordinary continuation:
+
+1. `docs/agent-workflow/current-context.md`
+2. `README.md`
+3. `docs/frontend/frontend-architecture-source-of-truth.md` for frontend work
+4. Relevant code/tests for the exact area being changed
+
+For release packaging:
+
+1. `docs/agent-workflow/release-packager-task.md`
+2. `docs/releases/`
+3. `README.md`
+
+For coordinated multi-agent or Claude Code / DeepSeek work:
+
+1. `docs/agent-workflow/local-agent-orchestrator-design.md`
+2. `docs/agent-workflow/main-agent-design.md`
+3. `docs/agent-workflow/sub-agents-design.md`
+4. `docs/agent-workflow/claude-code-deepseek.md`
+5. `.claude/agents/`
+
+The multi-agent documents are retained because `AGENTS.md` references them and
+the project has one recorded runtime workflow under `.agent-work/`. They are not
+needed for normal single-agent bug fixes.
+
+Completed task cards kept for traceability:
+
+- `docs/agent-workflow/backend-hardening-tasks.md`
+- `docs/agent-workflow/preview-zoom-sharpness-task.md`
+
+Treat these as historical review/task records unless a new request explicitly
+reopens them.
+
+## Local Artifacts And Cleanup
+
+The following directories are intentionally ignored and should not be committed:
+
+- `.data/` - local runtime projects and OCR benchmark outputs
+- `.venv/` - local Python environment
+- `.pytest_cache/` - local test cache
+- `apps/web/node_modules/` - local Node dependencies
+- `apps/web/dist/` - frontend build output
+- `release/`, `dist/`, `build/` - local packaging output
+- `scripts/__pycache__/` and other `__pycache__/` folders
+
+These are safe to delete when you do not need local runtime projects, build
+outputs, or installed dependencies. Deleting `.venv` or `node_modules` only means
+the dependencies must be installed again.
 
 ## Agent Notes
 
-- For ordinary single-conversation development, prefer this file plus the local
-  code/tests over the full orchestration documents.
-- For coordinated multi-agent work, read:
-  - `docs/agent-workflow/local-agent-orchestrator-design.md`
-  - `docs/agent-workflow/main-agent-design.md`
-  - `docs/agent-workflow/sub-agents-design.md`
-  - `docs/agent-workflow/claude-code-deepseek.md`
-- Claude Code subagent prompts live in `.claude/agents/`.
-- If using Claude Code through DeepSeek, credentials and routing should remain in
-  local environment/config files, not this repository.
-- For packaging/release builds, delegate the noisy build and zip verification to
-  a release packager agent using `docs/agent-workflow/release-packager-task.md`.
-- The user prefers ordinary single-window development for product work. Do not
-  launch complex multi-agent workflow unless explicitly asked.
+- The user prefers direct, scoped implementation and verification over broad
+  process ceremony.
+- Do not launch the full multi-agent workflow unless explicitly asked.
 - The user generally wants bug fixes committed after verification.
 - Do not revert or delete unrelated changes from other agents or the user.
-- If continuing performance work, avoid re-enabling OCR cache as a "fix"; it was
-  disabled by default to keep acceptance testing honest.
+- If continuing performance work, avoid re-enabling OCR cache as a quick fix; it
+  can mask real recognition behavior during acceptance testing.
+- If updating handoff docs, keep them current and short enough for the next
+  agent to actually read.
 
 ## Lessons To Preserve
 
@@ -177,3 +211,8 @@ statistics, archives, warnings, frontend display, and frontend API typing.
 For OCR performance, check CPU thread settings and backend timing diagnostics
 before changing recognition heuristics. A faster-looking cache can hide real OCR
 behavior during acceptance testing.
+
+For preview performance, remember that avoiding React commits during drag is not
+enough by itself. Large grids need virtualization, wheel/pinch behavior must not
+fight the pan/zoom state, and visual sharpness has to be checked in a real
+browser.
