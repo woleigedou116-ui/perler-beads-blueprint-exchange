@@ -70,6 +70,7 @@ interface GridPreviewProps {
 }
 
 const CELL_SIZE = 52;
+const TARGET_FOCUS_INSET = 1.5;
 const DARK_TEXT = "rgb(25, 25, 25)";
 const LIGHT_TEXT = "rgb(255, 255, 255)";
 
@@ -412,6 +413,7 @@ export function GridPreview({
                         ? "review-cell"
                         : "",
                       showReviewOverlay &&
+                      !target &&
                       focusedCell?.row === cell.row &&
                       focusedCell.column === cell.column
                         ? "focused-cell"
@@ -452,6 +454,16 @@ export function GridPreview({
                   </g>
                 );
               })}
+              {target && focusedCell ? (
+                <rect
+                  className="target-focus-frame focused-cell"
+                  fill="none"
+                  x={focusedCell.column * CELL_SIZE + TARGET_FOCUS_INSET}
+                  y={focusedCell.row * CELL_SIZE + TARGET_FOCUS_INSET}
+                  width={CELL_SIZE - TARGET_FOCUS_INSET * 2}
+                  height={CELL_SIZE - TARGET_FOCUS_INSET * 2}
+                />
+              ) : null}
             </svg>
           )}
         </div>

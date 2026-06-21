@@ -241,6 +241,9 @@ it("uses desktop workspace preview rules without nested decorative cards", () =>
   expect(cssBlockFor(".preview-viewport.is-interacting .preview-transform")).toContain(
     "will-change: transform;",
   );
+  expect(cssBlockFor(".grid-preview .target-focus-frame")).toContain(
+    "stroke-width: 3.5;",
+  );
   expect(cssBlockFor(".target-color-stats")).toContain("grid-row: 3;");
   expect(cssBlockFor(".comparison-toolbar-actions")).toContain("margin-left: auto;");
 });

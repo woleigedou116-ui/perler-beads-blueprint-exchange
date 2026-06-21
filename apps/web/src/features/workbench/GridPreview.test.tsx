@@ -179,6 +179,31 @@ it("uses larger target labels in the regenerated preview", () => {
   expect(container.querySelector("text")).toHaveStyle({ fontSize: "16px" });
 });
 
+it("draws target focus as a separate empty square frame", () => {
+  const { container } = render(
+    <GridPreview
+      focusedCell={projectWithOneReviewCell.cells[1]}
+      project={projectWithOneReviewCell}
+      target
+      title="COCO 重绘预览"
+      onSelectCell={vi.fn()}
+    />,
+  );
+
+  const focusFrame = container.querySelector(".target-focus-frame");
+  const focusedGroup = container.querySelector(
+    '[data-cell-row="0"][data-cell-column="1"]',
+  );
+
+  expect(focusFrame).toBeInTheDocument();
+  expect(focusFrame).toHaveAttribute("fill", "none");
+  expect(focusFrame).toHaveAttribute("x", "53.5");
+  expect(focusFrame).toHaveAttribute("y", "1.5");
+  expect(focusFrame).toHaveAttribute("width", "49");
+  expect(focusFrame).toHaveAttribute("height", "49");
+  expect(focusedGroup).not.toHaveClass("focused-cell");
+});
+
 it("can hide cell labels in the regenerated preview while keeping bead colors", () => {
   const { container } = render(
     <GridPreview
