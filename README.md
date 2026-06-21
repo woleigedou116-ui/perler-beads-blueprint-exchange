@@ -11,13 +11,13 @@
 当前推荐测试版：
 
 ```text
-v0.1.1-mvp-test
+v0.1.2-mvp-test
 ```
 
 Windows 便携包可在 GitHub Releases 中下载：
 
 ```text
-perler-beads-blueprint-exchange-v0.1.1-mvp-test-windows-portable.zip
+perler-beads-blueprint-exchange-v0.1.2-mvp-test-windows-portable.zip
 ```
 
 这是 MVP 测试版，适合试用核心流程和反馈问题，不是正式安装器。

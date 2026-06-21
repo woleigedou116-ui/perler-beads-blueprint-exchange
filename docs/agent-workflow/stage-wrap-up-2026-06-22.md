@@ -32,8 +32,9 @@ git status --short --branch
   from the cell fill/text, so the selected cell remains square.
 - Backend hardening and import/storage safety work has been done and should be
   treated as part of the current baseline.
-- Release packaging exists for `v0.1.1-mvp-test`, but a newer package should be
-  rebuilt if the latest frontend fixes need to be included in a release.
+- Release packaging existed for `v0.1.1-mvp-test`; the next maintenance release
+  should use `v0.1.2-mvp-test` so the latest frontend fixes and handoff docs are
+  tied to a fresh tag instead of moving the old tag.
 
 ## Documentation Map
 
