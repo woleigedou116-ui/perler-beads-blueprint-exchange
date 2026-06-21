@@ -441,13 +441,6 @@ export function ComparisonPreview({
     setInteractingSide((current) => (current === side ? null : current));
   }
 
-  function previewZoom(side: PreviewSide, delta: number) {
-    const currentTransform = zoomInteractions.current[side]?.transform ?? views[side];
-    const nextZoom = clampZoom(currentTransform.zoom + delta);
-    const nextTransform = zoomAroundViewportCenter(side, currentTransform, nextZoom);
-    previewZoomTo(side, nextTransform);
-  }
-
   function previewZoomTo(side: PreviewSide, nextTransform: PreviewTransform) {
     const previousTimer = zoomInteractions.current[side]?.commitTimer;
     if (previousTimer !== undefined && previousTimer !== null) {
@@ -471,8 +464,8 @@ export function ComparisonPreview({
   function handleWheel(side: PreviewSide, event: WheelEvent<HTMLDivElement>) {
     event.preventDefault();
     event.stopPropagation();
-    updateViewportSize(side);
-    previewZoom(side, event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
+    updateViewportSize(side, true);
+    changeZoom(side, event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP);
   }
 
   function updateViewportSize(side: PreviewSide, commit = false) {

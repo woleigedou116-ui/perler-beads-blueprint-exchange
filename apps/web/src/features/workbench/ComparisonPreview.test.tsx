@@ -524,8 +524,7 @@ it("updates pan transform during drag without committing a React render", () => 
   cancelAnimationFrameSpy.mockRestore();
 });
 
-it("updates wheel zoom through a single animation frame before committing state", async () => {
-  vi.useFakeTimers();
+it("commits wheel zoom immediately so SVG previews rerender at the new scale", () => {
   const commits: string[] = [];
   const queuedFrames: FrameRequestCallback[] = [];
   const requestAnimationFrameSpy = vi
@@ -551,31 +550,16 @@ it("updates wheel zoom through a single animation frame before committing state"
   setPreviewSize(container, 1, { width: 400, height: 200 }, { width: 400, height: 200 });
 
   const targetViewport = container.querySelectorAll(".preview-viewport")[1];
-  const targetTransform = container.querySelectorAll<HTMLElement>(".preview-transform")[1];
   const commitsBeforeWheel = commits.length;
 
   fireEvent.wheel(targetViewport, { deltaY: -100 });
   fireEvent.wheel(targetViewport, { deltaY: -100 });
 
-  expect(requestAnimationFrameSpy).toHaveBeenCalledTimes(1);
-  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("100%");
-  const commitsBeforeFrame = commits.length;
-
-  queuedFrames.shift()?.(16);
-
-  expect(targetTransform.style.transform).toBe("translate(-100px, -50px) scale(1.5)");
-  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("100%");
-  expect(commits.length).toBe(commitsBeforeFrame);
-  expect(commits.length - commitsBeforeWheel).toBeLessThanOrEqual(3);
-
-  vi.advanceTimersByTime(149);
-  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("100%");
-
-  vi.advanceTimersByTime(1);
-  await vi.waitFor(() =>
-    expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("150%"),
-  );
+  expect(requestAnimationFrameSpy).not.toHaveBeenCalled();
+  expect(queuedFrames).toHaveLength(0);
+  expect(screen.getByLabelText("COCO 重绘预览 缩放比例")).toHaveTextContent("150%");
   expect(transforms(container)[1]).toBe("translate(-100px, -50px) scale(1.5)");
+  expect(commits.length).toBeGreaterThan(commitsBeforeWheel);
 
   requestAnimationFrameSpy.mockRestore();
   cancelAnimationFrameSpy.mockRestore();
